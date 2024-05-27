@@ -1,0 +1,26 @@
+[versions]
+grpc-java = "1.64.0"
+grpc-kotlin = "1.4.1"
+kotlin-core = "2.0.0"
+ktlint = "1.2.1"
+protobuf = "3.25.3"
+
+[libraries]
+assertk = { module = "com.willowtreeapps.assertk:assertk-jvm", version = "0.28.1" }
+grpc-java-protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc-java" }
+grpc-java-stub = { module = "io.grpc:grpc-stub", version.ref = "grpc-java" }
+grpc-kotlin-stub = { module = "io.grpc:grpc-kotlin-stub", version.ref = "grpc-kotlin" }
+junit-bom = { module = "org.junit:junit-bom", version = "5.10.2" }
+kotlinpoet = { module = "com.squareup:kotlinpoet", version = "1.17.0" }
+mockk-core = { module = "io.mockk:mockk", version = "1.13.11" }
+protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
+protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin", version.ref = "protobuf" }
+
+# gradle plugins for build-logic
+gradle-plugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version = "1.23.6" }
+gradle-plugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-core" }
+gradle-plugin-ktlint = { module = "org.jlleitschuh.gradle:ktlint-gradle", version = "12.1.1" }
+
+[plugins]
+protobuf = { id = "com.google.protobuf", version = "0.9.4" }
+sonatype-central-upload = { id = "cl.franciscosolis.sonatype-central-upload", version = "1.0.3" }
