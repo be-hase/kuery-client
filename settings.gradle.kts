@@ -14,6 +14,13 @@ dependencyResolutionManagement {
 
 rootProject.name = "kuery-client"
 
-include("kuery-client-core")
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-include("tmp")
+plugins {
+    // Apply the foojay-resolver plugin to allow automatic download of JDKs
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+}
+
+include("kuery-client-core")
+include("kuery-client-spring-data-jdbc")
+include("kuery-client-spring-data-r2dbc")

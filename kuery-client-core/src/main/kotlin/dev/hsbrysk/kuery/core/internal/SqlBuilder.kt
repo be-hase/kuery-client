@@ -22,9 +22,8 @@ internal class SqlBuilder : SqlDsl {
         kClass: KClass<T>,
     ): String {
         val currentIndex = parameters.size
-        val name = PARAMETER_NAME_PREFIX_WITH_COLON + currentIndex
-        parameters.add(DefaultNamedSqlParameter(name, value, kClass))
-        return name
+        parameters.add(DefaultNamedSqlParameter(PARAMETER_NAME_PREFIX + currentIndex, value, kClass))
+        return PARAMETER_NAME_PREFIX_WITH_COLON + currentIndex
     }
 
     fun build(): Sql {
@@ -32,6 +31,7 @@ internal class SqlBuilder : SqlDsl {
     }
 
     companion object {
-        internal const val PARAMETER_NAME_PREFIX_WITH_COLON = ":p"
+        internal const val PARAMETER_NAME_PREFIX = "p"
+        internal const val PARAMETER_NAME_PREFIX_WITH_COLON = ":$PARAMETER_NAME_PREFIX"
     }
 }
