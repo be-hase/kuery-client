@@ -50,9 +50,9 @@ class SqlTest {
                 VALUES (:p0, :p1, :p2)
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of(":p0", user.name),
-                    NamedSqlParameter.of(":p1", user.age),
-                    NamedSqlParameter.of(":p2", user.address),
+                    NamedSqlParameter.of("p0", user.name),
+                    NamedSqlParameter.of("p1", user.age),
+                    NamedSqlParameter.of("p2", user.address),
                 ),
             ),
         )
@@ -93,10 +93,10 @@ class SqlTest {
                     id = :p3
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of(":p0", user.name),
-                    NamedSqlParameter.of(":p1", user.age),
-                    NamedSqlParameter.of(":p2", user.address),
-                    NamedSqlParameter.of(":p3", user.id),
+                    NamedSqlParameter.of("p0", user.name),
+                    NamedSqlParameter.of("p1", user.age),
+                    NamedSqlParameter.of("p2", user.address),
+                    NamedSqlParameter.of("p3", user.id),
                 ),
             ),
         )
@@ -113,7 +113,7 @@ class SqlTest {
                 DELETE FROM user WHERE id = :p0
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of(":p0", "id"),
+                    NamedSqlParameter.of("p0", "id"),
                 ),
             ),
         )
@@ -135,11 +135,11 @@ class SqlTest {
                 WHERE id IN (:p0, :p1, :p2, :p3, :p4)
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of(":p0", 1),
-                    NamedSqlParameter.of(":p1", 2),
-                    NamedSqlParameter.of(":p2", 3),
-                    NamedSqlParameter.of(":p3", 4),
-                    NamedSqlParameter.of(":p4", 5),
+                    NamedSqlParameter.of("p0", 1),
+                    NamedSqlParameter.of("p1", 2),
+                    NamedSqlParameter.of("p2", 3),
+                    NamedSqlParameter.of("p3", 4),
+                    NamedSqlParameter.of("p4", 5),
                 ),
             ),
         )
@@ -172,9 +172,9 @@ class SqlTest {
                 """.trimIndent(),
                 users.flatMapIndexed { i, user ->
                     listOf(
-                        NamedSqlParameter.of(":p${(i * 3)}", user.name),
-                        NamedSqlParameter.of(":p${(i * 3 + 1)}", user.age),
-                        NamedSqlParameter.of(":p${(i * 3) + 2}", user.address),
+                        NamedSqlParameter.of("p${(i * 3)}", user.name),
+                        NamedSqlParameter.of("p${(i * 3 + 1)}", user.age),
+                        NamedSqlParameter.of("p${(i * 3) + 2}", user.address),
                     )
                 },
             ),
@@ -210,8 +210,8 @@ class SqlTest {
                 AND age = :p1
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of(":p0", filter.id),
-                    NamedSqlParameter.of(":p1", filter.age),
+                    NamedSqlParameter.of("p0", filter.id),
+                    NamedSqlParameter.of("p1", filter.age),
                 ),
             ),
         )
@@ -236,9 +236,9 @@ class SqlTest {
                 L2=:p0
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of(":p0", 2),
-                    NamedSqlParameter.of(":p1", 1),
-                    NamedSqlParameter.of(":p2", 0),
+                    NamedSqlParameter.of("p0", 2),
+                    NamedSqlParameter.of("p1", 1),
+                    NamedSqlParameter.of("p2", 0),
                 ),
             ),
         )

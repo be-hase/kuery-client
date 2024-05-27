@@ -27,3 +27,14 @@ interface SqlDsl {
 inline fun <reified T : Any> SqlDsl.bind(value: T?): String {
     return bind(value, T::class)
 }
+
+private val NUMBER_REGEX = "^[0-9]+$".toRegex()
+
+fun (SqlDsl.() -> Unit).id(): String {
+    val parts = this.javaClass.name.split("$").filterNot { it.matches(NUMBER_REGEX) }
+    return if (parts.isEmpty()) {
+        "UNKNOWN"
+    } else {
+        parts.joinToString(".")
+    }
+}
