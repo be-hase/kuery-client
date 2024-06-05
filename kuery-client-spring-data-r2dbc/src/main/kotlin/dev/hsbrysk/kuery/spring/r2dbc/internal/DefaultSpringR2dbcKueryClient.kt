@@ -29,6 +29,7 @@ internal class DefaultSpringR2dbcKueryClient(
         return DefaultSpringR2dbcKueryFetchSpec(block.id(), databaseClient.sql(block))
     }
 
+    @Suppress("TooManyFunctions")
     inner class DefaultSpringR2dbcKueryFetchSpec(
         private val sqlId: String,
         private val spec: GenericExecuteSpec,

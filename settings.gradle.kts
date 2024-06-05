@@ -22,5 +22,6 @@ plugins {
 }
 
 include("kuery-client-core")
+include("kuery-client-detekt")
 include("kuery-client-spring-data-jdbc")
 include("kuery-client-spring-data-r2dbc")
