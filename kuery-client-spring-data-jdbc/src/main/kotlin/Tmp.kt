@@ -1,4 +1,3 @@
-fun main(args: Array<String>) {
-//    GeneratedKeyHolder().getKeyAs("")
+fun main() {
 //    JdbcClient()
 }
