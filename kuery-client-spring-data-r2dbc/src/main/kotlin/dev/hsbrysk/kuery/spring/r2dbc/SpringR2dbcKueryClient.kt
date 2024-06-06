@@ -1,7 +1,6 @@
 package dev.hsbrysk.kuery.spring.r2dbc
 
 import dev.hsbrysk.kuery.core.KueryClient
-import dev.hsbrysk.kuery.core.KueryFetchSpec
 import dev.hsbrysk.kuery.spring.r2dbc.internal.DefaultSpringR2dbcKueryClient
 import org.springframework.core.convert.ConversionService
 import org.springframework.core.convert.support.DefaultConversionService
@@ -23,5 +22,3 @@ interface SpringR2dbcKueryClient : KueryClient {
         }
     }
 }
-
-interface SpringR2dbcKueryFetchSpec : KueryFetchSpec

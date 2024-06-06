@@ -1,10 +1,9 @@
 package dev.hsbrysk.kuery.spring.r2dbc.internal
 
-import dev.hsbrysk.kuery.core.KueryFetchSpec
+import dev.hsbrysk.kuery.core.FetchSpec
 import dev.hsbrysk.kuery.core.SqlDsl
 import dev.hsbrysk.kuery.core.id
 import dev.hsbrysk.kuery.spring.r2dbc.SpringR2dbcKueryClient
-import dev.hsbrysk.kuery.spring.r2dbc.SpringR2dbcKueryFetchSpec
 import dev.hsbrysk.kuery.spring.r2dbc.sql
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
@@ -25,81 +24,46 @@ internal class DefaultSpringR2dbcKueryClient(
     private val databaseClient: DatabaseClient,
     private val conversionService: ConversionService,
 ) : SpringR2dbcKueryClient {
-    override fun sql(block: SqlDsl.() -> Unit): KueryFetchSpec {
-        return DefaultSpringR2dbcKueryFetchSpec(block.id(), databaseClient.sql(block))
+    override fun sql(block: SqlDsl.() -> Unit): FetchSpec {
+        return SpringR2dbcKueryFetchSpec(block.id(), databaseClient.sql(block))
     }
 
     @Suppress("TooManyFunctions")
-    inner class DefaultSpringR2dbcKueryFetchSpec(
+    inner class SpringR2dbcKueryFetchSpec(
         private val sqlId: String,
         private val spec: GenericExecuteSpec,
-    ) : SpringR2dbcKueryFetchSpec {
+    ) : FetchSpec {
         override suspend fun single(): Map<String, Any?> {
-            return spec
-                .fetch()
-                .one()
-                .sqlId(sqlId)
-                .awaitSingleOrNull()
-                ?: throw EmptyResultDataAccessException(1)
+            return spec.fetch().one().sqlId(sqlId).awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
         }
 
         override suspend fun <T : Any> single(returnType: KClass<T>): T {
-            return spec
-                .map(returnType)
-                .one()
-                .sqlId(sqlId)
-                .awaitSingleOrNull()
+            return spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
                 ?: throw EmptyResultDataAccessException(1)
         }
 
         override suspend fun singleOrNull(): Map<String, Any?>? {
-            return spec
-                .fetch()
-                .one()
-                .sqlId(sqlId)
-                .awaitSingleOrNull()
+            return spec.fetch().one().sqlId(sqlId).awaitSingleOrNull()
         }
 
         override suspend fun <T : Any> singleOrNull(returnType: KClass<T>): T? {
-            return spec
-                .map(returnType)
-                .one()
-                .sqlId(sqlId)
-                .awaitSingleOrNull()
+            return spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
         }
 
         override suspend fun list(): List<Map<String, Any?>> {
-            return spec
-                .fetch()
-                .all()
-                .collectList()
-                .sqlId(sqlId)
-                .awaitSingle()
+            return spec.fetch().all().collectList().sqlId(sqlId).awaitSingle()
         }
 
         override suspend fun <T : Any> list(returnType: KClass<T>): List<T> {
-            return spec
-                .map(returnType)
-                .all()
-                .collectList()
-                .sqlId(sqlId)
-                .awaitSingle()
+            return spec.map(returnType).all().collectList().sqlId(sqlId).awaitSingle()
         }
 
         override fun flow(): Flow<Map<String, Any?>> {
-            return spec
-                .fetch()
-                .all()
-                .sqlId(sqlId)
-                .asFlow()
+            return spec.fetch().all().sqlId(sqlId).asFlow()
         }
 
         override fun <T : Any> flow(returnType: KClass<T>): Flow<T> {
-            return spec
-                .map(returnType)
-                .all()
-                .sqlId(sqlId)
-                .asFlow()
+            return spec.map(returnType).all().sqlId(sqlId).asFlow()
         }
 
         override suspend fun rowsUpdated(): Long {
@@ -107,13 +71,8 @@ internal class DefaultSpringR2dbcKueryClient(
         }
 
         override suspend fun generatedValues(vararg columns: String): Map<String, Any> {
-            return spec
-                .filter(Function { it.returnGeneratedValues(*columns) })
-                .fetch()
-                .one()
-                .sqlId(sqlId)
-                .awaitSingleOrNull()
-                ?: throw EmptyResultDataAccessException(1)
+            return spec.filter(Function { it.returnGeneratedValues(*columns) }).fetch().one().sqlId(sqlId)
+                .awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
         }
 
         private fun <T> Mono<T>.sqlId(sqlId: String): Mono<T> {
