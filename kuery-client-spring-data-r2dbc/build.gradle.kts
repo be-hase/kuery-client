@@ -18,4 +18,5 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("com.mysql:mysql-connector-j")
     testImplementation("io.asyncer:r2dbc-mysql")
+    testImplementation("org.jetbrains.kotlin:kotlin-reflect")
 }

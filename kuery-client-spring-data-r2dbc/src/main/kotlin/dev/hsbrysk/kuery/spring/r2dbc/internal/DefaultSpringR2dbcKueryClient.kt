@@ -28,7 +28,7 @@ internal class DefaultSpringR2dbcKueryClient(
     private val customConversions: R2dbcCustomConversions,
 ) : KueryClient {
     override fun sql(block: SqlDsl.() -> Unit): KueryClient.FetchSpec {
-        return DefaultFetchSpec(block.id(), databaseClient.sql(block))
+        return FetchSpec(block.id(), databaseClient.sql(block))
     }
 
     private fun DatabaseClient.sql(block: SqlDsl.() -> Unit): GenericExecuteSpec {
@@ -55,11 +55,11 @@ internal class DefaultSpringR2dbcKueryClient(
     }
 
     @Suppress("TooManyFunctions")
-    inner class DefaultFetchSpec(
+    inner class FetchSpec(
         private val sqlId: String,
         private val spec: GenericExecuteSpec,
     ) : KueryClient.FetchSpec {
-        override suspend fun single(): Map<String, Any?> {
+        override suspend fun singleMap(): Map<String, Any?> {
             return spec.fetch().one().sqlId(sqlId).awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
         }
 
@@ -68,7 +68,7 @@ internal class DefaultSpringR2dbcKueryClient(
                 ?: throw EmptyResultDataAccessException(1)
         }
 
-        override suspend fun singleOrNull(): Map<String, Any?>? {
+        override suspend fun singleMapOrNull(): Map<String, Any?>? {
             return spec.fetch().one().sqlId(sqlId).awaitSingleOrNull()
         }
 
@@ -76,7 +76,7 @@ internal class DefaultSpringR2dbcKueryClient(
             return spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
         }
 
-        override suspend fun list(): List<Map<String, Any?>> {
+        override suspend fun listMap(): List<Map<String, Any?>> {
             return spec.fetch().all().collectList().sqlId(sqlId).awaitSingle()
         }
 
@@ -84,7 +84,7 @@ internal class DefaultSpringR2dbcKueryClient(
             return spec.map(returnType).all().collectList().sqlId(sqlId).awaitSingle()
         }
 
-        override fun flow(): Flow<Map<String, Any?>> {
+        override fun flowMap(): Flow<Map<String, Any?>> {
             return spec.fetch().all().sqlId(sqlId).asFlow()
         }
 

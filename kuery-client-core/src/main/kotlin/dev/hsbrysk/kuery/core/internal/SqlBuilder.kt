@@ -3,7 +3,6 @@ package dev.hsbrysk.kuery.core.internal
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
 import dev.hsbrysk.kuery.core.SqlDsl
-import kotlin.reflect.KClass
 
 internal class SqlBuilder : SqlDsl {
     private val body = StringBuilder()
@@ -17,12 +16,9 @@ internal class SqlBuilder : SqlDsl {
         add(this)
     }
 
-    override fun <T : Any> bind(
-        value: T?,
-        kClass: KClass<T>,
-    ): String {
+    override fun <T : Any> bind(value: T?): String {
         val currentIndex = parameters.size
-        parameters.add(DefaultNamedSqlParameter(PARAMETER_NAME_PREFIX + currentIndex, value, kClass))
+        parameters.add(DefaultNamedSqlParameter(PARAMETER_NAME_PREFIX + currentIndex, value))
         return PARAMETER_NAME_PREFIX_WITH_COLON + currentIndex
     }
 

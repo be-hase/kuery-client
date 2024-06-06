@@ -2,7 +2,6 @@ package dev.hsbrysk.kuery.spring.r2dbc
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import dev.hsbrysk.kuery.core.bind
 import io.r2dbc.spi.ConnectionFactories
 import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.ConnectionFactoryOptions
