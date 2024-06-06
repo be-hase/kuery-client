@@ -1,6 +1,7 @@
 package dev.hsbrysk.kuery.spring.r2dbc.internal
 
 import dev.hsbrysk.kuery.core.KueryClient
+import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
 import dev.hsbrysk.kuery.core.SqlDsl
 import dev.hsbrysk.kuery.core.id
@@ -11,6 +12,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.core.convert.ConversionService
 import org.springframework.dao.EmptyResultDataAccessException
+import org.springframework.data.r2dbc.convert.R2dbcCustomConversions
 import org.springframework.r2dbc.core.DataClassRowMapper
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec
@@ -23,6 +25,7 @@ import kotlin.reflect.KClass
 internal class DefaultSpringR2dbcKueryClient(
     private val databaseClient: DatabaseClient,
     private val conversionService: ConversionService,
+    private val customConversions: R2dbcCustomConversions,
 ) : KueryClient {
     override fun sql(block: SqlDsl.() -> Unit): KueryClient.FetchSpec {
         return DefaultFetchSpec(block.id(), databaseClient.sql(block))
@@ -33,11 +36,22 @@ internal class DefaultSpringR2dbcKueryClient(
         @Suppress("SqlSourceToSinkFlow")
         return sql.parameters.fold(this.sql(sql.body)) { acc, parameter ->
             if (parameter.value != null) {
-                acc.bindNull(parameter.name, parameter.kClass.java)
+                acc.bind(parameter)
             } else {
-                acc.bind(parameter.name, checkNotNull(parameter.value))
+                acc.bindNull(parameter.name, Any::class.java)
             }
         }
+    }
+
+    private fun GenericExecuteSpec.bind(parameter: NamedSqlParameter<*>): GenericExecuteSpec {
+        val value = checkNotNull(parameter.value)
+
+        val targetType = customConversions.getCustomWriteTarget(value::class.java)
+        if (targetType.isPresent) {
+            return bind(parameter.name, checkNotNull(conversionService.convert(value, targetType.get())))
+        }
+
+        return bind(parameter.name, value)
     }
 
     @Suppress("TooManyFunctions")
