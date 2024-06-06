@@ -28,6 +28,18 @@ internal class DefaultSpringR2dbcKueryClient(
         return DefaultFetchSpec(block.id(), databaseClient.sql(block))
     }
 
+    private fun DatabaseClient.sql(block: SqlDsl.() -> Unit): GenericExecuteSpec {
+        val sql = Sql.create(block)
+        @Suppress("SqlSourceToSinkFlow")
+        return sql.parameters.fold(this.sql(sql.body)) { acc, parameter ->
+            if (parameter.value != null) {
+                acc.bindNull(parameter.name, parameter.kClass.java)
+            } else {
+                acc.bind(parameter.name, checkNotNull(parameter.value))
+            }
+        }
+    }
+
     @Suppress("TooManyFunctions")
     inner class DefaultFetchSpec(
         private val sqlId: String,
@@ -90,18 +102,6 @@ internal class DefaultSpringR2dbcKueryClient(
         private fun <T : Any> GenericExecuteSpec.map(returnType: KClass<T>): RowsFetchSpec<T> {
             val mapper = DataClassRowMapper(returnType.java, conversionService)
             return this.map(mapper)
-        }
-    }
-}
-
-private fun DatabaseClient.sql(block: SqlDsl.() -> Unit): GenericExecuteSpec {
-    val sql = Sql.create(block)
-    @Suppress("SqlSourceToSinkFlow")
-    return sql.parameters.fold(this.sql(sql.body)) { acc, parameter ->
-        if (parameter.value != null) {
-            acc.bindNull(parameter.name, parameter.kClass.java)
-        } else {
-            acc.bind(parameter.name, checkNotNull(parameter.value))
         }
     }
 }
