@@ -30,6 +30,7 @@ inline fun <reified T : Any> SqlDsl.bind(value: T?): String {
 
 private val NUMBER_REGEX = "^[0-9]+$".toRegex()
 
+// need cache?
 fun (SqlDsl.() -> Unit).id(): String {
     val parts = this.javaClass.name.split("$").filterNot { it.matches(NUMBER_REGEX) }
     return if (parts.isEmpty()) {

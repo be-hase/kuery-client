@@ -10,9 +10,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.data.r2dbc.dialect.DialectResolver
-import org.springframework.r2dbc.core.DatabaseClient
-import org.springframework.r2dbc.core.awaitRowsUpdated
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -20,16 +17,14 @@ import org.testcontainers.junit.jupiter.Testcontainers
 @Testcontainers
 open class SpringR2dbcKueryClientTest {
     private val connectionFactory = connectionFactory()
-    private val client = DatabaseClient.builder()
+    private val target = SpringR2dbcKueryClient.builder()
         .connectionFactory(connectionFactory)
-        .bindMarkers(DialectResolver.getDialect(connectionFactory).bindMarkersFactory)
         .build()
-    private val target = SpringR2dbcKueryClient.of(client)
 
     @BeforeEach
     fun setUp() = runTest {
-        client.sql(
-            """
+        target.sql {
+            +"""
             CREATE TABLE `sample`
             (
                 `id`              bigint AUTO_INCREMENT,
@@ -47,13 +42,13 @@ open class SpringR2dbcKueryClientTest {
             ) ENGINE = InnoDB
               DEFAULT CHARSET = utf8mb4
               COLLATE = utf8mb4_bin;
-            """.trimIndent(),
-        ).fetch().awaitRowsUpdated()
+            """.trimIndent()
+        }.rowsUpdated()
     }
 
     @AfterEach
     fun testDown() = runTest {
-        client.sql("DROP TABLE sample").fetch().awaitRowsUpdated()
+        target.sql { +"DROP TABLE sample" }.rowsUpdated()
     }
 
     @Test
