@@ -4,7 +4,7 @@ import dev.hsbrysk.kuery.spring.jdbc.internal.DefaultSpringJdbcKueryClientBuilde
 
 object SpringJdbcKueryClient {
     fun sqlId(): String? {
-        return null
+        TODO()
     }
 
     fun builder(): SpringJdbcKueryClientBuilder {
