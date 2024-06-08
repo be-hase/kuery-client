@@ -84,7 +84,7 @@ class BasicUsageTest {
             """.trimIndent(),
         )
         queries.forEach {
-            mysql.jdbcClient().sql(it).update()
+            mysql.jdbcClient.sql(it).update()
         }
     }
 
@@ -97,7 +97,7 @@ class BasicUsageTest {
             "DROP TABLE users",
         )
         queries.forEach {
-            mysql.jdbcClient().sql(it).update()
+            mysql.jdbcClient.sql(it).update()
         }
     }
 

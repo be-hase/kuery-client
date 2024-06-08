@@ -12,10 +12,7 @@ class MySqlTestContainer : AutoCloseable {
         user = mysqlContainer.username
         password = mysqlContainer.password
     }
-
-    fun jdbcClient(): JdbcClient {
-        return JdbcClient.create(dataSource)
-    }
+    val jdbcClient = JdbcClient.create(dataSource)
 
     fun kueryClient(converters: List<Any> = emptyList()): KueryBlockingClient {
         return SpringJdbcKueryClient.builder()
@@ -25,7 +22,7 @@ class MySqlTestContainer : AutoCloseable {
     }
 
     fun setUpForConverterTest() {
-        jdbcClient().sql(
+        jdbcClient.sql(
             """
             CREATE TABLE `converter`
             (
@@ -40,7 +37,7 @@ class MySqlTestContainer : AutoCloseable {
     }
 
     fun tearDownForConverterTest() {
-        jdbcClient().sql("DROP TABLE converter").update()
+        jdbcClient.sql("DROP TABLE converter").update()
     }
 
     override fun close() {

@@ -24,7 +24,7 @@ class CodeEnumConversionTest {
 
     @BeforeEach
     fun beforeEach() {
-        mysql.jdbcClient().sql(
+        mysql.jdbcClient.sql(
             """
             CREATE TABLE `code_enum`
             (
@@ -41,7 +41,7 @@ class CodeEnumConversionTest {
 
     @AfterEach
     fun afterEach() {
-        mysql.jdbcClient().sql("DROP TABLE code_enum").update()
+        mysql.jdbcClient.sql("DROP TABLE code_enum").update()
     }
 
     interface CodeEnum<T> {

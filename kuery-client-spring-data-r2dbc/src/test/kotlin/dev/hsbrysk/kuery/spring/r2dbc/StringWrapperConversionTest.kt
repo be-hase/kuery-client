@@ -4,16 +4,19 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import dev.hsbrysk.kuery.core.single
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.core.convert.converter.Converter
 
-class StringWrapperConversionTest : MySQLTestContainersBase() {
-    override fun converters(): List<Any> {
-        return listOf(
+class StringWrapperConversionTest {
+    private val kueryClient = mysql.kueryClient(
+        listOf(
             StringWrapperToStringConverter(),
             StringToStringWrapperConverter(),
-        )
-    }
+        ),
+    )
 
     data class StringWrapper(val value: String)
 
@@ -33,6 +36,16 @@ class StringWrapperConversionTest : MySQLTestContainersBase() {
         }
     }
 
+    @BeforeEach
+    fun beforeEach() = runTest {
+        mysql.setUpForConverterTest()
+    }
+
+    @AfterEach
+    fun afterEach() = runTest {
+        mysql.tearDownForConverterTest()
+    }
+
     @Test
     fun test() = runTest {
         kueryClient.sql {
@@ -44,5 +57,15 @@ class StringWrapperConversionTest : MySQLTestContainersBase() {
         }.single()
 
         assertThat(record.text).isEqualTo(StringWrapper("hoge"))
+    }
+
+    companion object {
+        private val mysql = MySqlTestContainer()
+
+        @AfterAll
+        @JvmStatic
+        fun afterAll() {
+            mysql.close()
+        }
     }
 }

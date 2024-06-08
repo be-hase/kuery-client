@@ -13,6 +13,7 @@ import dev.hsbrysk.kuery.core.single
 import dev.hsbrysk.kuery.core.singleOrNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -23,10 +24,12 @@ import org.springframework.r2dbc.core.awaitRowsUpdated
 import java.math.BigDecimal
 import java.time.LocalDate
 
-open class BasicUsageTest : MySQLTestContainersBase() {
+open class BasicUsageTest {
+    private val kueryClient = mysql.kueryClient()
+
     @BeforeEach
     fun setUp() = runTest {
-        databaseClient.sql(
+        mysql.databaseClient.sql(
             """
             CREATE TABLE users (
                 user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -79,7 +82,7 @@ open class BasicUsageTest : MySQLTestContainersBase() {
 
     @AfterEach
     fun testDown() = runTest {
-        databaseClient.sql(
+        mysql.databaseClient.sql(
             """
             DROP TABLE order_items;
             DROP TABLE orders;
@@ -416,5 +419,15 @@ open class BasicUsageTest : MySQLTestContainersBase() {
             }
             .single()
         assertThat(result).isEqualTo(User(userId = 1, username = "user1", email = "user1@example.com"))
+    }
+
+    companion object {
+        private val mysql = MySqlTestContainer()
+
+        @AfterAll
+        @JvmStatic
+        fun afterAll() {
+            mysql.close()
+        }
     }
 }
