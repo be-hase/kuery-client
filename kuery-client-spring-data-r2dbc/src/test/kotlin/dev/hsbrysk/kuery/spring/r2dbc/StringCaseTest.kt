@@ -9,7 +9,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.r2dbc.core.awaitRowsUpdated
 
-class StringCaseTest : MysqlTestContainersBase() {
+class StringCaseTest : MySQLTestContainersBase() {
     override fun converters(): List<Any> {
         return listOf()
     }

@@ -11,7 +11,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.awaitRowsUpdated
 import org.testcontainers.containers.MySQLContainer
 
-abstract class MysqlTestContainersBase {
+abstract class MySQLTestContainersBase {
     protected val connectionFactory = connectionFactory()
     protected val databaseClient = DatabaseClient.builder()
         .connectionFactory(connectionFactory)
