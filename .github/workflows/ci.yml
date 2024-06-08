@@ -25,5 +25,3 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
       - name: Check
         run: ./gradlew check
-      - name: Check withProtocGenKotlin
-        run: ./gradlew :functional-test:clean :functional-test:test -PwithProtocGenKotlin

@@ -6,29 +6,25 @@ import dev.hsbrysk.kuery.core.single
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 
-class EnumConversionTest : MysqlTestContainersBase() {
+class CSVConversionTest : MysqlTestContainersBase() {
     override fun converters(): List<Any> {
         return listOf()
     }
 
-    enum class SampleEnum {
-        HOGE,
-    }
-
     data class Record(
-        val text: SampleEnum,
+        val text: List<String>,
     )
 
     @Test
     fun test() = runTest {
         kueryClient.sql {
-            +"INSERT INTO converter (text) VALUES (${bind(SampleEnum.HOGE)})"
+            +"INSERT INTO converter (text) VALUES (${bind("a, b,c")})"
         }.rowsUpdated()
 
         val record: Record = kueryClient.sql {
             +"SELECT * FROM converter"
         }.single()
 
-        assertThat(record.text).isEqualTo(SampleEnum.HOGE.name)
+        assertThat(record.text).isEqualTo(listOf("a", "b", "c"))
     }
 }
