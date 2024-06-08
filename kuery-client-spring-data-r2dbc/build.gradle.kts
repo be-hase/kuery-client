@@ -15,8 +15,6 @@ dependencies {
 
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("org.testcontainers:mysql")
-//    testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("com.mysql:mysql-connector-j")
     testImplementation("io.asyncer:r2dbc-mysql")
-//    testImplementation("org.jetbrains.kotlin:kotlin-reflect")
 }

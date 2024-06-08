@@ -51,12 +51,12 @@ internal class DefaultSpringR2dbcKueryClient(
             return bind(parameter.name, checkNotNull(conversionService.convert(value, targetType.get())))
         }
 
-        if (parameter.value is Collection<*>) {
-            return bind(parameter.name, convertCollection(parameter.value as Collection<*>))
+        if (value is Collection<*>) {
+            return bind(parameter.name, convertCollection(value))
         }
 
-        if (parameter.value is Array<*>) {
-            return bind(parameter.name, convertArray(parameter.value as Array<*>))
+        if (value is Array<*>) {
+            return bind(parameter.name, convertArray(value))
         }
 
         return bind(parameter.name, value)
@@ -101,13 +101,13 @@ internal class DefaultSpringR2dbcKueryClient(
             return spec.fetch().one().sqlId(sqlId).awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
         }
 
+        override suspend fun singleMapOrNull(): Map<String, Any?>? {
+            return spec.fetch().one().sqlId(sqlId).awaitSingleOrNull()
+        }
+
         override suspend fun <T : Any> single(returnType: KClass<T>): T {
             return spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
                 ?: throw EmptyResultDataAccessException(1)
-        }
-
-        override suspend fun singleMapOrNull(): Map<String, Any?>? {
-            return spec.fetch().one().sqlId(sqlId).awaitSingleOrNull()
         }
 
         override suspend fun <T : Any> singleOrNull(returnType: KClass<T>): T? {
@@ -136,7 +136,8 @@ internal class DefaultSpringR2dbcKueryClient(
 
         override suspend fun generatedValues(vararg columns: String): Map<String, Any> {
             return spec.filter(Function { it.returnGeneratedValues(*columns) }).fetch().one().sqlId(sqlId)
-                .awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
+                .awaitSingleOrNull()
+                ?: throw EmptyResultDataAccessException(1)
         }
 
         private fun <T> Mono<T>.sqlId(sqlId: String): Mono<T> {
