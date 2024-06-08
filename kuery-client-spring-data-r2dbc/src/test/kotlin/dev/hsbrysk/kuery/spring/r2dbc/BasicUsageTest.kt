@@ -19,11 +19,9 @@ import org.springframework.dao.DataRetrievalFailureException
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.dao.IncorrectResultSizeDataAccessException
 import org.springframework.r2dbc.core.awaitRowsUpdated
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.math.BigDecimal
 import java.time.LocalDate
 
-@Testcontainers
 open class BasicUsageTest : MySQLTestContainersBase() {
     @BeforeEach
     fun setUp() = runTest {

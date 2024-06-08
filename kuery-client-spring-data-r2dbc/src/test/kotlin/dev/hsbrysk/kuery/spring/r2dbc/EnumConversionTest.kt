@@ -28,7 +28,11 @@ class EnumConversionTest : MySQLTestContainersBase() {
         val record: Record = kueryClient.sql {
             +"SELECT * FROM converter"
         }.single()
+        assertThat(record.text).isEqualTo(SampleEnum.HOGE)
 
-        assertThat(record.text).isEqualTo(SampleEnum.HOGE.name)
+        val map = kueryClient.sql {
+            +"SELECT * FROM converter"
+        }.singleMap()
+        assertThat(map["text"]).isEqualTo("HOGE")
     }
 }
