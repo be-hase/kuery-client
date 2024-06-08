@@ -6,7 +6,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.springframework.core.convert.converter.Converter
 
-class CollectionConversionTest : MysqlTestContainersBase() {
+class CollectionConversionTest : MySQLTestContainersBase() {
     override fun converters(): List<Any> {
         return listOf(
             StringWrapperToStringConverter(),

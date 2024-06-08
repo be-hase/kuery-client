@@ -13,7 +13,7 @@ import org.springframework.data.convert.ReadingConverter
 import org.springframework.data.convert.WritingConverter
 import org.springframework.r2dbc.core.awaitRowsUpdated
 
-class CodeEnumConversionTest : MysqlTestContainersBase() {
+class CodeEnumConversionTest : MySQLTestContainersBase() {
     override fun converters(): List<Any> {
         return listOf(
             IntCodeEnumWritingConverter(),

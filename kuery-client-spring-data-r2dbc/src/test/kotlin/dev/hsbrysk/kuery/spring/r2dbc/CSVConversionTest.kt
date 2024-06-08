@@ -6,7 +6,7 @@ import dev.hsbrysk.kuery.core.single
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 
-class CSVConversionTest : MysqlTestContainersBase() {
+class CSVConversionTest : MySQLTestContainersBase() {
     override fun converters(): List<Any> {
         return listOf()
     }

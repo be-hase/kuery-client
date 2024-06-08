@@ -24,7 +24,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 
 @Testcontainers
-open class BasicUsageTest : MysqlTestContainersBase() {
+open class BasicUsageTest : MySQLTestContainersBase() {
     @BeforeEach
     fun setUp() = runTest {
         databaseClient.sql(
