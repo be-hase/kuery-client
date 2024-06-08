@@ -11,7 +11,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 internal class DefaultSpringR2dbcKueryClientBuilder : SpringR2dbcKueryClientBuilder {
     private var connectionFactory: ConnectionFactory? = null
     private var converters: List<Any> = emptyList()
-    private var databaseClient: DatabaseClient? = null
 
     override fun connectionFactory(connectionFactory: ConnectionFactory): SpringR2dbcKueryClientBuilder {
         this.connectionFactory = connectionFactory
@@ -23,33 +22,28 @@ internal class DefaultSpringR2dbcKueryClientBuilder : SpringR2dbcKueryClientBuil
         return this
     }
 
-    override fun databaseClient(databaseClient: DatabaseClient): SpringR2dbcKueryClientBuilder {
-        this.databaseClient = databaseClient
-        return this
-    }
-
     override fun build(): KueryClient {
-        val databaseClient = this.databaseClient ?: defaultDatabaseClient()
+        val connectionFactory = requireNotNull(this.connectionFactory) {
+            "Specify connectionFactory."
+        }
+
+        val databaseClient = databaseClient(connectionFactory)
         val conversionService = DefaultConversionService()
-        val customConversions = r2dbcCustomConversions()
-        customConversions.registerConvertersIn(conversionService)
+        val customConversions = r2dbcCustomConversions(connectionFactory).apply {
+            registerConvertersIn(conversionService)
+        }
+
         return DefaultSpringR2dbcKueryClient(databaseClient, conversionService, customConversions)
     }
 
-    private fun defaultDatabaseClient(): DatabaseClient {
-        val connectionFactory = requireNotNull(this.connectionFactory) {
-            "Specify either databaseClient or connectionFactory."
-        }
+    private fun databaseClient(connectionFactory: ConnectionFactory): DatabaseClient {
         return DatabaseClient.builder()
             .connectionFactory(connectionFactory)
             .bindMarkers(DialectResolver.getDialect(connectionFactory).bindMarkersFactory)
             .build()
     }
 
-    private fun r2dbcCustomConversions(): R2dbcCustomConversions {
-        val connectionFactory = requireNotNull(databaseClient?.connectionFactory ?: connectionFactory) {
-            "Specify either databaseClient or connectionFactory."
-        }
+    private fun r2dbcCustomConversions(connectionFactory: ConnectionFactory): R2dbcCustomConversions {
         return R2dbcCustomConversions.of(DialectResolver.getDialect(connectionFactory), converters)
     }
 }

@@ -1,4 +1,4 @@
-package dev.hsbrysk.kuery.spring.r2dbc
+package dev.hsbrysk.kuery.spring.jdbc
 
 import assertk.assertFailure
 import assertk.assertThat
@@ -7,47 +7,46 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import dev.hsbrysk.kuery.core.SqlDsl
-import dev.hsbrysk.kuery.core.flow
 import dev.hsbrysk.kuery.core.list
 import dev.hsbrysk.kuery.core.single
 import dev.hsbrysk.kuery.core.singleOrNull
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.dao.DataRetrievalFailureException
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.dao.IncorrectResultSizeDataAccessException
-import org.springframework.r2dbc.core.awaitRowsUpdated
+import org.springframework.jdbc.UncategorizedSQLException
 import java.math.BigDecimal
 import java.time.LocalDate
 
-open class BasicUsageTest : MySQLTestContainersBase() {
+class BasicUsageTest : MySQLTestContainersBase() {
     @BeforeEach
-    fun setUp() = runTest {
-        databaseClient.sql(
+    fun setUp() {
+        val queries = listOf(
             """
             CREATE TABLE users (
                 user_id INT AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(50) NOT NULL,
                 email VARCHAR(100) NOT NULL
-            );
-
+            )
+            """.trimIndent(),
+            """
             CREATE TABLE orders (
                 order_id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT,
                 order_date DATE,
                 amount DECIMAL(10, 2),
                 FOREIGN KEY (user_id) REFERENCES users(user_id)
-            );
-
+            )
+            """.trimIndent(),
+            """
             CREATE TABLE products (
                 product_id INT AUTO_INCREMENT PRIMARY KEY,
                 product_name VARCHAR(100),
                 price DECIMAL(10, 2)
-            );
-
+            )
+            """.trimIndent(),
+            """
             CREATE TABLE order_items (
                 order_item_id INT AUTO_INCREMENT PRIMARY KEY,
                 order_id INT,
@@ -55,44 +54,52 @@ open class BasicUsageTest : MySQLTestContainersBase() {
                 quantity INT,
                 FOREIGN KEY (order_id) REFERENCES orders(order_id),
                 FOREIGN KEY (product_id) REFERENCES products(product_id)
-            );
-
+            )
+            """.trimIndent(),
+            """
             INSERT INTO users (username, email) VALUES
             ('user1', 'user1@example.com'),
-            ('user2', 'user2@example.com');
-
+            ('user2', 'user2@example.com')
+            """.trimIndent(),
+            """
             INSERT INTO orders (user_id, order_date, amount) VALUES
             (1, '2023-06-01', 100.00),
-            (2, '2023-06-02', 150.00);
-
+            (2, '2023-06-02', 150.00)
+            """.trimIndent(),
+            """
             INSERT INTO products (product_name, price) VALUES
             ('Product A', 25.00),
             ('Product B', 50.00);
-
+            """.trimIndent(),
+            """
             INSERT INTO order_items (order_id, product_id, quantity) VALUES
             (1, 1, 2),
             (1, 2, 1),
-            (2, 1, 1);
+            (2, 1, 1)
             """.trimIndent(),
-        ).fetch().awaitRowsUpdated()
+        )
+        queries.forEach {
+            jdbcClient.sql(it).update()
+        }
     }
 
     @AfterEach
-    fun testDown() = runTest {
-        databaseClient.sql(
-            """
-            DROP TABLE order_items;
-            DROP TABLE orders;
-            DROP TABLE products;
-            DROP TABLE users;
-            """.trimIndent(),
-        ).fetch().awaitRowsUpdated()
+    fun testDown() {
+        val queries = listOf(
+            "DROP TABLE order_items",
+            "DROP TABLE orders",
+            "DROP TABLE products",
+            "DROP TABLE users",
+        )
+        queries.forEach {
+            jdbcClient.sql(it).update()
+        }
     }
 
     data class User(val userId: Int, val username: String, val email: String)
 
     @Test
-    fun singleMap() = runTest {
+    fun singleMap() {
         val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.singleMap()
         assertThat(result).isEqualTo(
             mapOf(
@@ -104,21 +111,21 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun `singleMap no record`() = runTest {
+    fun `singleMap no record`() {
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(5)}" }.singleMap()
         }.isInstanceOf(EmptyResultDataAccessException::class)
     }
 
     @Test
-    fun `singleMap more than 1 record`() = runTest {
+    fun `singleMap more than 1 record`() {
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users" }.singleMap()
         }.isInstanceOf(IncorrectResultSizeDataAccessException::class)
     }
 
     @Test
-    fun singleMapOrNull() = runTest {
+    fun singleMapOrNull() {
         val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.singleMapOrNull()
         assertThat(result).isEqualTo(
             mapOf(
@@ -130,20 +137,20 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun `singleMapOrNull no record`() = runTest {
+    fun `singleMapOrNull no record`() {
         val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(5)}" }.singleMapOrNull()
         assertThat(result).isNull()
     }
 
     @Test
-    fun `singleMapOrNull more than 1 record`() = runTest {
+    fun `singleMapOrNull more than 1 record`() {
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users" }.singleMap()
         }.isInstanceOf(IncorrectResultSizeDataAccessException::class)
     }
 
     @Test
-    fun single() = runTest {
+    fun single() {
         val result: User = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.single()
         assertThat(result).isEqualTo(
             User(
@@ -155,30 +162,30 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun `single invalid type`() = runTest {
+    fun `single invalid type`() {
         data class InvalidUser(val userId: Int, val invalid: String)
 
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.single<InvalidUser>()
-        }.isInstanceOf(DataRetrievalFailureException::class)
+        }.isInstanceOf(UncategorizedSQLException::class)
     }
 
     @Test
-    fun `single no record`() = runTest {
+    fun `single no record`() {
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(5)}" }.single<User>()
         }.isInstanceOf(EmptyResultDataAccessException::class)
     }
 
     @Test
-    fun `single more than 1 record`() = runTest {
+    fun `single more than 1 record`() {
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users" }.single<User>()
         }.isInstanceOf(IncorrectResultSizeDataAccessException::class)
     }
 
     @Test
-    fun singleOrNull() = runTest {
+    fun singleOrNull() {
         val result: User? = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.singleOrNull()
         assertThat(result).isEqualTo(
             User(
@@ -190,20 +197,20 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun `singleOrNull no record`() = runTest {
+    fun `singleOrNull no record`() {
         val result: User? = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(5)}" }.singleOrNull()
         assertThat(result).isNull()
     }
 
     @Test
-    fun `singleOrNull more than 1 record`() = runTest {
+    fun `singleOrNull more than 1 record`() {
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users" }.singleOrNull<User>()
         }.isInstanceOf(IncorrectResultSizeDataAccessException::class)
     }
 
     @Test
-    fun listMap() = runTest {
+    fun listMap() {
         val result = kueryClient.sql { +"SELECT * FROM users" }.listMap()
         assertThat(result).isEqualTo(
             listOf(
@@ -222,13 +229,13 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun `listMap empty`() = runTest {
+    fun `listMap empty`() {
         val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > ${bind(3)}" }.listMap()
         assertThat(result).isEmpty()
     }
 
     @Test
-    fun list() = runTest {
+    fun list() {
         val result: List<User> = kueryClient.sql { +"SELECT * FROM users" }.list()
         assertThat(result).isEqualTo(
             listOf(
@@ -247,63 +254,13 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun `list empty`() = runTest {
+    fun `list empty`() {
         val result: List<User> = kueryClient.sql { +"SELECT * FROM users WHERE user_id > ${bind(3)}" }.list()
         assertThat(result).isEmpty()
     }
 
     @Test
-    fun flowMap() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users" }.flowMap().toList()
-        assertThat(result).isEqualTo(
-            listOf(
-                mapOf(
-                    "user_id" to 1,
-                    "username" to "user1",
-                    "email" to "user1@example.com",
-                ),
-                mapOf(
-                    "user_id" to 2,
-                    "username" to "user2",
-                    "email" to "user2@example.com",
-                ),
-            ),
-        )
-    }
-
-    @Test
-    fun `flowMap empty`() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > ${bind(3)}" }.flowMap().toList()
-        assertThat(result).isEmpty()
-    }
-
-    @Test
-    fun flow() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users" }.flow<User>().toList()
-        assertThat(result).isEqualTo(
-            listOf(
-                User(
-                    userId = 1,
-                    username = "user1",
-                    email = "user1@example.com",
-                ),
-                User(
-                    userId = 2,
-                    username = "user2",
-                    email = "user2@example.com",
-                ),
-            ),
-        )
-    }
-
-    @Test
-    fun `flow empty`() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > ${bind(3)}" }.flow<User>().toList()
-        assertThat(result).isEmpty()
-    }
-
-    @Test
-    fun rowUpdated() = runTest {
+    fun rowUpdated() {
         val result = kueryClient
             .sql {
                 +"INSERT INTO users (username, email) VALUES (${bind("user3")}, ${bind("user3@example.com")})"
@@ -313,7 +270,7 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun `rowUpdated 0`() = runTest {
+    fun `rowUpdated 0`() {
         val result = kueryClient
             .sql {
                 +"DELETE FROM users WHERE user_id = ${bind(5)}"
@@ -323,7 +280,7 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun `rowUpdated multi`() = runTest {
+    fun `rowUpdated multi`() {
         val result = kueryClient
             .sql {
                 +"UPDATE users SET username = 'updated'"
@@ -333,7 +290,7 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun generatedValues() = runTest {
+    fun generatedValues() {
         val result = kueryClient
             .sql {
                 +"INSERT INTO users (username, email) VALUES (${bind("user3")}, ${bind("user3@example.com")})"
@@ -343,7 +300,7 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun userOrder() = runTest {
+    fun userOrder() {
         data class UserOrder(
             val username: String,
             val orderId: Int,
@@ -375,7 +332,7 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun orderProduct() = runTest {
+    fun orderProduct() {
         data class OrderProduct(
             val orderId: Int,
             val productName: String,
@@ -403,7 +360,7 @@ open class BasicUsageTest : MySQLTestContainersBase() {
     }
 
     @Test
-    fun `using extension function`() = runTest {
+    fun `using extension function`() {
         fun SqlDsl.userIdEqualsTo(userId: Int) {
             +"users.user_id = ${bind(userId)}"
         }

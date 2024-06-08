@@ -5,6 +5,8 @@ plugins {
 }
 
 dependencies {
+    implementation(projects.kueryClientCore)
+
     implementation(platform(libs.spring.boot.bom))
     implementation("org.springframework.data:spring-data-jdbc")
 
