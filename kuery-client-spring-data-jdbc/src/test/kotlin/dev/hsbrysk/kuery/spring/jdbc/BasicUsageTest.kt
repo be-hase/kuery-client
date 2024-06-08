@@ -17,6 +17,7 @@ import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.dao.IncorrectResultSizeDataAccessException
 import org.springframework.jdbc.UncategorizedSQLException
 import java.math.BigDecimal
+import java.math.BigInteger
 import java.time.LocalDate
 
 class BasicUsageTest : MySQLTestContainersBase() {
@@ -297,7 +298,8 @@ class BasicUsageTest : MySQLTestContainersBase() {
                 +"INSERT INTO users (username, email) VALUES (${bind("user3")}, ${bind("user3@example.com")})"
             }
             .generatedValues("user_id")
-        assertThat(result).isEqualTo(mapOf("GENERATED_KEY" to 3)) // Humm. mysql/jdbc specifications?
+        // Humm. mysql/jdbc specifications?
+        assertThat(result["GENERATED_KEY"]).isEqualTo(BigInteger.valueOf(3))
     }
 
     @Test
