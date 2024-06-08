@@ -13,7 +13,7 @@ class StringCaseTest {
 
     @BeforeEach
     fun beforeEach() {
-        mysql.jdbcClient().sql(
+        mysql.jdbcClient.sql(
             """
             CREATE TABLE `string_case`
             (
@@ -30,7 +30,7 @@ class StringCaseTest {
 
     @AfterEach
     fun afterEach() {
-        mysql.jdbcClient().sql("DROP TABLE string_case").update()
+        mysql.jdbcClient.sql("DROP TABLE string_case").update()
     }
 
     data class Record(
