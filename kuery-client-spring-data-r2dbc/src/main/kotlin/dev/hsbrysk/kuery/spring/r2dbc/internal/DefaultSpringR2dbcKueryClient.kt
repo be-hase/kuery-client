@@ -51,15 +51,12 @@ internal class DefaultSpringR2dbcKueryClient(
             return bind(parameter.name, checkNotNull(conversionService.convert(value, targetType.get())))
         }
 
-        if (value is Collection<*>) {
-            return bind(parameter.name, convertCollection(value))
+        return when (value) {
+            is Collection<*> -> bind(parameter.name, convertCollection(value))
+            is Array<*> -> bind(parameter.name, convertArray(value))
+            is Enum<*> -> bind(parameter.name, value.name)
+            else -> bind(parameter.name, value)
         }
-
-        if (value is Array<*>) {
-            return bind(parameter.name, convertArray(value))
-        }
-
-        return bind(parameter.name, value)
     }
 
     private fun convertCollection(collection: Collection<*>): Collection<*> {

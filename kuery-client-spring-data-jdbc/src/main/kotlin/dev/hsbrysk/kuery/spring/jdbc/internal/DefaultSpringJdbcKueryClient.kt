@@ -44,19 +44,12 @@ internal class DefaultSpringJdbcKueryClient(
             return param(parameter.name, checkNotNull(conversionService.convert(value, targetType.get())))
         }
 
-        if (value is Collection<*>) {
-            return param(parameter.name, convertCollection(value))
+        return when (value) {
+            is Collection<*> -> param(parameter.name, convertCollection(value))
+            is Array<*> -> param(parameter.name, convertArray(value))
+            is Enum<*> -> param(parameter.name, value.name)
+            else -> param(parameter.name, value)
         }
-
-        if (value is Array<*>) {
-            return param(parameter.name, convertArray(value))
-        }
-
-        if (value is Enum<*>) {
-            return param(parameter.name, value.name)
-        }
-
-        return param(parameter.name, value)
     }
 
     private fun convertCollection(collection: Collection<*>): Collection<*> {
@@ -100,7 +93,7 @@ internal class DefaultSpringJdbcKueryClient(
         override fun singleMapOrNull(): Map<String, Any?>? {
             return try {
                 spec.query().singleRow()
-            } catch (e: EmptyResultDataAccessException) {
+            } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
                 null
             }
         }
@@ -112,7 +105,7 @@ internal class DefaultSpringJdbcKueryClient(
         override fun <T : Any> singleOrNull(returnType: KClass<T>): T? {
             return try {
                 spec.queryType(returnType).single()
-            } catch (e: EmptyResultDataAccessException) {
+            } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
                 null
             }
         }

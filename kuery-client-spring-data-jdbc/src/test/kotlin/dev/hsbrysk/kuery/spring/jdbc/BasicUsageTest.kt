@@ -20,6 +20,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 
 class BasicUsageTest : MySQLTestContainersBase() {
+    @Suppress("LongMethod")
     @BeforeEach
     fun setUp() {
         val queries = listOf(
