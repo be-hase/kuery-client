@@ -67,7 +67,7 @@ class CodeEnumConversionTest : MysqlTestContainersBase() {
     }
 
     enum class SampleStringCodeEnum(override val code: String) : StringCodeEnum {
-        HOGE("hoge"),
+        BAR("hoge"),
     }
 
     data class Record(
@@ -111,7 +111,7 @@ class CodeEnumConversionTest : MysqlTestContainersBase() {
     fun test() = runTest {
         kueryClient.sql {
             +"INSERT INTO code_enum (int_enum, string_enum)"
-            +"VALUES (${bind(SampleIntCodeEnum.HOGE)}, ${bind(SampleStringCodeEnum.HOGE)})"
+            +"VALUES (${bind(SampleIntCodeEnum.HOGE)}, ${bind(SampleStringCodeEnum.BAR)})"
         }.rowsUpdated()
 
         val record: Record = kueryClient.sql {
@@ -119,6 +119,6 @@ class CodeEnumConversionTest : MysqlTestContainersBase() {
         }.single()
 
         assertThat(record.intEnum).isEqualTo(SampleIntCodeEnum.HOGE)
-        assertThat(record.stringEnum).isEqualTo(SampleStringCodeEnum.HOGE)
+        assertThat(record.stringEnum).isEqualTo(SampleStringCodeEnum.BAR)
     }
 }
