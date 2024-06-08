@@ -10,6 +10,7 @@ import dev.hsbrysk.kuery.core.SqlDsl
 import dev.hsbrysk.kuery.core.list
 import dev.hsbrysk.kuery.core.single
 import dev.hsbrysk.kuery.core.singleOrNull
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -20,10 +21,12 @@ import java.math.BigDecimal
 import java.math.BigInteger
 import java.time.LocalDate
 
-class BasicUsageTest : MySQLTestContainersBase() {
+class BasicUsageTest {
+    private val kueryClient = mysql.kueryClient()
+
     @Suppress("LongMethod")
     @BeforeEach
-    fun setUp() {
+    fun beforeEach() {
         val queries = listOf(
             """
             CREATE TABLE users (
@@ -81,12 +84,12 @@ class BasicUsageTest : MySQLTestContainersBase() {
             """.trimIndent(),
         )
         queries.forEach {
-            jdbcClient.sql(it).update()
+            mysql.jdbcClient().sql(it).update()
         }
     }
 
     @AfterEach
-    fun testDown() {
+    fun afterEach() {
         val queries = listOf(
             "DROP TABLE order_items",
             "DROP TABLE orders",
@@ -94,7 +97,7 @@ class BasicUsageTest : MySQLTestContainersBase() {
             "DROP TABLE users",
         )
         queries.forEach {
-            jdbcClient.sql(it).update()
+            mysql.jdbcClient().sql(it).update()
         }
     }
 
@@ -376,5 +379,15 @@ class BasicUsageTest : MySQLTestContainersBase() {
             }
             .single()
         assertThat(result).isEqualTo(User(userId = 1, username = "user1", email = "user1@example.com"))
+    }
+
+    companion object {
+        private val mysql = MySqlTestContainer()
+
+        @AfterAll
+        @JvmStatic
+        fun afterAll() {
+            mysql.close()
+        }
     }
 }

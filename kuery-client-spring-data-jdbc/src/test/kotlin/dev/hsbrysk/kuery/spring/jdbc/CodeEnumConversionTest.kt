@@ -3,6 +3,7 @@ package dev.hsbrysk.kuery.spring.jdbc
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import dev.hsbrysk.kuery.core.single
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -11,19 +12,19 @@ import org.springframework.core.convert.converter.ConverterFactory
 import org.springframework.data.convert.ReadingConverter
 import org.springframework.data.convert.WritingConverter
 
-class CodeEnumConversionTest : MySQLTestContainersBase() {
-    override fun converters(): List<Any> {
-        return listOf(
+class CodeEnumConversionTest {
+    private val kueryClient = mysql.kueryClient(
+        listOf(
             IntCodeEnumWritingConverter(),
             IntCodeEnumReadingConverter(),
             StringCodeEnumWritingConverter(),
             StringCodeEnumReadingConverter(),
-        )
-    }
+        ),
+    )
 
     @BeforeEach
     fun beforeEach() {
-        jdbcClient.sql(
+        mysql.jdbcClient().sql(
             """
             CREATE TABLE `code_enum`
             (
@@ -40,7 +41,7 @@ class CodeEnumConversionTest : MySQLTestContainersBase() {
 
     @AfterEach
     fun afterEach() {
-        jdbcClient.sql("DROP TABLE code_enum").update()
+        mysql.jdbcClient().sql("DROP TABLE code_enum").update()
     }
 
     interface CodeEnum<T> {
@@ -118,5 +119,15 @@ class CodeEnumConversionTest : MySQLTestContainersBase() {
 
         assertThat(record.intEnum).isEqualTo(SampleIntCodeEnum.HOGE)
         assertThat(record.stringEnum).isEqualTo(SampleStringCodeEnum.BAR)
+    }
+
+    companion object {
+        private val mysql = MySqlTestContainer()
+
+        @AfterAll
+        @JvmStatic
+        fun afterAll() {
+            mysql.close()
+        }
     }
 }

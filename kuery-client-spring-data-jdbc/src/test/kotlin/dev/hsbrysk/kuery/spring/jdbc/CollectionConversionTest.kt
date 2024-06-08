@@ -2,16 +2,19 @@ package dev.hsbrysk.kuery.spring.jdbc
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.core.convert.converter.Converter
 
-class CollectionConversionTest : MySQLTestContainersBase() {
-    override fun converters(): List<Any> {
-        return listOf(
+class CollectionConversionTest {
+    private val kueryClient = mysql.kueryClient(
+        listOf(
             StringWrapperToStringConverter(),
             StringToStringWrapperConverter(),
-        )
-    }
+        ),
+    )
 
     data class StringWrapper(val value: String)
 
@@ -25,6 +28,16 @@ class CollectionConversionTest : MySQLTestContainersBase() {
         override fun convert(source: String): StringWrapper {
             return StringWrapper(source)
         }
+    }
+
+    @BeforeEach
+    fun beforeEach() {
+        mysql.setUpForConverterTest()
+    }
+
+    @AfterEach
+    fun afterEach() {
+        mysql.tearDownForConverterTest()
     }
 
     @Test
@@ -43,5 +56,15 @@ class CollectionConversionTest : MySQLTestContainersBase() {
             +"SELECT * FROM converter WHERE text IN (${bind(inList)})"
         }.listMap()
         assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 2L, "text" to "text2")))
+    }
+
+    companion object {
+        private val mysql = MySqlTestContainer()
+
+        @AfterAll
+        @JvmStatic
+        fun afterAll() {
+            mysql.close()
+        }
     }
 }
