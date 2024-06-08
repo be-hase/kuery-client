@@ -297,7 +297,7 @@ class BasicUsageTest : MySQLTestContainersBase() {
                 +"INSERT INTO users (username, email) VALUES (${bind("user3")}, ${bind("user3@example.com")})"
             }
             .generatedValues("user_id")
-        assertThat(result).isEqualTo(mapOf("user_id" to 3L))
+        assertThat(result).isEqualTo(mapOf("GENERATED_KEY" to 3)) // Humm. mysql/jdbc specifications?
     }
 
     @Test

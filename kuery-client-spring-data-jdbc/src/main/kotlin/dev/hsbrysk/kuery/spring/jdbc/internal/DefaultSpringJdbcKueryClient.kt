@@ -124,8 +124,12 @@ internal class DefaultSpringJdbcKueryClient(
 
         override fun generatedValues(vararg columns: String): Map<String, Any> {
             val keyHolder = GeneratedKeyHolder()
-            spec.update(keyHolder, *columns)
-            return keyHolder.keys!!
+            if (columns.isEmpty()) {
+                spec.update(keyHolder)
+            } else {
+                spec.update(keyHolder, *columns)
+            }
+            return checkNotNull(keyHolder.keys)
         }
 
         private fun <T : Any> StatementSpec.queryType(returnType: KClass<T>): MappedQuerySpec<T> {
