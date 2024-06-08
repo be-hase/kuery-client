@@ -51,7 +51,45 @@ internal class DefaultSpringR2dbcKueryClient(
             return bind(parameter.name, checkNotNull(conversionService.convert(value, targetType.get())))
         }
 
+        if (parameter.value is Collection<*>) {
+            return bind(parameter.name, convertCollection(parameter.value as Collection<*>))
+        }
+
+        if (parameter.value is Array<*>) {
+            return bind(parameter.name, convertArray(parameter.value as Array<*>))
+        }
+
         return bind(parameter.name, value)
+    }
+
+    private fun convertCollection(collection: Collection<*>): Collection<*> {
+        return collection.map {
+            if (it == null) {
+                null
+            } else {
+                val targetType = customConversions.getCustomWriteTarget(it::class.java)
+                if (targetType.isPresent) {
+                    conversionService.convert(it, targetType.get())
+                } else {
+                    it
+                }
+            }
+        }
+    }
+
+    private fun convertArray(array: Array<*>): Array<*> {
+        return array.map {
+            if (it == null) {
+                null
+            } else {
+                val targetType = customConversions.getCustomWriteTarget(it::class.java)
+                if (targetType.isPresent) {
+                    conversionService.convert(it, targetType.get())
+                } else {
+                    it
+                }
+            }
+        }.toTypedArray()
     }
 
     @Suppress("TooManyFunctions")
