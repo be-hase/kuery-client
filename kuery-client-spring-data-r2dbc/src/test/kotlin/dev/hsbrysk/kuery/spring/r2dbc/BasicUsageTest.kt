@@ -6,6 +6,7 @@ import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
+import dev.hsbrysk.kuery.core.SqlDsl
 import dev.hsbrysk.kuery.core.flow
 import dev.hsbrysk.kuery.core.list
 import dev.hsbrysk.kuery.core.single
@@ -19,6 +20,8 @@ import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.dao.IncorrectResultSizeDataAccessException
 import org.springframework.r2dbc.core.awaitRowsUpdated
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.math.BigDecimal
+import java.time.LocalDate
 
 @Testcontainers
 open class BasicUsageTest : MysqlTestContainersBase() {
@@ -313,5 +316,81 @@ open class BasicUsageTest : MysqlTestContainersBase() {
             }
             .generatedValues("user_id")
         assertThat(result).isEqualTo(mapOf("user_id" to 3L))
+    }
+
+    @Test
+    fun userOrder() = runTest {
+        data class UserOrder(
+            val username: String,
+            val orderId: Int,
+            val orderDate: LocalDate,
+            val amount: BigDecimal,
+        )
+
+        val result: List<UserOrder> = kueryClient
+            .sql {
+                +"""
+                SELECT users.username, orders.order_id, orders.order_date, orders.amount
+                FROM users
+                JOIN orders ON users.user_id = orders.user_id
+                WHERE
+                    users.user_id = ${bind(1)}
+                """.trimIndent()
+            }
+            .list()
+        assertThat(result).isEqualTo(
+            listOf(
+                UserOrder(
+                    username = "user1",
+                    orderId = 1,
+                    orderDate = LocalDate.of(2023, 6, 1),
+                    amount = BigDecimal("100.00"),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun orderProduct() = runTest {
+        data class OrderProduct(
+            val orderId: Int,
+            val productName: String,
+            val quantity: Int,
+        )
+
+        val result: List<OrderProduct> = kueryClient
+            .sql {
+                +"""
+                SELECT orders.order_id, products.product_name, order_items.quantity
+                FROM orders
+                JOIN order_items ON orders.order_id = order_items.order_id
+                JOIN products ON order_items.product_id = products.product_id
+                ORDER BY orders.order_id
+                """.trimIndent()
+            }
+            .list()
+        assertThat(result).isEqualTo(
+            listOf(
+                OrderProduct(orderId = 1, productName = "Product A", quantity = 2),
+                OrderProduct(orderId = 1, productName = "Product B", quantity = 1),
+                OrderProduct(orderId = 2, productName = "Product A", quantity = 1),
+            ),
+        )
+    }
+
+    @Test
+    fun `using extension function`() = runTest {
+        fun SqlDsl.userIdEqualsTo(userId: Int) {
+            +"users.user_id = ${bind(userId)}"
+        }
+
+        val result: User = kueryClient
+            .sql {
+                +"SELECT * FROM users"
+                +"WHERE"
+                userIdEqualsTo(1)
+            }
+            .single()
+        assertThat(result).isEqualTo(User(userId = 1, username = "user1", email = "user1@example.com"))
     }
 }
