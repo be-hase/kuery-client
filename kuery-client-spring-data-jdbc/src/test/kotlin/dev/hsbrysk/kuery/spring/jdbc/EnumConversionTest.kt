@@ -3,12 +3,13 @@ package dev.hsbrysk.kuery.spring.jdbc
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import dev.hsbrysk.kuery.core.single
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-class EnumConversionTest : MySQLTestContainersBase() {
-    override fun converters(): List<Any> {
-        return listOf()
-    }
+class EnumConversionTest {
+    private val kueryClient = mysql.kueryClient()
 
     enum class SampleEnum {
         HOGE,
@@ -17,6 +18,16 @@ class EnumConversionTest : MySQLTestContainersBase() {
     data class Record(
         val text: SampleEnum,
     )
+
+    @BeforeEach
+    fun beforeEach() {
+        mysql.setUpForConverterTest()
+    }
+
+    @AfterEach
+    fun afterEach() {
+        mysql.tearDownForConverterTest()
+    }
 
     @Test
     fun test() {
@@ -33,5 +44,15 @@ class EnumConversionTest : MySQLTestContainersBase() {
             +"SELECT * FROM converter"
         }.singleMap()
         assertThat(map["text"]).isEqualTo("HOGE")
+    }
+
+    companion object {
+        private val mysql = MySqlTestContainer()
+
+        @AfterAll
+        @JvmStatic
+        fun afterAll() {
+            mysql.close()
+        }
     }
 }

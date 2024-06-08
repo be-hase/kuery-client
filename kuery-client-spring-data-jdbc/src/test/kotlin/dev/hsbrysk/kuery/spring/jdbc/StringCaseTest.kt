@@ -3,18 +3,17 @@ package dev.hsbrysk.kuery.spring.jdbc
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import dev.hsbrysk.kuery.core.single
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-class StringCaseTest : MySQLTestContainersBase() {
-    override fun converters(): List<Any> {
-        return listOf()
-    }
+class StringCaseTest {
+    private val kueryClient = mysql.kueryClient()
 
     @BeforeEach
     fun beforeEach() {
-        jdbcClient.sql(
+        mysql.jdbcClient().sql(
             """
             CREATE TABLE `string_case`
             (
@@ -31,7 +30,7 @@ class StringCaseTest : MySQLTestContainersBase() {
 
     @AfterEach
     fun afterEach() {
-        jdbcClient.sql("DROP TABLE string_case").update()
+        mysql.jdbcClient().sql("DROP TABLE string_case").update()
     }
 
     data class Record(
@@ -52,5 +51,15 @@ class StringCaseTest : MySQLTestContainersBase() {
 
         assertThat(record.hogeBar).isEqualTo("a")
         assertThat(record.fugaPiyo).isEqualTo("b")
+    }
+
+    companion object {
+        private val mysql = MySqlTestContainer()
+
+        @AfterAll
+        @JvmStatic
+        fun afterAll() {
+            mysql.close()
+        }
     }
 }
