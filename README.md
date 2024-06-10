@@ -17,13 +17,13 @@ By using the following SQL builder, you can easily build and execute SQL.
 data class User(...)
 
 class UserRepository(private val kueryClient: KueryClient) {
-    fun findById(userId: Int): User? {
+    suspend fun findById(userId: Int): User? {
         return kueryClient
             .sql { +"SELECT * FROM users WHERE user_id = ${bind(userId)}" }
             .singleOrNull()
     }
 
-    fun search(status: String, vip: Boolean?): List<User> {
+    suspend fun search(status: String, vip: Boolean?): List<User> {
         return kueryClient
             .sql {
                 +"SELECT * FROM users"
@@ -36,7 +36,7 @@ class UserRepository(private val kueryClient: KueryClient) {
             .list()
     }
 
-    fun insertMany(users: List<User>): Long {
+    suspend fun insertMany(users: List<User>): Long {
         return kueryClient
             .sql {
                 +"INSERT INTO users (username, email) VALUES"
