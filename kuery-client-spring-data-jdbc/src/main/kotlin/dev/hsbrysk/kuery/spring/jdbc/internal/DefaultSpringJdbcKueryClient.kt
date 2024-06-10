@@ -7,6 +7,7 @@ import dev.hsbrysk.kuery.core.SqlDsl
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchContext
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.core.observation.KueryClientObservationDocumentation
+import dev.hsbrysk.kuery.spring.jdbc.SqlIdInjector
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
 import org.springframework.core.convert.ConversionService
@@ -161,17 +162,19 @@ internal class DefaultSpringJdbcKueryClient(
         }
 
         private fun <T> observe(block: () -> T): T {
-            val observation = observationOrNull() ?: return block()
+            return SqlIdInjector(sqlId).use {
+                val observation = observationOrNull() ?: return block()
 
-            observation.start()
-            return observation.openScope().use {
-                try {
-                    block()
-                } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-                    observation.error(e)
-                    throw e
-                } finally {
-                    observation.stop()
+                observation.start()
+                observation.openScope().use {
+                    try {
+                        block()
+                    } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
+                        observation.error(e)
+                        throw e
+                    } finally {
+                        observation.stop()
+                    }
                 }
             }
         }
