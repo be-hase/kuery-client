@@ -29,6 +29,10 @@ export default defineConfig({
 
         socialLinks: [
             {icon: "github", link: "https://github.com/be-hase/kuery-client"}
-        ]
+        ],
+
+        search: {
+            provider: 'local'
+        }
     }
 })
