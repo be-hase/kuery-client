@@ -12,6 +12,7 @@ implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-r2dbc:{{versio
 ### Maven
 
 ```xml
+
 <dependency>
     <groupId>dev.hsbrysk.kuery-client</groupId>
     <artifactId>kuery-client-spring-data-r2dbc</artifactId>
@@ -22,7 +23,7 @@ implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-r2dbc:{{versio
 
 ## Build KueryClient
 
-### for kuery-client-spring-data-r2dbc
+### for `kuery-client-spring-data-r2dbc`
 
 ```kotlin
 val connectionFactory: ConnectionFactory = ...
@@ -32,7 +33,7 @@ val kueryClient = SpringR2dbcKueryClient.builder()
     .build()
 ```
 
-### for kuery-client-spring-data-jdbc
+### for `kuery-client-spring-data-jdbc`
 
 ```kotlin
 val dataSource: DataSource = ...
@@ -42,7 +43,7 @@ val kueryClient = SpringJdbcKueryClient.builder()
     .build()
 ```
 
-## Let's Use
+## Let's Use It
 
 ```kotlin
 val user: User = kueryClient

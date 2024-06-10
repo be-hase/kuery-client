@@ -1,7 +1,7 @@
 # Detekt Custom Rules (Experimental)
 
-If you use dynamic values without bind, there is a possibility of causing SQL Injection. To prevent this, we provide a
-custom Detekt rule.
+If you use dynamic values without bind, there is a possibility of causing SQL Injection. To prevent this, we provide
+Detekt custom ruled.
 
 However, please do not rely on it too much, as there may be cases where complex usage cannot be detected. We plan to
 address this issue by using [type resolution](https://detekt.dev/docs/gettingstarted/type-resolution/).
