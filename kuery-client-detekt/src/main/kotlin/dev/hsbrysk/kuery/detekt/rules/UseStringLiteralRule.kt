@@ -26,6 +26,7 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
     }
 
     override fun visitCallExpression(expression: KtCallExpression) {
+        super.visitCallExpression(expression)
         if (isTargetCallExpression(expression)) {
             if (isInSqlCallExpression(expression)) {
                 val argExpression = expression.valueArguments.first().getArgumentExpression()
@@ -44,10 +45,10 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
                 }
             }
         }
-        super.visitCallExpression(expression)
     }
 
     override fun visitUnaryExpression(expression: KtUnaryExpression) {
+        super.visitUnaryExpression(expression)
         if (isInSqlCallExpression(expression)) {
             if (expression.baseExpression !is KtStringTemplateExpression) {
                 if (!allowByRegexes(expression.baseExpression)) {
@@ -63,7 +64,6 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
                 }
             }
         }
-        super.visitUnaryExpression(expression)
     }
 
     private fun isTargetCallExpression(expression: KtCallExpression): Boolean {

@@ -26,6 +26,7 @@ class StringInterpolationRule(config: Config) : Rule(config) {
     }
 
     override fun visitCallExpression(expression: KtCallExpression) {
+        super.visitCallExpression(expression)
         if (isTargetCallExpression(expression)) {
             if (isInSqlCallExpression(expression)) {
                 val stringTemplate =
@@ -44,11 +45,10 @@ class StringInterpolationRule(config: Config) : Rule(config) {
                 }
             }
         }
-
-        super.visitCallExpression(expression)
     }
 
     override fun visitUnaryExpression(expression: KtUnaryExpression) {
+        super.visitUnaryExpression(expression)
         if (isTargetUnaryExpression(expression)) {
             if (isInSqlCallExpression(expression)) {
                 val stringTemplate = expression.baseExpression as KtStringTemplateExpression
@@ -66,7 +66,6 @@ class StringInterpolationRule(config: Config) : Rule(config) {
                 }
             }
         }
-        super.visitUnaryExpression(expression)
     }
 
     private fun isTargetCallExpression(expression: KtCallExpression): Boolean {
