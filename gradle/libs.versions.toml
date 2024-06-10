@@ -3,7 +3,6 @@ detekt = "1.23.6"
 kotlin-core = "1.9.24"
 kotlin-coroutines = "1.8.1"
 ktlint = "1.2.1"
-micrometer = "1.13.0"
 spring-boot = "3.2.6"
 
 [libraries]
@@ -12,8 +11,7 @@ detekt-api = { module = "io.gitlab.arturbosch.detekt:detekt-api", version.ref = 
 detekt-test = { module = "io.gitlab.arturbosch.detekt:detekt-test", version.ref = "detekt" }
 junit-bom = { module = "org.junit:junit-bom", version = "5.10.2" }
 kotlin-coroutines-bom = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-bom", version.ref = "kotlin-coroutines" }
-micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
-micrometer-observation-test = { module = "io.micrometer:micrometer-observation-test", version.ref = "micrometer" }
+micrometer-bom = { module = "io.micrometer:micrometer-bom", version = "1.13.0" }
 mockk-core = { module = "io.mockk:mockk", version = "1.13.11" }
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
 

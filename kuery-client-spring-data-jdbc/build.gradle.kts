@@ -7,12 +7,14 @@ plugins {
 }
 
 dependencies {
+    optional(platform(libs.spring.boot.bom))
+    optional(platform(libs.micrometer.bom))
+
     api(projects.kueryClientCore)
 
-    optional(platform(libs.spring.boot.bom))
     api("org.springframework.data:spring-data-jdbc")
 
     testImplementation("org.testcontainers:mysql")
     testImplementation("com.mysql:mysql-connector-j")
-    testImplementation(libs.micrometer.observation.test)
+    testImplementation("io.micrometer:micrometer-observation-test")
 }
