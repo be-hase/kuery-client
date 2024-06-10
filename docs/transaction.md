@@ -1,4 +1,5 @@
 # Transaction
 
-We will write a document later. In the meantime, please refer to the way transactions are handled in `spring-data-r2dbc`
-and `spring-data-jdbc`.
+Please refer to the usage of transactions in spring-data-r2dbc and spring-data-jdbc.
+
+TODO: We will write a document later.
