@@ -6,15 +6,30 @@ import io.micrometer.observation.ObservationRegistry
 import io.r2dbc.spi.ConnectionFactory
 
 interface SpringR2dbcKueryClientBuilder {
+    /**
+     * Set [ConnectionFactory]
+     */
     fun connectionFactory(connectionFactory: ConnectionFactory): SpringR2dbcKueryClientBuilder
 
+    /**
+     * Set converters
+     */
     fun converters(converters: List<Any>): SpringR2dbcKueryClientBuilder
 
+    /**
+     * Set [ObservationRegistry]
+     */
     fun observationRegistry(observationRegistry: ObservationRegistry): SpringR2dbcKueryClientBuilder
 
+    /**
+     * Set [KueryClientFetchObservationConvention]
+     */
     fun observationConvention(
         observationConvention: KueryClientFetchObservationConvention,
     ): SpringR2dbcKueryClientBuilder
 
+    /**
+     * Build [KueryClient]
+     */
     fun build(): KueryClient
 }
