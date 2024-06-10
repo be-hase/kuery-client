@@ -381,6 +381,37 @@ class BasicUsageTest {
         assertThat(result).isEqualTo(User(userId = 1, username = "user1", email = "user1@example.com"))
     }
 
+    fun findById(userId: Int): User? {
+        return kueryClient
+            .sql { +"SELECT * FROM users WHERE user_id = ${bind(userId)}" }
+            .singleOrNull()
+    }
+
+    fun search(
+        status: String,
+        vip: Boolean?,
+    ): List<User> {
+        return kueryClient
+            .sql {
+                +"SELECT * FROM users"
+                +"WHERE"
+                +"status = ${bind(status)}"
+                if (vip != null) {
+                    +"vip = ${bind(vip)}"
+                }
+            }
+            .list()
+    }
+
+    fun insertMany(users: List<User>): Long {
+        return kueryClient
+            .sql {
+                +"INSERT INTO users (username, email) VALUES"
+                +users.joinToString(", ") { "(${bind(it.username)}, ${bind(it.email)})" }
+            }
+            .rowsUpdated()
+    }
+
     companion object {
         private val mysql = MySqlTestContainer()
 
