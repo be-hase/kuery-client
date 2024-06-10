@@ -7,12 +7,13 @@ plugins {
 }
 
 dependencies {
-    implementation(projects.kueryClientCore)
+    api(projects.kueryClientCore)
 
-    implementation(platform(libs.kotlin.coroutines.bom))
-    implementation(platform(libs.spring.boot.bom))
-    implementation("org.springframework.data:spring-data-r2dbc")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
+    optional(platform(libs.kotlin.coroutines.bom))
+    optional(platform(libs.spring.boot.bom))
+    api("org.springframework.data:spring-data-r2dbc")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core")
+    api("io.projectreactor:reactor-core")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")

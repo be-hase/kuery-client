@@ -6,6 +6,6 @@ plugins {
 }
 
 dependencies {
-    compileOnly(platform(libs.kotlin.coroutines.bom))
-    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core")
+    optional(platform(libs.kotlin.coroutines.bom))
+    optional("org.jetbrains.kotlinx:kotlinx-coroutines-core")
 }
