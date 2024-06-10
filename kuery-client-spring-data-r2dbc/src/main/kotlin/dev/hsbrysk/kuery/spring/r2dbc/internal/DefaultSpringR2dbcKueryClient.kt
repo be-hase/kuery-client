@@ -4,7 +4,6 @@ import dev.hsbrysk.kuery.core.KueryClient
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
 import dev.hsbrysk.kuery.core.SqlDsl
-import dev.hsbrysk.kuery.core.id
 import dev.hsbrysk.kuery.spring.r2dbc.SpringR2dbcKueryClient
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
@@ -27,8 +26,11 @@ internal class DefaultSpringR2dbcKueryClient(
     private val conversionService: ConversionService,
     private val customConversions: R2dbcCustomConversions,
 ) : KueryClient {
-    override fun sql(block: SqlDsl.() -> Unit): KueryClient.FetchSpec {
-        return FetchSpec(block.id(), databaseClient.sql(block))
+    override fun sql(
+        sqlId: String,
+        block: SqlDsl.() -> Unit,
+    ): KueryClient.FetchSpec {
+        return FetchSpec(sqlId, databaseClient.sql(block))
     }
 
     private fun DatabaseClient.sql(block: SqlDsl.() -> Unit): GenericExecuteSpec {
