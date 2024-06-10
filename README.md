@@ -8,7 +8,7 @@
 
 ### Document Site
 
-TBD
+https://kuery-client.hsbrysk.dev/
 
 ## Introduction
 
@@ -17,32 +17,34 @@ By using the following SQL builder, you can easily build and execute SQL.
 ```kotlin
 data class User(...)
 
-fun findById(userId: Int): User? {
-    return kueryClient
-        .sql { +"SELECT * FROM users WHERE user_id = ${bind(userId)}" }
-        .singleOrNull()
-}
+class UserRepository(private val kueryClient: KueryClient) {
+    fun findById(userId: Int): User? {
+        return kueryClient
+            .sql { +"SELECT * FROM users WHERE user_id = ${bind(userId)}" }
+            .singleOrNull()
+    }
 
-fun search(status: String, vip: Boolean?): List<User> {
-    return kueryClient
-        .sql {
-            +"SELECT * FROM users"
-            +"WHERE"
-            +"status = ${bind(status)}"
-            if (vip != null) {
-                +"vip = ${bind(vip)}"
+    fun search(status: String, vip: Boolean?): List<User> {
+        return kueryClient
+            .sql {
+                +"SELECT * FROM users"
+                +"WHERE"
+                +"status = ${bind(status)}"
+                if (vip != null) {
+                    +"vip = ${bind(vip)}"
+                }
             }
-        }
-        .list()
-}
+            .list()
+    }
 
-fun insertMany(users: List<User>): Long {
-    return kueryClient
-        .sql {
-            +"INSERT INTO users (username, email) VALUES"
-            +users.joinToString(", ") { "(${bind(it.username)}, ${bind(it.email)})" }
-        }
-        .rowsUpdated()
+    fun insertMany(users: List<User>): Long {
+        return kueryClient
+            .sql {
+                +"INSERT INTO users (username, email) VALUES"
+                +users.joinToString(", ") { "(${bind(it.username)}, ${bind(it.email)})" }
+            }
+            .rowsUpdated()
+    }
 }
 ```
 
