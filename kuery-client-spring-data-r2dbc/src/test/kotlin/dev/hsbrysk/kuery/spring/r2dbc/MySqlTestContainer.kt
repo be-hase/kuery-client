@@ -1,6 +1,7 @@
 package dev.hsbrysk.kuery.spring.r2dbc
 
 import dev.hsbrysk.kuery.core.KueryClient
+import io.micrometer.observation.ObservationRegistry
 import io.r2dbc.spi.ConnectionFactories
 import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.ConnectionFactoryOptions
@@ -17,10 +18,16 @@ class MySqlTestContainer : AutoCloseable {
         .bindMarkers(DialectResolver.getDialect(connectionFactory).bindMarkersFactory)
         .build()
 
-    fun kueryClient(converters: List<Any> = emptyList()): KueryClient {
+    fun kueryClient(
+        converters: List<Any> = emptyList(),
+        observationRegistry: ObservationRegistry? = null,
+    ): KueryClient {
         return SpringR2dbcKueryClient.builder()
             .connectionFactory(connectionFactory)
             .converters(converters)
+            .apply {
+                observationRegistry?.let { observationRegistry(it) }
+            }
             .build()
     }
 

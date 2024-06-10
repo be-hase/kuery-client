@@ -20,4 +20,5 @@ dependencies {
     testImplementation("org.testcontainers:mysql")
     testImplementation("com.mysql:mysql-connector-j")
     testImplementation("io.asyncer:r2dbc-mysql")
+    testImplementation(libs.micrometer.observation.test)
 }
