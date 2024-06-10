@@ -5,7 +5,6 @@ import org.gradle.accessors.dm.LibrariesForLibs
 plugins {
     kotlin("jvm")
     `project-report`
-    id("io.freefair.maven-optional")
 }
 
 java {
