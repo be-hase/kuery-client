@@ -7,6 +7,7 @@ dependencies {
     implementation(libs.gradle.plugin.dokka)
     implementation(libs.gradle.plugin.kotlin)
     implementation(libs.gradle.plugin.ktlint)
+    implementation(libs.gradle.plugin.maven.plugin)
     implementation(libs.gradle.plugin.maven.publish)
 
     // ref: https://github.com/gradle/gradle/issues/15383
