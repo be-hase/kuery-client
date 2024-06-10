@@ -15,4 +15,6 @@ out/
 .DS_Store
 
 ### Vitepress ###
+/node_modules
 docs/.vitepress/cache
+docs/.vitepress/dist
