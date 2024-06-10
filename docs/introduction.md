@@ -1,13 +1,6 @@
 # Introduction
 
-By using the following DSL, you can easily construct and execute SQL.
-
-This DSL is very simple. There are only two things you need to remember:
-
-- You can concatenate SQL strings using `+` (unaryPlus). You can also easily incorporate logic with if statements.
-- Use the bind function for dynamic variables.
-    - Be careful not to evaluate variables directly as strings, as this will obviously lead to SQL injection.
-    - Kuery client provides Detekt custom rules that detect such dangerous cases.
+By using the following SQL builder, you can easily build and execute SQL.
 
 ```kotlin
 data class User(...)
@@ -41,9 +34,19 @@ fun insertMany(users: List<User>): Long {
 }
 ```
 
+This SQL builder is very simple. There are only two things you need to remember:
+
+- You can concatenate SQL strings using `+`(unaryPlus).
+    - You can also directly express logic such as if statements in Kotlin.
+- Use the `bind` function for dynamic values.
+    - Be careful not to evaluate variables directly as strings, as this will obviously lead to SQL injection.
+    - Kuery Client provides Detekt custom rules that detect such dangerous cases.
+
 ## Based on spring-data-r2dbc and spring-data-jdbc
 
 Currently, it is implemented based on the well-established `spring-data-r2dbc` and `spring-data-jdbc` in the Java
-community. Kuery client simply provides the aforementioned DSL on this foundation.
+community. Kuery Client simply provides the aforementioned SQL builder on this foundation.
 
-It is designed to be used alongside both spring-data-r2dbc and spring-data-jdbc, allowing you to start small.
+It is designed to be used alongside both `spring-data-r2dbc` and `spring-data-jdbc`, allowing you to start small.
+
+In the future, we may add a different foundation or possibly create a new one from scratch.

@@ -23,7 +23,7 @@ class StringToStringWrapperConverter : Converter<String, StringWrapper> {
 }
 ```
 
-### Specify the converters in the builder
+### Specify the converters when creating the `KueryClient`
 
 ```kotlin
 // e.g. kuery-client-spring-data-r2dbc

@@ -18,6 +18,7 @@ export default defineConfig({
                 items: [
                     {text: "Introduction", link: '/introduction'},
                     {text: "Getting Started", link: '/getting-started'},
+                    {text: "Basics", link: '/basics'},
                     {text: "Transaction", link: '/transaction'},
                     {text: "Type Conversion", link: '/type-conversion'},
                     {text: "Observation", link: '/observation'},
