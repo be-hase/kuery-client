@@ -11,6 +11,7 @@ detekt-api = { module = "io.gitlab.arturbosch.detekt:detekt-api", version.ref = 
 detekt-test = { module = "io.gitlab.arturbosch.detekt:detekt-test", version.ref = "detekt" }
 junit-bom = { module = "org.junit:junit-bom", version = "5.10.2" }
 kotlin-coroutines-bom = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-bom", version.ref = "kotlin-coroutines" }
+micrometer-core = { module = "io.micrometer:micrometer-core", version = "1.13.0" }
 mockk-core = { module = "io.mockk:mockk", version = "1.13.11" }
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
 
