@@ -6,6 +6,8 @@ plugins {
     id("conventions.maven-publish")
 }
 
+description = "Kuery client implementation using spring-data-r2dbc."
+
 dependencies {
     optional(platform(libs.kotlin.coroutines.bom))
     optional(platform(libs.spring.boot.bom))
