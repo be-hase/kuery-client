@@ -6,7 +6,9 @@ plugins {
 }
 
 dependencies {
-    api(libs.micrometer.core)
     optional(platform(libs.kotlin.coroutines.bom))
+    optional(platform(libs.micrometer.bom))
+
+    api("io.micrometer:micrometer-core")
     optional("org.jetbrains.kotlinx:kotlinx-coroutines-core")
 }

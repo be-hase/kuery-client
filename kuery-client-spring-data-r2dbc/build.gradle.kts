@@ -7,10 +7,12 @@ plugins {
 }
 
 dependencies {
-    api(projects.kueryClientCore)
-
     optional(platform(libs.kotlin.coroutines.bom))
     optional(platform(libs.spring.boot.bom))
+    optional(platform(libs.micrometer.bom))
+
+    api(projects.kueryClientCore)
+
     api("org.springframework.data:spring-data-r2dbc")
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     api("io.projectreactor:reactor-core")
@@ -20,5 +22,5 @@ dependencies {
     testImplementation("org.testcontainers:mysql")
     testImplementation("com.mysql:mysql-connector-j")
     testImplementation("io.asyncer:r2dbc-mysql")
-    testImplementation(libs.micrometer.observation.test)
+    testImplementation("io.micrometer:micrometer-observation-test")
 }
