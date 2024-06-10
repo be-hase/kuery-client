@@ -3,6 +3,7 @@ plugins {
     id("conventions.ktlint")
     id("conventions.detekt")
     id("conventions.java17")
+    id("conventions.maven-publish")
 }
 
 dependencies {
