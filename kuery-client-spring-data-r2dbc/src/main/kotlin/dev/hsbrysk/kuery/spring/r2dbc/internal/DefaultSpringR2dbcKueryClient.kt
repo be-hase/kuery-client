@@ -4,7 +4,12 @@ import dev.hsbrysk.kuery.core.KueryClient
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
 import dev.hsbrysk.kuery.core.SqlDsl
+import dev.hsbrysk.kuery.core.observation.KueryClientFetchContext
+import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
+import dev.hsbrysk.kuery.core.observation.KueryClientObservationDocumentation
 import dev.hsbrysk.kuery.spring.r2dbc.SpringR2dbcKueryClient
+import io.micrometer.observation.Observation
+import io.micrometer.observation.ObservationRegistry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingle
@@ -25,17 +30,20 @@ internal class DefaultSpringR2dbcKueryClient(
     private val databaseClient: DatabaseClient,
     private val conversionService: ConversionService,
     private val customConversions: R2dbcCustomConversions,
+    private val observationRegistry: ObservationRegistry?,
+    private val observationConvention: KueryClientFetchObservationConvention?,
 ) : KueryClient {
+    private val defaultObservationConvention = KueryClientFetchObservationConvention.default()
+
     override fun sql(
         sqlId: String,
         block: SqlDsl.() -> Unit,
     ): KueryClient.FetchSpec {
-        return FetchSpec(sqlId, databaseClient.sql(block))
+        val sql = Sql.create(block)
+        return FetchSpec(sqlId, sql, databaseClient.sql(sql))
     }
 
-    private fun DatabaseClient.sql(block: SqlDsl.() -> Unit): GenericExecuteSpec {
-        val sql = Sql.create(block)
-        @Suppress("SqlSourceToSinkFlow")
+    private fun DatabaseClient.sql(sql: Sql): GenericExecuteSpec {
         return sql.parameters.fold(this.sql(sql.body)) { acc, parameter ->
             if (parameter.value != null) {
                 acc.bind(parameter)
@@ -94,49 +102,102 @@ internal class DefaultSpringR2dbcKueryClient(
     @Suppress("TooManyFunctions")
     inner class FetchSpec(
         private val sqlId: String,
+        private val sql: Sql,
         private val spec: GenericExecuteSpec,
     ) : KueryClient.FetchSpec {
         override suspend fun singleMap(): Map<String, Any?> {
-            return spec.fetch().one().sqlId(sqlId).awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
+            return observe {
+                spec.fetch().one().sqlId(sqlId).awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
+            }
         }
 
         override suspend fun singleMapOrNull(): Map<String, Any?>? {
-            return spec.fetch().one().sqlId(sqlId).awaitSingleOrNull()
+            return observe {
+                spec.fetch().one().sqlId(sqlId).awaitSingleOrNull()
+            }
         }
 
         override suspend fun <T : Any> single(returnType: KClass<T>): T {
-            return spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
-                ?: throw EmptyResultDataAccessException(1)
+            return observe {
+                spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
+                    ?: throw EmptyResultDataAccessException(1)
+            }
         }
 
         override suspend fun <T : Any> singleOrNull(returnType: KClass<T>): T? {
-            return spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
+            return observe {
+                spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
+            }
         }
 
         override suspend fun listMap(): List<Map<String, Any?>> {
-            return spec.fetch().all().collectList().sqlId(sqlId).awaitSingle()
+            return observe {
+                spec.fetch().all().collectList().sqlId(sqlId).awaitSingle()
+            }
         }
 
         override suspend fun <T : Any> list(returnType: KClass<T>): List<T> {
-            return spec.map(returnType).all().collectList().sqlId(sqlId).awaitSingle()
+            return observe {
+                spec.map(returnType).all().collectList().sqlId(sqlId).awaitSingle()
+            }
         }
 
         override fun flowMap(): Flow<Map<String, Any?>> {
+            // TODO:
+            // I also want to measure the observation of flow.
+            // However, should it be the time until the flow terminates or the time until the first element is obtained?
+            // There are many uncertainties, so I will not implement it for now.
             return spec.fetch().all().sqlId(sqlId).asFlow()
         }
 
         override fun <T : Any> flow(returnType: KClass<T>): Flow<T> {
+            // TODO:
+            // I also want to measure the observation of flow.
+            // However, should it be the time until the flow terminates or the time until the first element is obtained?
+            // There are many uncertainties, so I will not implement it for now.
             return spec.map(returnType).all().sqlId(sqlId).asFlow()
         }
 
         override suspend fun rowsUpdated(): Long {
-            return spec.fetch().rowsUpdated().awaitSingle()
+            return observe {
+                spec.fetch().rowsUpdated().awaitSingle()
+            }
         }
 
         override suspend fun generatedValues(vararg columns: String): Map<String, Any> {
-            return spec.filter(Function { it.returnGeneratedValues(*columns) }).fetch().one().sqlId(sqlId)
-                .awaitSingleOrNull()
-                ?: throw EmptyResultDataAccessException(1)
+            return observe {
+                spec.filter(Function { it.returnGeneratedValues(*columns) }).fetch().one().sqlId(sqlId)
+                    .awaitSingleOrNull()
+                    ?: throw EmptyResultDataAccessException(1)
+            }
+        }
+
+        private suspend fun <T> observe(block: suspend () -> T): T {
+            val observation = observationOrNull() ?: return block()
+
+            observation.start()
+            return observation.openScope().use {
+                try {
+                    block()
+                } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
+                    observation.error(e)
+                    throw e
+                } finally {
+                    observation.stop()
+                }
+            }
+        }
+
+        private fun observationOrNull(): Observation? {
+            if (observationRegistry == null) {
+                return null
+            }
+            return KueryClientObservationDocumentation.FETCH.observation(
+                observationConvention,
+                defaultObservationConvention,
+                { KueryClientFetchContext(sqlId, sql) },
+                observationRegistry,
+            )
         }
 
         private fun <T> Mono<T>.sqlId(sqlId: String): Mono<T> {
