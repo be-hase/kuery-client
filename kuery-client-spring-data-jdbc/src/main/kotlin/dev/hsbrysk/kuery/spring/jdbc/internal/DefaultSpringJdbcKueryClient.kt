@@ -19,9 +19,11 @@ internal class DefaultSpringJdbcKueryClient(
     private val conversionService: ConversionService,
     private val customConversions: JdbcCustomConversions,
 ) : KueryBlockingClient {
-    override fun sql(block: SqlDsl.() -> Unit): KueryBlockingClient.FetchSpec {
-        // TODO: block.id()
-        return FetchSpec(jdbcClient.sql(block))
+    override fun sql(
+        sqlId: String,
+        block: SqlDsl.() -> Unit,
+    ): KueryBlockingClient.FetchSpec {
+        return FetchSpec(sqlId, jdbcClient.sql(block))
     }
 
     private fun JdbcClient.sql(block: SqlDsl.() -> Unit): StatementSpec {
@@ -84,6 +86,7 @@ internal class DefaultSpringJdbcKueryClient(
 
     @Suppress("TooManyFunctions")
     inner class FetchSpec(
+        private val sqlId: String,
         private val spec: StatementSpec,
     ) : KueryBlockingClient.FetchSpec {
         override fun singleMap(): Map<String, Any?> {

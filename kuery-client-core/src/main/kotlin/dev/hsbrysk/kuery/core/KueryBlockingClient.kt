@@ -4,7 +4,26 @@ import dev.hsbrysk.kuery.core.KueryBlockingClient.FetchSpec
 import kotlin.reflect.KClass
 
 interface KueryBlockingClient {
-    fun sql(block: SqlDsl.() -> Unit): FetchSpec
+    /**
+     * Receives a DSL for constructing SQL and returns a FetchSpec that receives the execution results.
+     *
+     * @param sqlId An ID that uniquely identifies the query. It is used for purposes such as metrics.
+     * If not specified, the method name that was called will be used.
+     * @param block [SqlDsl] for constructing SQL.
+     */
+    fun sql(
+        sqlId: String,
+        block: SqlDsl.() -> Unit,
+    ): FetchSpec
+
+    /**
+     * Receives a DSL for constructing SQL and returns a FetchSpec that receives the execution results.
+     *
+     * @param block [SqlDsl] for constructing SQL.
+     */
+    fun sql(block: SqlDsl.() -> Unit): FetchSpec {
+        return sql(block.id(), block)
+    }
 
     interface FetchSpec {
         /**
