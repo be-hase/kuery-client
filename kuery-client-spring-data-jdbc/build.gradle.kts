@@ -6,6 +6,8 @@ plugins {
     id("conventions.maven-publish")
 }
 
+description = "Kuery client implementation using spring-data-jdbc."
+
 dependencies {
     optional(platform(libs.spring.boot.bom))
     optional(platform(libs.micrometer.bom))

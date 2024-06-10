@@ -5,6 +5,8 @@ plugins {
     id("conventions.maven-publish")
 }
 
+description = "Kuery client's core module."
+
 dependencies {
     optional(platform(libs.kotlin.coroutines.bom))
     optional(platform(libs.micrometer.bom))
