@@ -4,7 +4,7 @@ import {defineConfig} from 'vitepress'
 export default defineConfig({
     lang: "en-US",
     title: "Kuery Client",
-    description: "A Kotlin/JVM database client for those who want to write raw queries",
+    description: "A Kotlin/JVM database client for those who want to write SQL",
     themeConfig: {
         // https://vitepress.dev/reference/default-theme-config
         nav: [
