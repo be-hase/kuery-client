@@ -17,12 +17,13 @@ kueryClient
 Of course, if there is no need to concatenate, you don't have to.
 
 ```kotlin
-kueryClient.sql {
-    +"""
+kueryClient
+    .sql {
+        +"""
         SELECT * FROM users
         WHERE user_id = 1
         """
-}
+    }
 ```
 
 ### `fun add(sql: String)`
