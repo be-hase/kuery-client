@@ -9,14 +9,12 @@ plugins {
 description = "Kuery client implementation using spring-data-jdbc."
 
 dependencies {
-    optional(platform(libs.spring.boot.bom))
-    optional(platform(libs.micrometer.bom))
-
     api(projects.kueryClientCore)
 
-    api("org.springframework.data:spring-data-jdbc")
+    api(libs.spring.data.jdbc)
 
-    testImplementation("org.testcontainers:mysql")
+    testImplementation(platform(libs.spring.boot.bom))
     testImplementation("com.mysql:mysql-connector-j")
-    testImplementation("io.micrometer:micrometer-observation-test")
+    testImplementation("org.testcontainers:mysql")
+    testImplementation(libs.micrometer.observation.test)
 }
