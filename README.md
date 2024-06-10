@@ -5,11 +5,9 @@
 </a>
 </h1>
 <img alt="Maven Central Version" src="https://img.shields.io/maven-central/v/dev.hsbrysk.kuery-client/kuery-client-core">
+<br />
+<a href="https://kuery-client.hsbrysk.dev/"><b>Document Site</b></a>
 </div>
-
-### Document Site
-
-https://kuery-client.hsbrysk.dev/
 
 ## Introduction
 
