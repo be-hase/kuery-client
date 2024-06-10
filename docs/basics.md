@@ -93,7 +93,7 @@ Receives the results converted to the specified type.
 ```kotlin
 val user: User = kueyClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
-    .single<User>()
+    .single()
 ```
 
 ### `(suspend) fun <T : Any> singleOrNull(returnType: KClass<T>): T?`
@@ -103,7 +103,7 @@ Receives the results converted to the specified type.
 ```kotlin
 val user: User? = kueyClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
-    .singleOrNull<User>()
+    .singleOrNull()
 ```
 
 ### `(suspend) fun listMap(): List<Map<String, Any?>>`
@@ -123,7 +123,7 @@ Receives the results of multiple rows converted to the specified type.
 ```kotlin
 val users: List<User> = kueyClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
-    .list<User>()
+    .list()
 ```
 
 ### [`kuery-client-spring-data-r2dbc` only] `fun flowMap(): Flow<Map<String, Any?>>`
@@ -143,7 +143,7 @@ Receives the results of multiple rows converted to the specified type.
 ```kotlin
 val users: Flow<User> = kueyClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
-    .flow<User>()
+    .flow()
 ```
 
 ### `(suspend) fun rowsUpdated(): Long`

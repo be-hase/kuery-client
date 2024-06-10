@@ -5,7 +5,7 @@ Kuery Client supports [Micrometer Observation](https://micrometer.io/).
 If you want to use this feature, please specify the `ObservationRegistry` when creating the `KueryClient`.
 
 ```kotlin
-// e.g. kuery-client-spring-data-r2dbc
+// e.g. In the case of kuery-client-spring-data-r2dbc
 val kueryClient = SpringR2dbcKueryClient.builder()
     .connectionFactory(connectionFactory)
     .observationRegistry(...) // here
@@ -16,7 +16,7 @@ If you want to customize the metrics name or other settings, please implement an
 also.
 
 ```kotlin
-// e.g. kuery-client-spring-data-r2dbc
+// e.g. In the case of kuery-client-spring-data-r2dbc
 val kueryClient = SpringR2dbcKueryClient.builder()
     .connectionFactory(connectionFactory)
     .observationRegistry(...) // here
