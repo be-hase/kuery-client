@@ -2,6 +2,7 @@ package dev.hsbrysk.kuery.spring.jdbc
 
 import com.mysql.cj.jdbc.MysqlDataSource
 import dev.hsbrysk.kuery.core.KueryBlockingClient
+import io.micrometer.observation.ObservationRegistry
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.testcontainers.containers.MySQLContainer
 
@@ -14,10 +15,16 @@ class MySqlTestContainer : AutoCloseable {
     }
     val jdbcClient = JdbcClient.create(dataSource)
 
-    fun kueryClient(converters: List<Any> = emptyList()): KueryBlockingClient {
+    fun kueryClient(
+        converters: List<Any> = emptyList(),
+        observationRegistry: ObservationRegistry? = null,
+    ): KueryBlockingClient {
         return SpringJdbcKueryClient.builder()
             .dataSource(dataSource)
             .converters(converters)
+            .apply {
+                observationRegistry?.let { observationRegistry(it) }
+            }
             .build()
     }
 

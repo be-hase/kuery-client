@@ -4,6 +4,11 @@ import dev.hsbrysk.kuery.core.KueryBlockingClient
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
 import dev.hsbrysk.kuery.core.SqlDsl
+import dev.hsbrysk.kuery.core.observation.KueryClientFetchContext
+import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
+import dev.hsbrysk.kuery.core.observation.KueryClientObservationDocumentation
+import io.micrometer.observation.Observation
+import io.micrometer.observation.ObservationRegistry
 import org.springframework.core.convert.ConversionService
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.data.jdbc.core.convert.JdbcCustomConversions
@@ -18,17 +23,20 @@ internal class DefaultSpringJdbcKueryClient(
     private val jdbcClient: JdbcClient,
     private val conversionService: ConversionService,
     private val customConversions: JdbcCustomConversions,
+    private val observationRegistry: ObservationRegistry?,
+    private val observationConvention: KueryClientFetchObservationConvention?,
 ) : KueryBlockingClient {
+    private val defaultObservationConvention = KueryClientFetchObservationConvention.default()
+
     override fun sql(
         sqlId: String,
         block: SqlDsl.() -> Unit,
     ): KueryBlockingClient.FetchSpec {
-        return FetchSpec(sqlId, jdbcClient.sql(block))
+        val sql = Sql.create(block)
+        return FetchSpec(sqlId, sql, jdbcClient.sql(sql))
     }
 
-    private fun JdbcClient.sql(block: SqlDsl.() -> Unit): StatementSpec {
-        val sql = Sql.create(block)
-        @Suppress("SqlSourceToSinkFlow")
+    private fun JdbcClient.sql(sql: Sql): StatementSpec {
         return sql.parameters.fold(this.sql(sql.body)) { acc, parameter ->
             if (parameter.value != null) {
                 acc.bind(parameter)
@@ -87,52 +95,97 @@ internal class DefaultSpringJdbcKueryClient(
     @Suppress("TooManyFunctions")
     inner class FetchSpec(
         private val sqlId: String,
+        private val sql: Sql,
         private val spec: StatementSpec,
     ) : KueryBlockingClient.FetchSpec {
         override fun singleMap(): Map<String, Any?> {
-            return spec.query().singleRow()
+            return observe {
+                spec.query().singleRow()
+            }
         }
 
         override fun singleMapOrNull(): Map<String, Any?>? {
-            return try {
-                spec.query().singleRow()
-            } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
-                null
+            return observe {
+                try {
+                    spec.query().singleRow()
+                } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
+                    null
+                }
             }
         }
 
         override fun <T : Any> single(returnType: KClass<T>): T {
-            return spec.queryType(returnType).single()
+            return observe {
+                spec.queryType(returnType).single()
+            }
         }
 
         override fun <T : Any> singleOrNull(returnType: KClass<T>): T? {
-            return try {
-                spec.queryType(returnType).single()
-            } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
-                null
+            return observe {
+                try {
+                    spec.queryType(returnType).single()
+                } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
+                    null
+                }
             }
         }
 
         override fun listMap(): List<Map<String, Any?>> {
-            return spec.query().listOfRows()
+            return observe {
+                spec.query().listOfRows()
+            }
         }
 
         override fun <T : Any> list(returnType: KClass<T>): List<T> {
-            return spec.queryType(returnType).list()
+            return observe {
+                spec.queryType(returnType).list()
+            }
         }
 
         override fun rowsUpdated(): Long {
-            return spec.update().toLong()
+            return observe {
+                spec.update().toLong()
+            }
         }
 
         override fun generatedValues(vararg columns: String): Map<String, Any> {
-            val keyHolder = GeneratedKeyHolder()
-            if (columns.isEmpty()) {
-                spec.update(keyHolder)
-            } else {
-                spec.update(keyHolder, *columns)
+            return observe {
+                val keyHolder = GeneratedKeyHolder()
+                if (columns.isEmpty()) {
+                    spec.update(keyHolder)
+                } else {
+                    spec.update(keyHolder, *columns)
+                }
+                checkNotNull(keyHolder.keys)
             }
-            return checkNotNull(keyHolder.keys)
+        }
+
+        private fun <T> observe(block: () -> T): T {
+            val observation = observationOrNull() ?: return block()
+
+            observation.start()
+            return observation.openScope().use {
+                try {
+                    block()
+                } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
+                    observation.error(e)
+                    throw e
+                } finally {
+                    observation.stop()
+                }
+            }
+        }
+
+        private fun observationOrNull(): Observation? {
+            if (observationRegistry == null) {
+                return null
+            }
+            return KueryClientObservationDocumentation.FETCH.observation(
+                observationConvention,
+                defaultObservationConvention,
+                { KueryClientFetchContext(sqlId, sql) },
+                observationRegistry,
+            )
         }
 
         private fun <T : Any> StatementSpec.queryType(returnType: KClass<T>): MappedQuerySpec<T> {

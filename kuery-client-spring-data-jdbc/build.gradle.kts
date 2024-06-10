@@ -14,4 +14,5 @@ dependencies {
 
     testImplementation("org.testcontainers:mysql")
     testImplementation("com.mysql:mysql-connector-j")
+    testImplementation(libs.micrometer.observation.test)
 }
