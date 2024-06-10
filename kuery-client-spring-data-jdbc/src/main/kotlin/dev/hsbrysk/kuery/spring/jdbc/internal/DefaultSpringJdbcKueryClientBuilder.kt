@@ -1,7 +1,9 @@
 package dev.hsbrysk.kuery.spring.jdbc.internal
 
 import dev.hsbrysk.kuery.core.KueryBlockingClient
+import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.spring.jdbc.SpringJdbcKueryClientBuilder
+import io.micrometer.observation.ObservationRegistry
 import org.springframework.core.convert.support.DefaultConversionService
 import org.springframework.data.convert.CustomConversions
 import org.springframework.data.jdbc.core.convert.JdbcCustomConversions
@@ -16,6 +18,8 @@ import javax.sql.DataSource
 internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilder {
     private var dataSource: DataSource? = null
     private var converters: List<Any> = emptyList()
+    private var observationRegistry: ObservationRegistry? = null
+    private var observationConvention: KueryClientFetchObservationConvention? = null
 
     override fun dataSource(dataSource: DataSource): SpringJdbcKueryClientBuilder {
         this.dataSource = dataSource
@@ -24,6 +28,18 @@ internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilde
 
     override fun converters(converters: List<Any>): SpringJdbcKueryClientBuilder {
         this.converters = converters
+        return this
+    }
+
+    override fun observationRegistry(observationRegistry: ObservationRegistry): SpringJdbcKueryClientBuilder {
+        this.observationRegistry = observationRegistry
+        return this
+    }
+
+    override fun observationConvention(
+        observationConvention: KueryClientFetchObservationConvention,
+    ): SpringJdbcKueryClientBuilder {
+        this.observationConvention = observationConvention
         return this
     }
 
@@ -38,7 +54,13 @@ internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilde
             registerConvertersIn(conversionService)
         }
 
-        return DefaultSpringJdbcKueryClient(jdbcClient, conversionService, customConversions)
+        return DefaultSpringJdbcKueryClient(
+            jdbcClient,
+            conversionService,
+            customConversions,
+            observationRegistry,
+            observationConvention,
+        )
     }
 
     private fun jdbcClient(dataSource: DataSource): JdbcClient {
