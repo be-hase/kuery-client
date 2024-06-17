@@ -19,15 +19,3 @@ interface SqlBuilder {
      */
     fun <T : Any> bind(value: T?): String
 }
-
-private val NUMBER_REGEX = "^[0-9]+$".toRegex()
-
-// need cache?
-fun (SqlBuilder.() -> Unit).id(): String {
-    val parts = this.javaClass.name.split("$").filterNot { it.matches(NUMBER_REGEX) }
-    return if (parts.isEmpty()) {
-        "UNKNOWN"
-    } else {
-        parts.joinToString(".")
-    }
-}

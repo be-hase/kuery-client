@@ -29,6 +29,12 @@ interface SpringJdbcKueryClientBuilder {
     ): SpringJdbcKueryClientBuilder
 
     /**
+     * It is a flag to automatically generate a sqlId for metrics.
+     * When [observationRegistry] is specified, the default is true; otherwise, the default is false.
+     */
+    fun enableAutoSqlIdGeneration(enableAutoSqlIdGeneration: Boolean): SpringJdbcKueryClientBuilder
+
+    /**
      * build [KueryBlockingClient]
      */
     fun build(): KueryBlockingClient

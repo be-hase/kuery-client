@@ -1,8 +1,6 @@
 package dev.hsbrysk.kuery.spring.jdbc
 
-import dev.hsbrysk.kuery.core.list
-import dev.hsbrysk.kuery.core.single
-import dev.hsbrysk.kuery.core.singleOrNull
+import com.example.spring.jdbc.UserRepository
 import io.micrometer.observation.tck.TestObservationRegistry
 import io.micrometer.observation.tck.TestObservationRegistryAssert
 import org.junit.jupiter.api.AfterAll
@@ -13,6 +11,7 @@ import org.junit.jupiter.api.Test
 class ObservationTest {
     private val registry = TestObservationRegistry.create()
     private val kueryClient = mysql.kueryClient(observationRegistry = registry)
+    private val userRepository = UserRepository(kueryClient)
 
     @BeforeEach
     fun setUp() {
@@ -47,80 +46,72 @@ class ObservationTest {
 
     @Test
     fun singleMap() {
-        kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.singleMap()
+        userRepository.singleMap(1)
         assertObservation(
-            sqlId = "dev.hsbrysk.kuery.spring.jdbc.ObservationTest.singleMap",
+            sqlId = "com.example.spring.jdbc.UserRepository.singleMap",
             sql = "SELECT * FROM users WHERE user_id = :p0",
         )
     }
 
     @Test
     fun singleMapOrNull() {
-        kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.singleMapOrNull()
+        userRepository.singleMapOrNull(1)
         assertObservation(
-            sqlId = "dev.hsbrysk.kuery.spring.jdbc.ObservationTest.singleMapOrNull",
+            sqlId = "com.example.spring.jdbc.UserRepository.singleMapOrNull",
             sql = "SELECT * FROM users WHERE user_id = :p0",
         )
     }
 
     @Test
     fun single() {
-        kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.single<User>()
+        userRepository.single(1)
         assertObservation(
-            sqlId = "dev.hsbrysk.kuery.spring.jdbc.ObservationTest.single",
+            sqlId = "com.example.spring.jdbc.UserRepository.single",
             sql = "SELECT * FROM users WHERE user_id = :p0",
         )
     }
 
     @Test
     fun singleOrNull() {
-        kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.singleOrNull<User>()
+        userRepository.singleOrNull(1)
         assertObservation(
-            sqlId = "dev.hsbrysk.kuery.spring.jdbc.ObservationTest.singleOrNull",
+            sqlId = "com.example.spring.jdbc.UserRepository.singleOrNull",
             sql = "SELECT * FROM users WHERE user_id = :p0",
         )
     }
 
     @Test
     fun listMap() {
-        kueryClient.sql { +"SELECT * FROM users" }.listMap()
+        userRepository.listMap()
         assertObservation(
-            sqlId = "dev.hsbrysk.kuery.spring.jdbc.ObservationTest.listMap",
+            sqlId = "com.example.spring.jdbc.UserRepository.listMap",
             sql = "SELECT * FROM users",
         )
     }
 
     @Test
     fun list() {
-        kueryClient.sql { +"SELECT * FROM users" }.list<User>()
+        userRepository.list()
         assertObservation(
-            sqlId = "dev.hsbrysk.kuery.spring.jdbc.ObservationTest.list",
+            sqlId = "com.example.spring.jdbc.UserRepository.list",
             sql = "SELECT * FROM users",
         )
     }
 
     @Test
     fun rowUpdated() {
-        kueryClient
-            .sql {
-                +"INSERT INTO users (username, email) VALUES (${bind("user3")}, ${bind("user3@example.com")})"
-            }
-            .rowsUpdated()
+        userRepository.rowUpdated("user3", "user3@example.com")
         assertObservation(
-            sqlId = "dev.hsbrysk.kuery.spring.jdbc.ObservationTest.rowUpdated",
+            sqlId = "com.example.spring.jdbc.UserRepository.rowUpdated",
             sql = "INSERT INTO users (username, email) VALUES (:p0, :p1)",
         )
     }
 
     @Test
     fun generatedValues() {
-        kueryClient
-            .sql {
-                +"INSERT INTO users (username, email) VALUES (${bind("user3")}, ${bind("user3@example.com")})"
-            }
-            .generatedValues("user_id")
+        userRepository.generatedValues("user3", "user3@example.com")
         assertObservation(
-            sqlId = "dev.hsbrysk.kuery.spring.jdbc.ObservationTest.generatedValues",
+            sqlId = "com.example.spring.jdbc.UserRepository.generatedValues",
             sql = "INSERT INTO users (username, email) VALUES (:p0, :p1)",
         )
     }

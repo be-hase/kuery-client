@@ -20,6 +20,7 @@ internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilde
     private var converters: List<Any> = emptyList()
     private var observationRegistry: ObservationRegistry? = null
     private var observationConvention: KueryClientFetchObservationConvention? = null
+    private var enableAutoSqlIdGeneration: Boolean? = null
 
     override fun dataSource(dataSource: DataSource): SpringJdbcKueryClientBuilder {
         this.dataSource = dataSource
@@ -43,6 +44,11 @@ internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilde
         return this
     }
 
+    override fun enableAutoSqlIdGeneration(enableAutoSqlIdGeneration: Boolean): SpringJdbcKueryClientBuilder {
+        this.enableAutoSqlIdGeneration = enableAutoSqlIdGeneration
+        return this
+    }
+
     override fun build(): KueryBlockingClient {
         val dataSource = requireNotNull(this.dataSource) {
             "Specify dataSource."
@@ -53,6 +59,7 @@ internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilde
         val customConversions = jdbcCustomConversions(dataSource).apply {
             registerConvertersIn(conversionService)
         }
+        val enableAutoSqlIdGeneration = enableAutoSqlIdGeneration ?: (observationRegistry != null)
 
         return DefaultSpringJdbcKueryClient(
             jdbcClient,
@@ -60,6 +67,7 @@ internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilde
             customConversions,
             observationRegistry,
             observationConvention,
+            enableAutoSqlIdGeneration,
         )
     }
 
