@@ -8,14 +8,19 @@ object SqlIds {
 
     private val CACHE: ConcurrentHashMap<Class<*>, String> = ConcurrentHashMap()
 
-    internal fun (SqlBuilder.() -> Unit).id(): String {
+    /**
+     * Uses StackWalker to retrieve the caller.
+     */
+    fun (SqlBuilder.() -> Unit).id(): String {
         return CACHE.computeIfAbsent(this.javaClass) {
             val name = StackWalker.getInstance().walk { frames ->
                 frames
                     .filter {
-                        it.className != SqlIds::class.java.name
+                        "${it.className}.${it.methodName}" != "java.util.concurrent.ConcurrentHashMap.computeIfAbsent"
                     }
-                    .skip(3)
+                    .filter {
+                        !it.className.startsWith("dev.hsbrysk.kuery")
+                    }
                     .findFirst()
                     .map { "${it.className}.${it.methodName}" }
                     .orElse(null)
@@ -24,7 +29,7 @@ object SqlIds {
                 return@computeIfAbsent "UNKNOWN"
             }
 
-            val parts = name.split("$").filterNot { it.matches(NUMBER_REGEX) }
+            val parts = name.removeSuffix(".invokeSuspend").split("$", ".").filterNot { it.matches(NUMBER_REGEX) }
             if (parts.isEmpty()) {
                 "UNKNOWN"
             } else {
