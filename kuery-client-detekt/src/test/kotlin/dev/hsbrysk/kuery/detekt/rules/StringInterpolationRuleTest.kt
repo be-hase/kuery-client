@@ -113,7 +113,7 @@ class StringInterpolationRuleTest(private val env: KotlinCoreEnvironment) {
     fun `add - OK pattern6`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.SqlDsl
+            import dev.hsbrysk.kuery.core.SqlScope
 
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
@@ -123,7 +123,7 @@ class StringInterpolationRuleTest(private val env: KotlinCoreEnvironment) {
                     }
                 }
 
-                private fun SqlDsl.idEqualsTo(id: Int) {
+                private fun SqlScope.idEqualsTo(id: Int) {
                     add("id = ${'$'}{bind(id)}")
                 }
             }
@@ -191,7 +191,7 @@ class StringInterpolationRuleTest(private val env: KotlinCoreEnvironment) {
     fun `add - NG pattern4`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.SqlDsl
+            import dev.hsbrysk.kuery.core.SqlScope
 
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
@@ -201,7 +201,7 @@ class StringInterpolationRuleTest(private val env: KotlinCoreEnvironment) {
                     }
                 }
 
-                private fun SqlDsl.idEqualsTo(id: Int) {
+                private fun SqlScope.idEqualsTo(id: Int) {
                     add("id = ${'$'}id")
                 }
             }
@@ -311,7 +311,7 @@ class StringInterpolationRuleTest(private val env: KotlinCoreEnvironment) {
     fun `unaryPlus - OK pattern6`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.SqlDsl
+            import dev.hsbrysk.kuery.core.SqlScope
 
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
@@ -321,7 +321,7 @@ class StringInterpolationRuleTest(private val env: KotlinCoreEnvironment) {
                     }
                 }
 
-                private fun SqlDsl.idEqualsTo(id: Int) {
+                private fun SqlScope.idEqualsTo(id: Int) {
                     +"id = ${'$'}{bind(id)}"
                 }
             }
@@ -389,7 +389,7 @@ class StringInterpolationRuleTest(private val env: KotlinCoreEnvironment) {
     fun `unaryPlus - NG pattern4`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.SqlDsl
+            import dev.hsbrysk.kuery.core.SqlScope
 
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
@@ -399,7 +399,7 @@ class StringInterpolationRuleTest(private val env: KotlinCoreEnvironment) {
                     }
                 }
 
-                private fun SqlDsl.idEqualsTo(id: Int) {
+                private fun SqlScope.idEqualsTo(id: Int) {
                     +"id = ${'$'}id"
                 }
             }

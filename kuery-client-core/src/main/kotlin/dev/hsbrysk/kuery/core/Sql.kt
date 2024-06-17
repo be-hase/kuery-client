@@ -16,7 +16,7 @@ interface Sql {
 
     companion object {
         /**
-         * Create Sql
+         * Create [Sql]
          */
         fun of(
             body: String,
@@ -26,9 +26,9 @@ interface Sql {
         }
 
         /**
-         * Create Sql using DSL
+         * Create [Sql] using SQL builder
          */
-        fun create(block: SqlDsl.() -> Unit): Sql {
+        fun create(block: SqlScope.() -> Unit): Sql {
             val builder = SqlBuilder()
             block(builder)
             return builder.build()
