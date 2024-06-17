@@ -55,7 +55,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
     fun `add - OK pattern3`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.SqlDsl
+            import dev.hsbrysk.kuery.core.SqlBuilder
 
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
@@ -65,7 +65,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                     }
                 }
 
-                private fun SqlDsl.idEqualsTo(id: Int) {
+                private fun SqlBuilder.idEqualsTo(id: Int) {
                     add("id = ${'$'}{bind(id)}")
                 }
             }
@@ -79,7 +79,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
     fun `add - OK pattern4`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.SqlDsl
+            import dev.hsbrysk.kuery.core.SqlBuilder
 
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
@@ -89,7 +89,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                     }
                 }
 
-                private fun SqlDsl.idEqualsTo(id: Int) {
+                private fun SqlBuilder.idEqualsTo(id: Int) {
                     fun hoge(obj: Any): String = ""
                     add(hoge("bar"))
                 }
@@ -142,7 +142,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
     fun `add - NG pattern3`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.SqlDsl
+            import dev.hsbrysk.kuery.core.SqlBuilder
 
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
@@ -152,7 +152,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                     }
                 }
 
-                private fun SqlDsl.idEqualsTo(id: Int) {
+                private fun SqlBuilder.idEqualsTo(id: Int) {
                     fun bar(obj: Any): String = ""
                     add(bar("bar"))
                 }
@@ -204,7 +204,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
     fun `unaryPlus - OK pattern3`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.SqlDsl
+            import dev.hsbrysk.kuery.core.SqlBuilder
 
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
@@ -214,7 +214,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                     }
                 }
 
-                private fun SqlDsl.idEqualsTo(id: Int) {
+                private fun SqlBuilder.idEqualsTo(id: Int) {
                     +"id = ${'$'}{bind(id)}"
                 }
             }
@@ -228,7 +228,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
     fun `unaryPlus - OK pattern4`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.SqlDsl
+            import dev.hsbrysk.kuery.core.SqlBuilder
 
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
@@ -238,7 +238,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                     }
                 }
 
-                private fun SqlDsl.idEqualsTo(id: Int) {
+                private fun SqlBuilder.idEqualsTo(id: Int) {
                     fun hoge(obj: Any): String = ""
                     +hoge("bar")
                 }
@@ -291,7 +291,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
     fun `unaryPlus - NG pattern3`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.SqlDsl
+            import dev.hsbrysk.kuery.core.SqlBuilder
 
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
@@ -301,7 +301,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                     }
                 }
 
-                private fun SqlDsl.idEqualsTo(id: Int) {
+                private fun SqlBuilder.idEqualsTo(id: Int) {
                     fun bar(obj: Any): String = ""
                     +bar("bar")
                 }

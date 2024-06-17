@@ -6,7 +6,7 @@ import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
-import dev.hsbrysk.kuery.core.SqlDsl
+import dev.hsbrysk.kuery.core.SqlBuilder
 import dev.hsbrysk.kuery.core.list
 import dev.hsbrysk.kuery.core.single
 import dev.hsbrysk.kuery.core.singleOrNull
@@ -367,7 +367,7 @@ class BasicUsageTest {
 
     @Test
     fun `using extension function`() {
-        fun SqlDsl.userIdEqualsTo(userId: Int) {
+        fun SqlBuilder.userIdEqualsTo(userId: Int) {
             +"users.user_id = ${bind(userId)}"
         }
 

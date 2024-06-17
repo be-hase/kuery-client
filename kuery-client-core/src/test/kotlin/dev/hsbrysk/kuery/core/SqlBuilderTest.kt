@@ -4,7 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import org.junit.jupiter.api.Test
 
-class SqlDslTest {
+class SqlBuilderTest {
     @Test
     fun id() {
         assertThat(ClassA().sql1()).isEqualTo("dev.hsbrysk.kuery.core.ClassA.sql1")
@@ -38,4 +38,4 @@ internal class ClassA {
     }
 }
 
-private fun sqlId(block: SqlDsl.() -> Unit) = block.id()
+private fun sqlId(block: SqlBuilder.() -> Unit) = block.id()
