@@ -3,6 +3,7 @@ plugins {
     id("conventions.ktlint")
     id("conventions.detekt")
     id("conventions.maven-publish")
+    id("conventions.jmh")
 }
 
 description = "Kuery client's core module."
