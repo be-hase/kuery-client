@@ -1,7 +1,6 @@
 package dev.hsbrysk.kuery.core
 
 import dev.hsbrysk.kuery.core.KueryClient.FetchSpec
-import dev.hsbrysk.kuery.core.internal.SqlIds.id
 import kotlinx.coroutines.flow.Flow
 import kotlin.reflect.KClass
 
@@ -10,7 +9,6 @@ interface KueryClient {
      * Returns a [FetchSpec] to obtain the execution results based on the received [SqlBuilder].
      *
      * @param sqlId An ID that uniquely identifies the query. It is used for purposes such as metrics.
-     * If not specified, the method name that was called will be used.
      * @param block [SqlBuilder] for constructing SQL.
      */
     fun sql(
@@ -23,9 +21,7 @@ interface KueryClient {
      *
      * @param block [SqlBuilder] for constructing SQL.
      */
-    fun sql(block: SqlBuilder.() -> Unit): FetchSpec {
-        return sql(block.id(), block)
-    }
+    fun sql(block: SqlBuilder.() -> Unit): FetchSpec
 
     interface FetchSpec {
         /**

@@ -4,6 +4,7 @@ import dev.hsbrysk.kuery.core.KueryBlockingClient
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
 import dev.hsbrysk.kuery.core.SqlBuilder
+import dev.hsbrysk.kuery.core.internal.SqlIds.id
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchContext
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.core.observation.KueryClientObservationDocumentation
@@ -26,6 +27,7 @@ internal class DefaultSpringJdbcKueryClient(
     private val customConversions: JdbcCustomConversions,
     private val observationRegistry: ObservationRegistry?,
     private val observationConvention: KueryClientFetchObservationConvention?,
+    private val enableAutoSqlIdGeneration: Boolean,
 ) : KueryBlockingClient {
     private val defaultObservationConvention = KueryClientFetchObservationConvention.default()
 
@@ -35,6 +37,11 @@ internal class DefaultSpringJdbcKueryClient(
     ): KueryBlockingClient.FetchSpec {
         val sql = Sql.create(block)
         return FetchSpec(sqlId, sql, jdbcClient.sql(sql))
+    }
+
+    override fun sql(block: SqlBuilder.() -> Unit): KueryBlockingClient.FetchSpec {
+        val sqlId = if (enableAutoSqlIdGeneration) block.id() else "NONE"
+        return sql(sqlId, block)
     }
 
     private fun JdbcClient.sql(sql: Sql): StatementSpec {
