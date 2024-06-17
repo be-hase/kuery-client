@@ -1,7 +1,7 @@
 package dev.hsbrysk.kuery.core
 
 import dev.hsbrysk.kuery.core.internal.DefaultSql
-import dev.hsbrysk.kuery.core.internal.SqlBuilder
+import dev.hsbrysk.kuery.core.internal.DefaultSqlBuilder
 
 interface Sql {
     /**
@@ -16,7 +16,7 @@ interface Sql {
 
     companion object {
         /**
-         * Create Sql
+         * Create [Sql]
          */
         fun of(
             body: String,
@@ -26,10 +26,10 @@ interface Sql {
         }
 
         /**
-         * Create Sql using DSL
+         * Create [Sql] using [SqlBuilder]
          */
-        fun create(block: SqlDsl.() -> Unit): Sql {
-            val builder = SqlBuilder()
+        fun create(block: SqlBuilder.() -> Unit): Sql {
+            val builder = DefaultSqlBuilder()
             block(builder)
             return builder.build()
         }
