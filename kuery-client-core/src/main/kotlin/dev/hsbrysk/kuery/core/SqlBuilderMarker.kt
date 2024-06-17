@@ -1,4 +1,4 @@
 package dev.hsbrysk.kuery.core
 
 @DslMarker
-annotation class SqlScopeMarker
+annotation class SqlBuilderMarker

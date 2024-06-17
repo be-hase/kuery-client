@@ -2,9 +2,9 @@ package dev.hsbrysk.kuery.core.internal
 
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
-import dev.hsbrysk.kuery.core.SqlScope
+import dev.hsbrysk.kuery.core.SqlBuilder
 
-internal class SqlBuilder : SqlScope {
+internal class DefaultSqlBuilder : SqlBuilder {
     private val body = StringBuilder()
     private val parameters = mutableListOf<NamedSqlParameter<*>>()
 

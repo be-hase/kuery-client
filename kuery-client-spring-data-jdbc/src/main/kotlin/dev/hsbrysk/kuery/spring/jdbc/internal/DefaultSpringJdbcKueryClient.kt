@@ -3,7 +3,7 @@ package dev.hsbrysk.kuery.spring.jdbc.internal
 import dev.hsbrysk.kuery.core.KueryBlockingClient
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
-import dev.hsbrysk.kuery.core.SqlScope
+import dev.hsbrysk.kuery.core.SqlBuilder
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchContext
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.core.observation.KueryClientObservationDocumentation
@@ -31,7 +31,7 @@ internal class DefaultSpringJdbcKueryClient(
 
     override fun sql(
         sqlId: String,
-        block: SqlScope.() -> Unit,
+        block: SqlBuilder.() -> Unit,
     ): KueryBlockingClient.FetchSpec {
         val sql = Sql.create(block)
         return FetchSpec(sqlId, sql, jdbcClient.sql(sql))

@@ -6,23 +6,23 @@ import kotlin.reflect.KClass
 
 interface KueryClient {
     /**
-     * Returns a [FetchSpec] to obtain the execution results based on the received [SqlScope].
+     * Returns a [FetchSpec] to obtain the execution results based on the received [SqlBuilder].
      *
      * @param sqlId An ID that uniquely identifies the query. It is used for purposes such as metrics.
      * If not specified, the method name that was called will be used.
-     * @param block [SqlScope] for constructing SQL.
+     * @param block [SqlBuilder] for constructing SQL.
      */
     fun sql(
         sqlId: String,
-        block: SqlScope.() -> Unit,
+        block: SqlBuilder.() -> Unit,
     ): FetchSpec
 
     /**
-     * Returns a [FetchSpec] to obtain the execution results based on the received [SqlScope].
+     * Returns a [FetchSpec] to obtain the execution results based on the received [SqlBuilder].
      *
-     * @param block [SqlScope] for constructing SQL.
+     * @param block [SqlBuilder] for constructing SQL.
      */
-    fun sql(block: SqlScope.() -> Unit): FetchSpec {
+    fun sql(block: SqlBuilder.() -> Unit): FetchSpec {
         return sql(block.id(), block)
     }
 
