@@ -6,7 +6,7 @@ import kotlin.reflect.KClass
 
 interface KueryClient {
     /**
-     * Returns a [FetchSpec] to obtain the execution results based on the received SQL Builder.
+     * Returns a [FetchSpec] to obtain the execution results based on the received [SqlScope].
      *
      * @param sqlId An ID that uniquely identifies the query. It is used for purposes such as metrics.
      * If not specified, the method name that was called will be used.
@@ -18,7 +18,7 @@ interface KueryClient {
     ): FetchSpec
 
     /**
-     * Returns a [FetchSpec] to obtain the execution results based on the received SQL Builder.
+     * Returns a [FetchSpec] to obtain the execution results based on the received [SqlScope].
      *
      * @param block [SqlScope] for constructing SQL.
      */

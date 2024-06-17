@@ -26,7 +26,7 @@ interface Sql {
         }
 
         /**
-         * Create [Sql] using SQL builder
+         * Create [Sql] using [SqlScope]
          */
         fun create(block: SqlScope.() -> Unit): Sql {
             val builder = SqlBuilder()

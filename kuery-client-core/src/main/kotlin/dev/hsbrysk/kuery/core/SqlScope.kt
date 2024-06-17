@@ -5,12 +5,12 @@ import org.intellij.lang.annotations.Language
 @SqlScopeMarker
 interface SqlScope {
     /**
-     * Specify the sql you want to execute. Appended to the internally held StringBuilder.
+     * Specify the sql you want to execute. Appended to the internally held [StringBuilder].
      */
     fun add(@Language("sql") sql: String)
 
     /**
-     * Specify the sql you want to execute. Appended to the internally held StringBuilder.
+     * Specify the sql you want to execute. Appended to the internally held [StringBuilder].
      */
     operator fun String.unaryPlus()
 
