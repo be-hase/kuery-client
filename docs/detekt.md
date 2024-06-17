@@ -1,23 +1,35 @@
-# Detekt Custom Rules (Experimental)
+# Detekt Custom Rules
 
 If you use dynamic values without bind, there is a possibility of causing SQL Injection. To prevent this, we provide
 Detekt custom ruled.
 
-However, please do not rely on it too much, as there may be cases where complex usage cannot be detected. We plan to
-address this issue by using [type resolution](https://detekt.dev/docs/gettingstarted/type-resolution/).
-
-Since this is still experimental, the rules may change.
-
 ## How to use
 
+First, please add it as a dependency in `detektPlugin`.
+
 ```kotlin
-detekt {
-    // ...
-    dependencies {
-        detektPlugins("dev.hsbrysk.kuery-client:kuery-client-detekt:{{version}}")
-    }
-    // ...
+dependencies {
+    detektPlugins("dev.hsbrysk.kuery-client:kuery-client-detekt:{{version}}")
 }
+```
+
+Next, please add the following to the detekt configuration YAML.
+(Unfortunately, custom rules do not work unless they are explicitly enabled.)
+
+```yaml
+kuery-client:
+  StringInterpolation:
+    active: true
+  UseStringLiteral:
+    active: true
+```
+
+After that, by running the detektMain task, you can check for any violations.
+
+```shell
+# Please run the detektMain task, as type resolution is being used.
+# ref: https://detekt.dev/docs/gettingstarted/type-resolution/
+./gradlew detektMain
 ```
 
 ## Rules
