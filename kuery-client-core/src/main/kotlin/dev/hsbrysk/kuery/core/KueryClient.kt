@@ -1,6 +1,7 @@
 package dev.hsbrysk.kuery.core
 
 import dev.hsbrysk.kuery.core.KueryClient.FetchSpec
+import dev.hsbrysk.kuery.core.internal.SqlIds.id
 import kotlinx.coroutines.flow.Flow
 import kotlin.reflect.KClass
 

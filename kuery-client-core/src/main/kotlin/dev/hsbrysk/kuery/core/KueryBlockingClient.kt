@@ -1,6 +1,7 @@
 package dev.hsbrysk.kuery.core
 
 import dev.hsbrysk.kuery.core.KueryBlockingClient.FetchSpec
+import dev.hsbrysk.kuery.core.internal.SqlIds.id
 import kotlin.reflect.KClass
 
 interface KueryBlockingClient {
