@@ -11,6 +11,8 @@ import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.KtUnaryExpression
+import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
+import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameOrNull
 
 @Suppress("NestedBlockDepth")
 class UseStringLiteralRule(config: Config) : Rule(config) {
@@ -28,7 +30,8 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
     override fun visitCallExpression(expression: KtCallExpression) {
         super.visitCallExpression(expression)
         if (isTargetCallExpression(expression)) {
-            if (isInSqlCallExpression(expression)) {
+            val callFqName = expression.getResolvedCall(bindingContext)?.resultingDescriptor?.fqNameOrNull()
+            if (callFqName?.asString() == ADD_FQ_NAME) {
                 val argExpression = expression.valueArguments.first().getArgumentExpression()
                 if (argExpression !is KtStringTemplateExpression) {
                     if (!allowByRegexes(argExpression)) {
@@ -49,7 +52,8 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
 
     override fun visitUnaryExpression(expression: KtUnaryExpression) {
         super.visitUnaryExpression(expression)
-        if (isInSqlCallExpression(expression)) {
+        val unaryPlusFqName = expression.getResolvedCall(bindingContext)?.resultingDescriptor?.fqNameOrNull()
+        if (unaryPlusFqName?.asString() == UNARY_PLUS_FQ_NAME) {
             if (expression.baseExpression !is KtStringTemplateExpression) {
                 if (!allowByRegexes(expression.baseExpression)) {
                     report(
@@ -66,10 +70,9 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
         }
     }
 
-    private fun isTargetCallExpression(expression: KtCallExpression): Boolean {
-        return expression.calleeExpression?.text == "add" &&
+    private fun isTargetCallExpression(expression: KtCallExpression): Boolean =
+        expression.calleeExpression?.text == "add" &&
             expression.valueArguments.size == 1
-    }
 
     private fun allowByRegexes(expression: KtExpression?): Boolean {
         expression ?: return false

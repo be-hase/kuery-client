@@ -22,7 +22,7 @@ export default defineConfig({
                     {text: "Transaction", link: '/transaction'},
                     {text: "Type Conversion", link: '/type-conversion'},
                     {text: "Observation", link: '/observation'},
-                    {text: "Detekt Custom Rules (Experimental)", link: '/detekt'},
+                    {text: "Detekt Custom Rules", link: '/detekt'},
                 ]
             }
         ],
