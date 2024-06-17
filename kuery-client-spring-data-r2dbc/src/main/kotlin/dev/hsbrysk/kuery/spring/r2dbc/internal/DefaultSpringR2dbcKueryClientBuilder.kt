@@ -15,6 +15,7 @@ internal class DefaultSpringR2dbcKueryClientBuilder : SpringR2dbcKueryClientBuil
     private var converters: List<Any> = emptyList()
     private var observationRegistry: ObservationRegistry? = null
     private var observationConvention: KueryClientFetchObservationConvention? = null
+    private var enableAutoSqlIdGeneration: Boolean? = null
 
     override fun connectionFactory(connectionFactory: ConnectionFactory): SpringR2dbcKueryClientBuilder {
         this.connectionFactory = connectionFactory
@@ -38,6 +39,11 @@ internal class DefaultSpringR2dbcKueryClientBuilder : SpringR2dbcKueryClientBuil
         return this
     }
 
+    override fun enableAutoSqlIdGeneration(enableAutoSqlIdGeneration: Boolean): SpringR2dbcKueryClientBuilder {
+        this.enableAutoSqlIdGeneration = enableAutoSqlIdGeneration
+        return this
+    }
+
     override fun build(): KueryClient {
         val connectionFactory = requireNotNull(this.connectionFactory) {
             "Specify connectionFactory."
@@ -48,6 +54,7 @@ internal class DefaultSpringR2dbcKueryClientBuilder : SpringR2dbcKueryClientBuil
         val customConversions = r2dbcCustomConversions(connectionFactory).apply {
             registerConvertersIn(conversionService)
         }
+        val enableAutoSqlIdGeneration = enableAutoSqlIdGeneration ?: (observationRegistry != null)
 
         return DefaultSpringR2dbcKueryClient(
             databaseClient,
@@ -55,6 +62,7 @@ internal class DefaultSpringR2dbcKueryClientBuilder : SpringR2dbcKueryClientBuil
             customConversions,
             observationRegistry,
             observationConvention,
+            enableAutoSqlIdGeneration,
         )
     }
 

@@ -4,6 +4,7 @@ import dev.hsbrysk.kuery.core.KueryClient
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
 import dev.hsbrysk.kuery.core.SqlBuilder
+import dev.hsbrysk.kuery.core.internal.SqlIds.id
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchContext
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.core.observation.KueryClientObservationDocumentation
@@ -32,6 +33,7 @@ internal class DefaultSpringR2dbcKueryClient(
     private val customConversions: R2dbcCustomConversions,
     private val observationRegistry: ObservationRegistry?,
     private val observationConvention: KueryClientFetchObservationConvention?,
+    private val enableAutoSqlIdGeneration: Boolean,
 ) : KueryClient {
     private val defaultObservationConvention = KueryClientFetchObservationConvention.default()
 
@@ -41,6 +43,11 @@ internal class DefaultSpringR2dbcKueryClient(
     ): KueryClient.FetchSpec {
         val sql = Sql.create(block)
         return FetchSpec(sqlId, sql, databaseClient.sql(sql))
+    }
+
+    override fun sql(block: SqlBuilder.() -> Unit): KueryClient.FetchSpec {
+        val sqlId = if (enableAutoSqlIdGeneration) block.id() else "NONE"
+        return sql(sqlId, block)
     }
 
     private fun DatabaseClient.sql(sql: Sql): GenericExecuteSpec {
