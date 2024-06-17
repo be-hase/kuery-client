@@ -1,5 +1,7 @@
 package dev.hsbrysk.kuery.detekt.rules
 
+import dev.hsbrysk.kuery.detekt.ADD_FQ_NAME
+import dev.hsbrysk.kuery.detekt.UNARY_PLUS_FQ_NAME
 import io.gitlab.arturbosch.detekt.api.CodeSmell
 import io.gitlab.arturbosch.detekt.api.Config
 import io.gitlab.arturbosch.detekt.api.Debt

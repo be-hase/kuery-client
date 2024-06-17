@@ -5,15 +5,26 @@ Detekt custom ruled.
 
 ## How to use
 
+First, please add it as a dependency in `detektPlugin`.
+
 ```kotlin
-detekt {
-    // ...
-    dependencies {
-        detektPlugins("dev.hsbrysk.kuery-client:kuery-client-detekt:{{version}}")
-    }
-    // ...
+dependencies {
+    detektPlugins("dev.hsbrysk.kuery-client:kuery-client-detekt:{{version}}")
 }
 ```
+
+Next, please add the following to the detekt configuration YAML.
+(Unfortunately, custom rules do not work unless they are explicitly enabled.)
+
+```yaml
+kuery-client:
+  StringInterpolation:
+    active: true
+  UseStringLiteral:
+    active: true
+```
+
+After that, by running the detektMain task, you can check for any violations.
 
 ```shell
 # Please run the detektMain task, as type resolution is being used.

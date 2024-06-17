@@ -1,4 +1,4 @@
-package dev.hsbrysk.kuery.detekt.rules
+package dev.hsbrysk.kuery.detekt
 
 internal const val ADD_FQ_NAME = "dev.hsbrysk.kuery.core.SqlDsl.add"
 
