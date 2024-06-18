@@ -1,7 +1,8 @@
 package dev.hsbrysk.kuery.detekt.rules
 
-import dev.hsbrysk.kuery.detekt.ADD_FQ_NAME
-import dev.hsbrysk.kuery.detekt.UNARY_PLUS_FQ_NAME
+import dev.hsbrysk.kuery.detekt.getLastReceiverExpression
+import dev.hsbrysk.kuery.detekt.isSqlBuilderAddExpression
+import dev.hsbrysk.kuery.detekt.isSqlBuilderUnaryExpression
 import io.gitlab.arturbosch.detekt.api.CodeSmell
 import io.gitlab.arturbosch.detekt.api.Config
 import io.gitlab.arturbosch.detekt.api.Debt
@@ -10,11 +11,10 @@ import io.gitlab.arturbosch.detekt.api.Issue
 import io.gitlab.arturbosch.detekt.api.Rule
 import io.gitlab.arturbosch.detekt.api.Severity
 import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.KtUnaryExpression
-import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
-import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameOrNull
 
 @Suppress("NestedBlockDepth")
 class UseStringLiteralRule(config: Config) : Rule(config) {
@@ -31,33 +31,11 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
 
     override fun visitCallExpression(expression: KtCallExpression) {
         super.visitCallExpression(expression)
-        if (isTargetCallExpression(expression)) {
-            val callFqName = expression.getResolvedCall(bindingContext)?.resultingDescriptor?.fqNameOrNull()
-            if (callFqName?.asString() == ADD_FQ_NAME) {
-                val argExpression = expression.valueArguments.first().getArgumentExpression()
-                if (argExpression !is KtStringTemplateExpression) {
-                    if (!allowByRegexes(argExpression)) {
-                        report(
-                            CodeSmell(
-                                issue = issue,
-                                entity = Entity.from(expression),
-                                message = """
-                                To keep it concise, use String Literal.
-                                """.trimIndent(),
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-    }
 
-    override fun visitUnaryExpression(expression: KtUnaryExpression) {
-        super.visitUnaryExpression(expression)
-        val unaryPlusFqName = expression.getResolvedCall(bindingContext)?.resultingDescriptor?.fqNameOrNull()
-        if (unaryPlusFqName?.asString() == UNARY_PLUS_FQ_NAME) {
-            if (expression.baseExpression !is KtStringTemplateExpression) {
-                if (!allowByRegexes(expression.baseExpression)) {
+        if (isSqlBuilderAddExpression(expression, bindingContext)) {
+            val argExpression = expression.valueArguments.first().getArgumentExpression()
+            if (!isValidExpression(argExpression)) {
+                if (!allowByRegexes(argExpression)) {
                     report(
                         CodeSmell(
                             issue = issue,
@@ -72,9 +50,39 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
         }
     }
 
-    private fun isTargetCallExpression(expression: KtCallExpression): Boolean =
-        expression.calleeExpression?.text == "add" &&
-            expression.valueArguments.size == 1
+    override fun visitUnaryExpression(expression: KtUnaryExpression) {
+        super.visitUnaryExpression(expression)
+
+        if (isSqlBuilderUnaryExpression(expression, bindingContext)) {
+            val baseExpression = expression.baseExpression
+            if (!isValidExpression(baseExpression)) {
+                if (!allowByRegexes(baseExpression)) {
+                    report(
+                        CodeSmell(
+                            issue = issue,
+                            entity = Entity.from(expression),
+                            message = """
+                            To keep it concise, use String Literal.
+                            """.trimIndent(),
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun isValidExpression(expression: KtExpression?): Boolean {
+        return if (expression is KtStringTemplateExpression) {
+            true
+        } else if (
+            expression is KtDotQualifiedExpression &&
+            getLastReceiverExpression(expression) is KtStringTemplateExpression
+        ) {
+            true
+        } else {
+            false
+        }
+    }
 
     private fun allowByRegexes(expression: KtExpression?): Boolean {
         expression ?: return false
