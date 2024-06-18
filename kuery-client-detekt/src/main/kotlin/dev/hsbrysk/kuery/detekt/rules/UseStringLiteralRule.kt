@@ -2,6 +2,7 @@ package dev.hsbrysk.kuery.detekt.rules
 
 import dev.hsbrysk.kuery.detekt.ADD_FQ_NAME
 import dev.hsbrysk.kuery.detekt.UNARY_PLUS_FQ_NAME
+import dev.hsbrysk.kuery.detekt.getLastReceiverExpression
 import io.gitlab.arturbosch.detekt.api.CodeSmell
 import io.gitlab.arturbosch.detekt.api.Config
 import io.gitlab.arturbosch.detekt.api.Debt
@@ -88,12 +89,6 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
         } else {
             false
         }
-    }
-
-    private tailrec fun getLastReceiverExpression(expression: KtDotQualifiedExpression): KtExpression {
-        val dotQualifiedExpression = expression.receiverExpression as? KtDotQualifiedExpression
-            ?: return expression.receiverExpression
-        return getLastReceiverExpression(dotQualifiedExpression)
     }
 
     private fun allowByRegexes(expression: KtExpression?): Boolean {
