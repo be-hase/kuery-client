@@ -101,6 +101,46 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
     }
 
     @Test
+    fun `add - OK pattern5`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun(id: Int) {
+                    client.sql {
+                        add(
+                        {TRIPLE_QUOTES}
+                        SELECT * FROM user WHERE id = ${'$'}{bind(id)}
+                        {TRIPLE_QUOTES}.trimIndent()
+                        )
+                    }
+                }
+            }
+        """.trimIndent().replace("{TRIPLE_QUOTES}", "\"\"\"")
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(0)
+    }
+
+    @Test
+    fun `add - OK pattern6`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun(id: Int) {
+                    client.sql {
+                        add("SELECT * FROM user WHERE id = ${'$'}{bind(id)}".removePrefix("hoge").removePrefix("bar"))
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(0)
+    }
+
+    @Test
     fun `add - NG pattern1`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
@@ -241,6 +281,44 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                 private fun SqlBuilder.idEqualsTo(id: Int) {
                     fun hoge(obj: Any): String = ""
                     +hoge("bar")
+                }
+            }
+        """.trimIndent()
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(0)
+    }
+
+    @Test
+    fun `unaryPlus - OK pattern5`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun(id: Int) {
+                    client.sql {
+                        +{TRIPLE_QUOTES}
+                        SELECT * FROM user WHERE id = ${'$'}{bind(id)}
+                        {TRIPLE_QUOTES}.trimIndent()
+                    }
+                }
+            }
+        """.trimIndent().replace("{TRIPLE_QUOTES}", "\"\"\"")
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(0)
+    }
+
+    @Test
+    fun `unaryPlus - OK pattern6`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun(id: Int) {
+                    client.sql {
+                        +"SELECT * FROM user WHERE id = ${'$'}{bind(id)}".removePrefix("hoge").removePrefix("bar")
+                    }
                 }
             }
         """.trimIndent()

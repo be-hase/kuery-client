@@ -10,6 +10,7 @@ import io.gitlab.arturbosch.detekt.api.Issue
 import io.gitlab.arturbosch.detekt.api.Rule
 import io.gitlab.arturbosch.detekt.api.Severity
 import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.KtUnaryExpression
@@ -35,7 +36,7 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
             val callFqName = expression.getResolvedCall(bindingContext)?.resultingDescriptor?.fqNameOrNull()
             if (callFqName?.asString() == ADD_FQ_NAME) {
                 val argExpression = expression.valueArguments.first().getArgumentExpression()
-                if (argExpression !is KtStringTemplateExpression) {
+                if (!isValidExpression(argExpression)) {
                     if (!allowByRegexes(argExpression)) {
                         report(
                             CodeSmell(
@@ -56,8 +57,9 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
         super.visitUnaryExpression(expression)
         val unaryPlusFqName = expression.getResolvedCall(bindingContext)?.resultingDescriptor?.fqNameOrNull()
         if (unaryPlusFqName?.asString() == UNARY_PLUS_FQ_NAME) {
-            if (expression.baseExpression !is KtStringTemplateExpression) {
-                if (!allowByRegexes(expression.baseExpression)) {
+            val baseExpression = expression.baseExpression
+            if (!isValidExpression(baseExpression)) {
+                if (!allowByRegexes(baseExpression)) {
                     report(
                         CodeSmell(
                             issue = issue,
@@ -73,8 +75,26 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
     }
 
     private fun isTargetCallExpression(expression: KtCallExpression): Boolean =
-        expression.calleeExpression?.text == "add" &&
-            expression.valueArguments.size == 1
+        expression.calleeExpression?.text == "add" && expression.valueArguments.size == 1
+
+    private fun isValidExpression(expression: KtExpression?): Boolean {
+        return if (expression is KtStringTemplateExpression) {
+            true
+        } else if (
+            expression is KtDotQualifiedExpression &&
+            getLastReceiverExpression(expression) is KtStringTemplateExpression
+        ) {
+            true
+        } else {
+            false
+        }
+    }
+
+    private tailrec fun getLastReceiverExpression(expression: KtDotQualifiedExpression): KtExpression {
+        val dotQualifiedExpression = expression.receiverExpression as? KtDotQualifiedExpression
+            ?: return expression.receiverExpression
+        return getLastReceiverExpression(dotQualifiedExpression)
+    }
 
     private fun allowByRegexes(expression: KtExpression?): Boolean {
         expression ?: return false
