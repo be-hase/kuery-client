@@ -3,6 +3,7 @@ package dev.hsbrysk.kuery.core.internal
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.example.core.ClassA
+import dev.hsbrysk.kuery.core.internal.SqlIds.removeSuffixes
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 
@@ -15,5 +16,11 @@ class SqlIdsTest {
         assertThat(
             ClassA.ClassB.ClassC().sql4 {},
         ).isEqualTo("com.example.core.ClassA.ClassB.ClassC.sql4")
+    }
+
+    @Test
+    fun removeSuffixes() {
+        assertThat("a.b.c".removeSuffixes(listOf(".b", ".c"))).isEqualTo("a.b")
+        assertThat("a.b.c".removeSuffixes(listOf(".a", ".d"))).isEqualTo("a.b.c")
     }
 }
