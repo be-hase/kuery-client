@@ -29,3 +29,7 @@ gradle-plugin-jmh = { module = "me.champeau.jmh:jmh-gradle-plugin", version = "0
 gradle-plugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-core" }
 gradle-plugin-ktlint = { module = "org.jlleitschuh.gradle:ktlint-gradle", version = "12.1.1" }
 gradle-plugin-maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.28.0" }
+
+[plugins]
+kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin-core" }
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
