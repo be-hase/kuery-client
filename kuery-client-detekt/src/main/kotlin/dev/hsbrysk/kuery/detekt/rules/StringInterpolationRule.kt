@@ -1,8 +1,8 @@
 package dev.hsbrysk.kuery.detekt.rules
 
-import dev.hsbrysk.kuery.detekt.ADD_FQ_NAME
-import dev.hsbrysk.kuery.detekt.UNARY_PLUS_FQ_NAME
 import dev.hsbrysk.kuery.detekt.getLastReceiverExpression
+import dev.hsbrysk.kuery.detekt.isSqlBuilderAddExpression
+import dev.hsbrysk.kuery.detekt.isSqlBuilderUnaryExpression
 import io.gitlab.arturbosch.detekt.api.CodeSmell
 import io.gitlab.arturbosch.detekt.api.Config
 import io.gitlab.arturbosch.detekt.api.Debt
@@ -17,8 +17,6 @@ import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateEntryWithExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.KtUnaryExpression
-import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
-import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameOrNull
 
 @RequiresTypeResolution
 class StringInterpolationRule(config: Config) : Rule(config) {
@@ -37,32 +35,9 @@ class StringInterpolationRule(config: Config) : Rule(config) {
     override fun visitCallExpression(expression: KtCallExpression) {
         super.visitCallExpression(expression)
 
-        if (isTargetCallExpression(expression)) {
-            val callFqName = expression.getResolvedCall(bindingContext)?.resultingDescriptor?.fqNameOrNull()
-            if (callFqName?.asString() == ADD_FQ_NAME) {
-                val argExpression = expression.valueArguments.first().getArgumentExpression()
-                val stringTemplate = getStringTemplateExpressionOrNull(argExpression) ?: return
-                if (hasViolation(stringTemplate)) {
-                    report(
-                        CodeSmell(
-                            issue = issue,
-                            entity = Entity.from(expression),
-                            message = """
-                            Use bind and similar methods to safely perform string interpolation.
-                            """.trimIndent(),
-                        ),
-                    )
-                }
-            }
-        }
-    }
-
-    override fun visitUnaryExpression(expression: KtUnaryExpression) {
-        super.visitUnaryExpression(expression)
-
-        val unaryPlusFqName = expression.getResolvedCall(bindingContext)?.resultingDescriptor?.fqNameOrNull()
-        if (unaryPlusFqName?.asString() == UNARY_PLUS_FQ_NAME) {
-            val stringTemplate = getStringTemplateExpressionOrNull(expression.baseExpression) ?: return
+        if (isSqlBuilderAddExpression(expression, bindingContext)) {
+            val argExpression = expression.valueArguments.first().getArgumentExpression()
+            val stringTemplate = getStringTemplateExpressionOrNull(argExpression) ?: return
             if (hasViolation(stringTemplate)) {
                 report(
                     CodeSmell(
@@ -77,9 +52,24 @@ class StringInterpolationRule(config: Config) : Rule(config) {
         }
     }
 
-    private fun isTargetCallExpression(expression: KtCallExpression): Boolean =
-        expression.calleeExpression?.text == "add" &&
-            expression.valueArguments.size == 1
+    override fun visitUnaryExpression(expression: KtUnaryExpression) {
+        super.visitUnaryExpression(expression)
+
+        if (isSqlBuilderUnaryExpression(expression, bindingContext)) {
+            val stringTemplate = getStringTemplateExpressionOrNull(expression.baseExpression) ?: return
+            if (hasViolation(stringTemplate)) {
+                report(
+                    CodeSmell(
+                        issue = issue,
+                        entity = Entity.from(expression),
+                        message = """
+                        Use bind and similar methods to safely perform string interpolation.
+                        """.trimIndent(),
+                    ),
+                )
+            }
+        }
+    }
 
     private fun getStringTemplateExpressionOrNull(expression: KtExpression?): KtStringTemplateExpression? {
         if (expression is KtStringTemplateExpression) {
