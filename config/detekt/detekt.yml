@@ -21,3 +21,9 @@ style:
     active: false # use ktlint
   ReturnCount:
     max: 4
+
+#kuery-client:
+#  StringInterpolation:
+#    active: true
+#  UseStringLiteral:
+#    active: true
