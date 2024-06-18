@@ -133,10 +133,10 @@ class UserRepository(private val client: KueryBlockingClient) {
         return client
             .sql {
                 +"""
-            SELECT users.username, orders.order_id, orders.order_date, orders.amount
-            FROM users
-            JOIN orders ON users.user_id = orders.user_id
-            WHERE
+                SELECT users.username, orders.order_id, orders.order_date, orders.amount
+                FROM users
+                JOIN orders ON users.user_id = orders.user_id
+                WHERE
                 users.user_id = ${bind(userId)}
                 """.trimIndent()
             }

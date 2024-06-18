@@ -212,6 +212,46 @@ class StringInterpolationRuleTest(private val env: KotlinCoreEnvironment) {
     }
 
     @Test
+    fun `add - NG pattern5`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun(id: Int) {
+                    client.sql {
+                        add("SELECT * FROM user WHERE id = ${'$'}id".removePrefix("hoge").removePrefix("bar"))
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(1)
+    }
+
+    @Test
+    fun `add - NG pattern6`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun(id: Int) {
+                    client.sql {
+                        add(
+                        {TRIPLE_QUOTES}
+                        SELECT * FROM user WHERE id = ${'$'}id
+                        {TRIPLE_QUOTES}.trimIndent()
+                        )
+                    }
+                }
+            }
+        """.trimIndent().replace("{TRIPLE_QUOTES}", "\"\"\"")
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(1)
+    }
+
+    @Test
     fun `unaryPlus - OK pattern1`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
@@ -404,6 +444,44 @@ class StringInterpolationRuleTest(private val env: KotlinCoreEnvironment) {
                 }
             }
         """.trimIndent()
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(1)
+    }
+
+    @Test
+    fun `unaryPlus - NG pattern5`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun(id: Int) {
+                    client.sql {
+                        +"SELECT * FROM user WHERE id = ${'$'}id".removePrefix("hoge").removePrefix("bar")
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(1)
+    }
+
+    @Test
+    fun `unaryPlus - NG pattern6`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun(id: Int) {
+                    client.sql {
+                        +{TRIPLE_QUOTES}
+                        SELECT * FROM user WHERE id = ${'$'}id
+                        {TRIPLE_QUOTES}.trimIndent()
+                    }
+                }
+            }
+        """.trimIndent().replace("{TRIPLE_QUOTES}", "\"\"\"")
 
         val findings = rule.compileAndLintWithContext(env, code)
         assertThat(findings).hasSize(1)
