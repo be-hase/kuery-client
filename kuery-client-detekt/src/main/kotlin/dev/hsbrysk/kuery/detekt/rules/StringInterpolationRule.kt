@@ -1,5 +1,7 @@
 package dev.hsbrysk.kuery.detekt.rules
 
+import dev.hsbrysk.kuery.detekt.VALUES_REGEX
+import dev.hsbrysk.kuery.detekt.VALUES_TRANSFORMER_REGEX
 import dev.hsbrysk.kuery.detekt.getLastReceiverExpression
 import dev.hsbrysk.kuery.detekt.isSqlBuilderAddExpression
 import dev.hsbrysk.kuery.detekt.isSqlBuilderUnaryExpression
@@ -29,6 +31,8 @@ class StringInterpolationRule(config: Config) : Rule(config) {
 
     private val allowRegexes = buildList {
         add(BIND_REGEX)
+        add(VALUES_REGEX)
+        add(VALUES_TRANSFORMER_REGEX)
         addAll(valueOrNull<List<String>>("allowRegexes")?.map { it.toRegex() }.orEmpty())
     }
 
@@ -96,6 +100,6 @@ class StringInterpolationRule(config: Config) : Rule(config) {
     }
 
     companion object {
-        val BIND_REGEX = "^bind\\(.+\\)$".toRegex()
+        val BIND_REGEX = """^bind\(.+\)$""".toRegex()
     }
 }
