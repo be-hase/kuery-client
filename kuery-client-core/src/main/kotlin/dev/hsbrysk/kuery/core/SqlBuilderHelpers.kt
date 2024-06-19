@@ -1,0 +1,22 @@
+package dev.hsbrysk.kuery.core
+
+fun SqlBuilder.values(input: List<List<Any?>>): String {
+    require(input.isNotEmpty()) { "inputted list is empty" }
+    val firstSize = input.first().size
+    require(input.all { it.size == firstSize }) { "All inputted child lists must have the same size." }
+    require(firstSize > 0) { "inputted child list is empty" }
+
+    val placeholders = input.joinToString(", ") { list ->
+        list.joinToString(separator = ", ", prefix = "(", postfix = ")") {
+            bind(it)
+        }
+    }
+    return "VALUES $placeholders"
+}
+
+fun <T> SqlBuilder.values(
+    input: List<T>,
+    transformer: (T) -> List<Any?>,
+): String {
+    return values(input.map { transformer(it) })
+}
