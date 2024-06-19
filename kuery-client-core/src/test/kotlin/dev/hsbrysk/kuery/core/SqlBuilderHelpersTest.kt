@@ -67,6 +67,32 @@ class SqlBuilderHelpersTest {
     }
 
     @Test
+    fun `values child list empty`() {
+        val input = listOf(
+            listOf<Any>(),
+        )
+        assertFailure {
+            Sql.create {
+                +"INSERT INTO users (userid, email, age) ${values(input)}"
+            }
+        }.isInstanceOf(IllegalArgumentException::class)
+    }
+
+    @Test
+    fun `values child list size is different`() {
+        val input = listOf(
+            listOf("user0", "user0@example.com", 1),
+            listOf("user1", null),
+            listOf("user2", "user2@example.com", 3),
+        )
+        assertFailure {
+            Sql.create {
+                +"INSERT INTO users (userid, email, age) ${values(input)}"
+            }
+        }.isInstanceOf(IllegalArgumentException::class)
+    }
+
+    @Test
     fun `values multi with transformer`() {
         data class UserParam(val userid: String, val email: String?, val age: Int)
 
