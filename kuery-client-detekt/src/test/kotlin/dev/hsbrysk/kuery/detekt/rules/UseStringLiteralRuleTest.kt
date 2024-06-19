@@ -141,6 +141,53 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
     }
 
     @Test
+    fun `add - OK pattern7`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+            import dev.hsbrysk.kuery.core.values
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun() {
+                    val input = listOf(
+                        listOf("a", "a@example.com", 1)
+                    )
+                    client.sql {
+                        add("INSERT INTO users (username, email, age)")
+                        add(values(input))
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(0)
+    }
+
+    @Test
+    fun `add - OK pattern8`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+            import dev.hsbrysk.kuery.core.values
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun() {
+                    data class Param(val username: String, val email: String, val age: Int)
+                    val input = listOf(
+                        Param("a", "a@example.com", 1),
+                    )
+                    client.sql {
+                        add("INSERT INTO users (username, email, age)")
+                        add(values(input) { listOf(it.username, it.email, it.age)})
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(0)
+    }
+
+    @Test
     fun `add - NG pattern1`() {
         val code = """
             import dev.hsbrysk.kuery.core.KueryClient
@@ -318,6 +365,53 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                 suspend fun someFun(id: Int) {
                     client.sql {
                         +"SELECT * FROM user WHERE id = ${'$'}{bind(id)}".removePrefix("hoge").removePrefix("bar")
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(0)
+    }
+
+    @Test
+    fun `unaryPlus - OK pattern7`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+            import dev.hsbrysk.kuery.core.values
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun() {
+                    val input = listOf(
+                        listOf("a", "a@example.com", 1)
+                    )
+                    client.sql {
+                        +"INSERT INTO users (username, email, age)"
+                        +values(input)
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val findings = rule.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(0)
+    }
+
+    @Test
+    fun `unaryPlus - OK pattern8`() {
+        val code = """
+            import dev.hsbrysk.kuery.core.KueryClient
+            import dev.hsbrysk.kuery.core.values
+
+            class SomeRepository(private val client: KueryClient) {
+                suspend fun someFun() {
+                    data class Param(val username: String, val email: String, val age: Int)
+                    val input = listOf(
+                        Param("a", "a@example.com", 1),
+                    )
+                    client.sql {
+                        +"INSERT INTO users (username, email, age)"
+                        +values(input) { listOf(it.username, it.email, it.age)}
                     }
                 }
             }
