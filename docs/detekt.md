@@ -1,7 +1,7 @@
 # Detekt Custom Rules
 
 If you use dynamic values without bind, there is a possibility of causing SQL Injection. To prevent this, we provide
-Detekt custom ruled.
+Detekt custom rules.
 
 ## How to use
 
