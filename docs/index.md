@@ -11,8 +11,10 @@ hero:
       link: /introduction
 
 features:
-  - title: Simple & Easy
-    details: As long as you know SQL, Kuery Client is easy to use.
-  - title: Support R2DBC & JDBC
-    details: Currently, Kuery Client is implemented based on spring-data-jdbc and spring-data-r2dbc. Use whichever you prefer.
+  - title: Love SQL
+    details: While ORM libraries in the world are convenient, they often require learning their own DSL, which I believe has a high learning cost. Kuery Client emphasizes writing SQL as it is.
+  - title: Based on spring-data-r2dbc and spring-data-jdbc
+    details: Kuery Client is implemented based on spring-data-r2dbc and spring-data-jdbc. Use whichever you prefer. You can use Spring's ecosystem as it is, such as @Transactional.
+  - title: Observability
+    details: It supports Micrometer Observation, so Metrics/Tracing/Logging can also be customized.
 ---

@@ -23,6 +23,8 @@ export default defineConfig({
                     {text: "Type Conversion", link: '/type-conversion'},
                     {text: "Observation", link: '/observation'},
                     {text: "Detekt Custom Rules", link: '/detekt'},
+                    {text: "Helpers", link: '/helpers'},
+                    {text: "Examples", link: '/examples'},
                 ]
             }
         ],
