@@ -196,6 +196,10 @@ class UserService(
         email: Email,
     ): Int {
         return userRepository.insert(username, email)
+            .also {
+                // for checking rollback behavior
+                throwsExceptionsProbabilistically()
+            }
     }
 
     suspend fun updateUserEmail(
@@ -205,11 +209,21 @@ class UserService(
         // Programmatically apply transactions
         return transaction.executeAndAwait {
             userRepository.updateEmail(userId, email)
+                .also {
+                    // for checking rollback behavior
+                    throwsExceptionsProbabilistically()
+                }
         }
     }
 
     suspend fun getUserOrders(userId: Int): List<UserOrder> {
         return userRepository.selectOrderByUserId(userId)
+    }
+
+    private fun throwsExceptionsProbabilistically() {
+        if (Random.nextInt(3) == 0) {
+            error("failed")
+        }
     }
 }
 
@@ -252,10 +266,6 @@ class UserRepository(private val client: KueryClient) {
             }
             .generatedValues("user_id")
             .let { (it["user_id"] as Long).toInt() }
-            .also {
-                // for checking rollback behavior
-                throwsExceptionsProbabilistically()
-            }
     }
 
     suspend fun updateEmail(
@@ -267,10 +277,6 @@ class UserRepository(private val client: KueryClient) {
                 +"UPDATE users SET email = ${bind(email)} WHERE user_id = ${bind(userId)}"
             }
             .rowsUpdated()
-            .also {
-                // for checking rollback behavior
-                throwsExceptionsProbabilistically()
-            }
     }
 
     suspend fun selectOrderByUserId(userId: Int): List<UserOrder> {
@@ -285,11 +291,5 @@ class UserRepository(private val client: KueryClient) {
                 """.trimIndent()
             }
             .list()
-    }
-}
-
-private fun throwsExceptionsProbabilistically() {
-    if (Random.nextInt(2) == 0) {
-        error("failed")
     }
 }
