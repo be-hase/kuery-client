@@ -3,6 +3,8 @@
 If you use dynamic values without bind, there is a possibility of causing SQL Injection. To prevent this, we provide
 Detekt custom rules.
 
+To ensure safety, it is recommended to use this feature.
+
 ## How to use
 
 First, please add it as a dependency in `detektPlugin`.
