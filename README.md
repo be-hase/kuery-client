@@ -81,7 +81,7 @@ This SQL builder is very simple. There are only two things you need to remember:
     - You can also directly express logic such as if statements in Kotlin.
 - Use the `bind` function for dynamic values.
     - Be careful not to evaluate variables directly as strings, as this will obviously lead to SQL injection.
-    - Kuery Client provides [Detekt custom rules](/docs/detekt) that detect such dangerous cases.
+    - Kuery Client provides [Detekt custom rules](./docs/detekt.md) that detect such dangerous cases.
 
 ### Based on spring-data-r2dbc and spring-data-jdbc
 
