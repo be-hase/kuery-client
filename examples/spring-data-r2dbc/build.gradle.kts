@@ -1,3 +1,5 @@
+import io.gitlab.arturbosch.detekt.Detekt
+
 plugins {
     id("conventions.kotlin")
     id("conventions.ktlint")
@@ -19,4 +21,13 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     detektPlugins(projects.kueryClientDetekt)
+}
+
+detekt {
+    config.setFrom("${rootProject.rootDir}/examples/detekt.yml")
+    disableDefaultRuleSets = true
+}
+
+tasks.withType<Detekt> {
+    dependsOn(":${projects.kueryClientDetekt.name}:assemble")
 }

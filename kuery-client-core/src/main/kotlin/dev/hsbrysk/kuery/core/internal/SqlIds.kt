@@ -17,7 +17,7 @@ object SqlIds {
      * Uses StackWalker to retrieve the caller.
      */
     fun (SqlBuilder.() -> Unit).id(): String {
-        return CACHE.computeIfAbsent(this.javaClass) {
+        return CACHE.computeIfAbsent(this.javaClass) { _ ->
             val name = StackWalker.getInstance().walk { frames ->
                 frames
                     .filter {
