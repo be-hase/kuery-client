@@ -172,7 +172,10 @@ class UserController(
 }
 
 @Service
-class UserService(private val userRepository: UserRepository) {
+class UserService(
+    private val userRepository: UserRepository,
+    private val transaction: TransactionTemplate,
+) {
     fun getUser(userId: Int): User {
         return userRepository.selectByUserId(userId)
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
@@ -186,6 +189,8 @@ class UserService(private val userRepository: UserRepository) {
         }
     }
 
+    // Apply transactions using AOP
+    @Transactional
     fun addUser(
         username: String,
         email: Email,
@@ -197,7 +202,10 @@ class UserService(private val userRepository: UserRepository) {
         userId: Int,
         email: Email,
     ): Long {
-        return userRepository.updateEmail(userId, email)
+        // Programmatically apply transactions
+        return transaction.execute {
+            userRepository.updateEmail(userId, email)
+        }!!
     }
 
     fun getUserOrders(userId: Int): List<UserOrder> {
@@ -206,10 +214,7 @@ class UserService(private val userRepository: UserRepository) {
 }
 
 @Repository
-class UserRepository(
-    private val client: KueryBlockingClient,
-    private val transaction: TransactionTemplate,
-) {
+class UserRepository(private val client: KueryBlockingClient) {
     fun selectByUserId(userId: Int): User? {
         return client
             .sql {
@@ -237,8 +242,6 @@ class UserRepository(
             .list()
     }
 
-    // Apply transactions using AOP
-    @Transactional
     fun insert(
         username: String,
         email: Email,
@@ -259,18 +262,15 @@ class UserRepository(
         userId: Int,
         email: Email,
     ): Long {
-        // Programmatically apply transactions
-        return transaction.execute {
-            client
-                .sql {
-                    +"UPDATE users SET email = ${bind(email)} WHERE user_id = ${bind(userId)}"
-                }
-                .rowsUpdated()
-                .also {
-                    // for checking rollback behavior
-                    throwsExceptionsProbabilistically()
-                }
-        }!!
+        return client
+            .sql {
+                +"UPDATE users SET email = ${bind(email)} WHERE user_id = ${bind(userId)}"
+            }
+            .rowsUpdated()
+            .also {
+                // for checking rollback behavior
+                throwsExceptionsProbabilistically()
+            }
     }
 
     fun selectOrderByUserId(userId: Int): List<UserOrder> {
