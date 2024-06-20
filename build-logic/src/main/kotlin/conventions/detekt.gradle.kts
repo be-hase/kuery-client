@@ -5,6 +5,7 @@ plugins {
 }
 
 detekt {
+    config.setFrom("${rootProject.rootDir}/config/detekt/detekt.yml")
     buildUponDefaultConfig = true
 }
 

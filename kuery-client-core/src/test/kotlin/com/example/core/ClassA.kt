@@ -11,6 +11,7 @@ internal class ClassA {
         return block.id()
     }
 
+    @Suppress("InjectDispatcher")
     suspend fun sql2(block: SqlBuilder.() -> Unit): String {
         return withContext(Dispatchers.Default) {
             delay(10)

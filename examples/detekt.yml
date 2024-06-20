@@ -1,0 +1,5 @@
+kuery-client:
+  StringInterpolation:
+    active: true
+  UseStringLiteral:
+    active: true
