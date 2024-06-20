@@ -8,7 +8,7 @@ This is a helpful function for performing multi-row inserts.
 
 ```kotlin
 @Test
-fun `test with transformer`() = runTest {
+fun test() = runTest {
         data class UserParam(val username: String, val email: String?, val age: Int)
 
         val input = listOf(
@@ -26,7 +26,7 @@ fun `test with transformer`() = runTest {
 
 ```kotlin
 @Test
-fun `test with transformer in string interpolation`() = runTest {
+fun `test in string interpolation`() = runTest {
         data class UserParam(val username: String, val email: String?, val age: Int)
 
         val input = listOf(
