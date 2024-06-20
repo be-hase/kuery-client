@@ -117,3 +117,8 @@ community. Kuery Client simply provides the aforementioned SQL builder on this f
 It is designed to be used alongside both `spring-data-r2dbc` and `spring-data-jdbc`, allowing you to start small.
 
 In the future, we may add a different foundation or possibly create a new one from scratch.
+
+## Preface
+
+This document does not explain Spring or Spring Boot. It is written assuming you are already familiar with them. For
+those without this knowledge, the document may be difficult to understand.
