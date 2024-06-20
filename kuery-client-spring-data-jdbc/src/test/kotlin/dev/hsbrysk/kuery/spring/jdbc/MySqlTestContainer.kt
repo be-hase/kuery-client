@@ -13,7 +13,7 @@ class MySqlTestContainer : AutoCloseable {
         user = mysqlContainer.username
         password = mysqlContainer.password
     }
-    val jdbcClient = JdbcClient.create(dataSource)
+    val jdbcClient: JdbcClient = JdbcClient.create(dataSource)
 
     fun kueryClient(
         converters: List<Any> = emptyList(),

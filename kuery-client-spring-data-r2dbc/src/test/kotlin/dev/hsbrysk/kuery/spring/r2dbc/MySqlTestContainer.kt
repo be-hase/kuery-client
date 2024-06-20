@@ -13,7 +13,7 @@ import org.testcontainers.containers.MySQLContainer
 class MySqlTestContainer : AutoCloseable {
     private val mysqlContainer = MySQLContainer("mysql:8.0.37").also { it.start() }
     private val connectionFactory = connectionFactory()
-    val databaseClient = DatabaseClient.builder()
+    val databaseClient: DatabaseClient = DatabaseClient.builder()
         .connectionFactory(connectionFactory)
         .bindMarkers(DialectResolver.getDialect(connectionFactory).bindMarkersFactory)
         .build()
