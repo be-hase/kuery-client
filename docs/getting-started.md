@@ -4,28 +4,45 @@
 
 ### Gradle
 
-```kotlin
+::: code-group
+
+```kotlin [kuery-client-spring-data-r2dbc]
 implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-r2dbc:{{version}}")
-// or, implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-jdbc:{{version}}")
 ```
+
+```kotlin [kuery-client-spring-data-jdbc]
+implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-jdbc:{{version}}")
+```
+
+:::
 
 ### Maven
 
-```xml
+::: code-group
 
+```xml [kuery-client-spring-data-r2dbc]
 <dependency>
     <groupId>dev.hsbrysk.kuery-client</groupId>
     <artifactId>kuery-client-spring-data-r2dbc</artifactId>
-    <!-- or, <artifactId>kuery-client-spring-data-jdbc</artifactId> -->
     <version>{{version}}</version>
 </dependency>
 ```
 
+```xml [kuery-client-spring-data-jdbc]
+<dependency>
+    <groupId>dev.hsbrysk.kuery-client</groupId>
+    <artifactId>kuery-client-spring-data-jdbc</artifactId>
+    <version>{{version}}</version>
+</dependency>
+```
+
+:::
+
 ## Build KueryClient
 
-### for `kuery-client-spring-data-r2dbc`
+::: code-group
 
-```kotlin
+```kotlin [kuery-client-spring-data-r2dbc]
 val connectionFactory: ConnectionFactory = ...
 
 val kueryClient = SpringR2dbcKueryClient.builder()
@@ -33,15 +50,15 @@ val kueryClient = SpringR2dbcKueryClient.builder()
     .build()
 ```
 
-### for `kuery-client-spring-data-jdbc`
-
-```kotlin
+```kotlin [kuery-client-spring-data-jdbc]
 val dataSource: DataSource = ...
 
 val kueryClient = SpringJdbcKueryClient.builder()
     .dataSource(dataSource)
     .build()
 ```
+
+:::
 
 ## Let's Use It
 

@@ -11,7 +11,35 @@
 
 ## Introduction
 
-By using the following SQL builder, you can easily build and execute SQL.
+### Features
+
+- **Love SQL ♥**
+    - While ORM libraries in the world are convenient, they often require learning their own DSL, which I believe has a
+      high learning cost. Kuery Client emphasizes writing SQL as it is.
+- **Based on spring-data-r2dbc and spring-data-jdbc**
+    - Kuery Client is implemented based on spring-data-r2dbc and spring-data-jdbc. Use whichever you prefer. You can use
+      Spring's ecosystem as it is, such as `@Transactional`.
+- **Observability**
+    - It supports Micrometer Observation, so Metrics/Tracing/Logging can also be customized.
+- **Highly extensible**
+    - When dealing with complex data schemas, there are often cases where you want to write common query logic. Thanks
+      to Kotlin's extension functions, this becomes easier.
+
+
+### Motivation
+
+I have used numerous ORM libraries, but in the end, I preferred libraries like MyBatis that allow writing SQL directly.
+
+To construct SQL dynamically, custom template syntax (such as if/foreach) is often used, but I prefer to write logic
+using the syntax provided by the programming language as much as possible.
+I want to write dynamic SQL using Kotlin syntax, similar to [kotlinx.html](https://github.com/Kotlin/kotlinx.html).
+
+To meet these needs, I implemented Kuery Client.
+
+### Overview
+
+By using the following SQL builder, you can easily build and execute SQL. Whether using R2DBC or JDBC, the way of
+writing is almost the same.
 
 ```kotlin
 data class User(...)
@@ -40,7 +68,7 @@ class UserRepository(private val kueryClient: KueryClient) {
         return kueryClient
             .sql {
                 +"INSERT INTO users (username, email) VALUES"
-                +users.joinToString(", ") { "(${bind(it.username)}, ${bind(it.email)})" }
+                +values(users) { listOf(it.username, it.email) }
             }
             .rowsUpdated()
     }
@@ -53,7 +81,7 @@ This SQL builder is very simple. There are only two things you need to remember:
     - You can also directly express logic such as if statements in Kotlin.
 - Use the `bind` function for dynamic values.
     - Be careful not to evaluate variables directly as strings, as this will obviously lead to SQL injection.
-    - Kuery Client provides Detekt custom rules that detect such dangerous cases.
+    - Kuery Client provides [Detekt custom rules](/docs/detekt) that detect such dangerous cases.
 
 ### Based on spring-data-r2dbc and spring-data-jdbc
 

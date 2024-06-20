@@ -3,7 +3,7 @@
 By using Spring Type Conversion, you can support your own custom types.
 https://docs.spring.io/spring-framework/reference/core/validation/convert.html
 
-## Examples
+## Example
 
 ### Custom type used as a sample
 
@@ -29,33 +29,38 @@ class StringToStringWrapperConverter : Converter<String, StringWrapper> {
 
 ### Specify the converters when creating the `KueryClient`
 
-```kotlin
+```kotlin {4-9}
 // e.g. In the case of kuery-client-spring-data-r2dbc
 val kueryClient = SpringR2dbcKueryClient.builder()
     .connectionFactory(connectionFactory)
-    .converters(listOf(StringWrapperToStringConverter(), StringToStringWrapperConverter()))
+    .converters(
+        listOf(
+            StringWrapperToStringConverter(),
+            StringToStringWrapperConverter(),
+        )
+    )
     .build()
 ```
 
 ### Let's Try
 
 ```kotlin
-suspend fun write() {
+suspend fun write(str: StringWrapper) {
     kueryClient
         .sql {
-            +"INSERT INTO converter (text) VALUES (${bind(StringWrapper("hoge"))})"
+            +"INSERT INTO test_table (text) VALUES (${bind(str)})"
         }
         .rowsUpdated()
 }
 
-suspend fun read() {
-    data class Record(
-        val text: StringWrapper,
-    )
+data class Record(
+    val text: StringWrapper,
+)
 
-    val records: List<Record> = kueryClient
+suspend fun read(): List<Record> {
+    return kueryClient
         .sql {
-            +"SELECT * FROM converter"
+            +"SELECT * FROM test_table"
         }
         .list()
 }
