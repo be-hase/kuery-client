@@ -25,6 +25,7 @@ export default defineConfig({
                     {text: "Detekt Custom Rules", link: '/detekt'},
                     {text: "Helpers", link: '/helpers'},
                     {text: "Examples", link: '/examples'},
+                    {text: "Roadmap", link: '/roadmap'},
                 ]
             }
         ],
