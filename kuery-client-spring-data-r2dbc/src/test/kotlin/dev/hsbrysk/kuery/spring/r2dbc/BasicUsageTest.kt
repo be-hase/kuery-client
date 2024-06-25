@@ -6,6 +6,7 @@ import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
+import com.example.spring.r2dbc.User
 import dev.hsbrysk.kuery.core.SqlBuilder
 import dev.hsbrysk.kuery.core.flow
 import dev.hsbrysk.kuery.core.list
@@ -91,8 +92,6 @@ open class BasicUsageTest {
             """.trimIndent(),
         ).fetch().awaitRowsUpdated()
     }
-
-    data class User(val userId: Int, val username: String, val email: String)
 
     @Test
     fun singleMap() = runTest {
