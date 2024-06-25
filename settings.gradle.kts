@@ -22,6 +22,7 @@ plugins {
 }
 
 include("kuery-client-compiler")
+include("kuery-client-compiler:functional-test")
 include("kuery-client-core")
 include("kuery-client-detekt")
 include("kuery-client-spring-data-jdbc")
@@ -29,5 +30,3 @@ include("kuery-client-spring-data-r2dbc")
 
 include("examples:spring-data-jdbc")
 include("examples:spring-data-r2dbc")
-
-include("functional-test")
