@@ -35,14 +35,17 @@ class KueryClientCompilerTest {
                 }.also {
                     println(it)
                 }
+
                 Sql.create {
                     val line2 = "L2=${'$'}{bind(2)}"
                     val line1 = "L1=${'$'}{bind(1)}"
                     val line0 = "L0=${'$'}{bind(0)}"
 
-                    +line0
-                    +line1
-                    +line2
+                    addUnsafe(line0)
+                    addUnsafe(line1)
+                    addUnsafe(line2)
+                }.also {
+                    println(it)
                 }
             }
             """.trimIndent(),
