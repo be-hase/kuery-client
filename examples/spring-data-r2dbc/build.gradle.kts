@@ -20,6 +20,8 @@ dependencies {
     implementation("io.asyncer:r2dbc-mysql")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
+    kotlinCompilerPluginClasspath(projects.kueryClientCompiler)
+
     detektPlugins(projects.kueryClientDetekt)
 }
 

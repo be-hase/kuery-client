@@ -20,6 +20,8 @@ dependencies {
     implementation("com.mysql:mysql-connector-j")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
+    kotlinCompilerPluginClasspath(projects.kueryClientCompiler)
+
     detektPlugins(projects.kueryClientDetekt)
 }
 

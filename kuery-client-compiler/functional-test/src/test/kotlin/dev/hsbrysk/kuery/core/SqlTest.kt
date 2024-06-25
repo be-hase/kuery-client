@@ -221,4 +221,42 @@ class SqlTest {
             ),
         )
     }
+
+    @Test
+    fun `int string interpolation`() {
+        val sql = Sql.create {
+            +"SELECT * FROM user WHERE user_id = ${1}"
+        }
+        assertThat(sql).isEqualTo(
+            Sql.of(
+                "SELECT * FROM user WHERE user_id = :p0",
+                listOf(NamedSqlParameter.of("p0", 1)),
+            ),
+        )
+    }
+
+    @Test
+    fun `string string interpolation`() {
+        // In such cases, string interpolation will not be executed.
+        val sql1 = Sql.create {
+            +"SELECT * FROM user WHERE user_id = ${"hoge"}"
+        }
+        assertThat(sql1).isEqualTo(
+            Sql.of(
+                "SELECT * FROM user WHERE user_id = hoge",
+                emptyList(),
+            ),
+        )
+
+        // On the other hand, in such cases, it will be executed.
+        val sql2 = Sql.create {
+            +"SELECT * FROM user WHERE user_id = ${"hoge".removePrefix("h").removePrefix("o")}"
+        }
+        assertThat(sql2).isEqualTo(
+            Sql.of(
+                "SELECT * FROM user WHERE user_id = :p0",
+                listOf(NamedSqlParameter.of("p0", "ge")),
+            ),
+        )
+    }
 }

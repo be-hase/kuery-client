@@ -12,10 +12,6 @@ internal const val ADD_FQ_NAME = "dev.hsbrysk.kuery.core.SqlBuilder.add"
 
 internal const val UNARY_PLUS_FQ_NAME = "dev.hsbrysk.kuery.core.SqlBuilder.unaryPlus"
 
-internal val VALUES_REGEX = """^values\(.+\)$""".toRegex()
-
-internal val VALUES_TRANSFORMER_REGEX = """^values\(.+\)\s*\{.+}$""".toRegex()
-
 internal tailrec fun getLastReceiverExpression(expression: KtDotQualifiedExpression): KtExpression {
     val dotQualifiedExpression = expression.receiverExpression as? KtDotQualifiedExpression
         ?: return expression.receiverExpression
