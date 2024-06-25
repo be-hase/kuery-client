@@ -1,6 +1,6 @@
 package dev.hsbrysk.kuery.core
 
-fun SqlBuilder.values(input: List<List<Any?>>): String {
+fun SqlBuilder.values(input: List<List<Any?>>) {
     require(input.isNotEmpty()) { "inputted list is empty" }
     val firstSize = input.first().size
     require(input.all { it.size == firstSize }) { "All inputted child lists must have the same size." }
@@ -11,12 +11,12 @@ fun SqlBuilder.values(input: List<List<Any?>>): String {
             bind(it)
         }
     }
-    return "VALUES $placeholders"
+    addUnsafe("VALUES $placeholders")
 }
 
 fun <T> SqlBuilder.values(
     input: List<T>,
     transformer: (T) -> List<Any?>,
-): String {
-    return values(input.map { transformer(it) })
+) {
+    values(input.map { transformer(it) })
 }

@@ -74,7 +74,7 @@ class ValuesHelperTest {
 
         val rowsUpdated = kueryClient.sql {
             +"INSERT INTO users (username, email, age)"
-            +values(input) { listOf(it.username, it.email, it.age) }
+            values(input) { listOf(it.username, it.email, it.age) }
         }.rowsUpdated()
         assertThat(rowsUpdated).isEqualTo(3)
 

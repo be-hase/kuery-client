@@ -18,22 +18,31 @@ class KueryClientCompilerTest {
         val source = SourceFile.kotlin(
             "Sample.kt",
             """
-            import dev.hsbrysk.kuery.core.sql2
+            import dev.hsbrysk.kuery.core.Sql
 
             fun main() {
                 val userId = 1
                 val status = "active"
 
-                sql2 {
+                Sql.create {
                     +"SELECT * FROM users WHERE user_id = ${'$'}userId AND status = ${'$'}status"
                 }.also {
                     println(it)
                 }
 
-                sql2 {
+                Sql.create {
                     add("SELECT * FROM users WHERE user_id = ${'$'}userId AND status = ${'$'}status")
                 }.also {
                     println(it)
+                }
+                Sql.create {
+                    val line2 = "L2=${'$'}{bind(2)}"
+                    val line1 = "L1=${'$'}{bind(1)}"
+                    val line0 = "L0=${'$'}{bind(0)}"
+
+                    +line0
+                    +line1
+                    +line2
                 }
             }
             """.trimIndent(),

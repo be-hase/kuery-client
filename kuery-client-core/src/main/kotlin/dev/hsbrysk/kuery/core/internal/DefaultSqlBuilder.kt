@@ -6,20 +6,40 @@ import dev.hsbrysk.kuery.core.SqlBuilder
 
 internal class DefaultSqlBuilder : SqlBuilder {
     private val body = StringBuilder()
-    private val parameters = mutableListOf<NamedSqlParameter<*>>()
+    private val parameters = mutableListOf<NamedSqlParameter>()
 
-    override fun add(sql: String) {
+    override fun add(sql: String): Unit = injectByPlugin()
+
+    override fun String.unaryPlus(): Unit = injectByPlugin()
+
+    override fun addUnsafe(sql: String) {
         body.appendLine(sql)
     }
 
-    override fun String.unaryPlus() {
-        add(this)
+    override fun bind(parameter: Any?): String {
+        val currentIndex = parameters.size
+        parameters.add(DefaultNamedSqlParameter(PARAMETER_NAME_PREFIX + currentIndex, parameter))
+        return PARAMETER_NAME_PREFIX_WITH_COLON + currentIndex
     }
 
-    override fun <T : Any> bind(value: T?): String {
-        val currentIndex = parameters.size
-        parameters.add(DefaultNamedSqlParameter(PARAMETER_NAME_PREFIX + currentIndex, value))
-        return PARAMETER_NAME_PREFIX_WITH_COLON + currentIndex
+//    @Suppress("unused") // used by compiler plugin
+//    fun addInternal(sql: String) {
+//        body.appendLine(sql)
+//    }
+
+    @Suppress("unused") // used by compiler plugin
+    fun interpolate(
+        fragments: List<String>,
+        values: List<Any?>,
+    ): String {
+        return buildString {
+            fragments.forEachIndexed { index, fragment ->
+                append(fragment)
+                if (index < values.size) {
+                    append(bind(values[index]))
+                }
+            }
+        }
     }
 
     fun build(): Sql {
@@ -29,5 +49,8 @@ internal class DefaultSqlBuilder : SqlBuilder {
     companion object {
         internal const val PARAMETER_NAME_PREFIX = "p"
         internal const val PARAMETER_NAME_PREFIX_WITH_COLON = ":$PARAMETER_NAME_PREFIX"
+
+        fun <T> injectByPlugin(): T =
+            error("kuery-client-compiler plugin is not loaded or you are using an unsupported usage.")
     }
 }

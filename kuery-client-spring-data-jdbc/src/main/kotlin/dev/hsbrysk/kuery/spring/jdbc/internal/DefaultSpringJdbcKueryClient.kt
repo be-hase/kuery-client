@@ -54,7 +54,7 @@ internal class DefaultSpringJdbcKueryClient(
         }
     }
 
-    private fun StatementSpec.bind(parameter: NamedSqlParameter<*>): StatementSpec {
+    private fun StatementSpec.bind(parameter: NamedSqlParameter): StatementSpec {
         val value = checkNotNull(parameter.value)
 
         val targetType = customConversions.getCustomWriteTarget(value::class.java)

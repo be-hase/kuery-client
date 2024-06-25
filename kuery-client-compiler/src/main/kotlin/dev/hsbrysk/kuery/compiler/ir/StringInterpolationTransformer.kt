@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.ir.expressions.IrStringConcatenation
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.classFqName
+import org.jetbrains.kotlin.ir.types.classOrFail
 import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.typeWith
 import org.jetbrains.kotlin.ir.util.functions
@@ -47,26 +48,22 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
 
     private fun transformAddCall(expression: IrCall): IrCall {
         val builder = irBuilder(expression)
-        val defaultSqlBuilderClass = defaultSqlBuilderClass()
-        val addInternal = defaultSqlBuilderClass.functions.first { it.owner.name.asString() == "addInternal" }
-        return builder.irCall(addInternal, pluginContext.symbols.unit.defaultType).apply {
-            dispatchReceiver = builder.irCastIfNeeded(
-                checkNotNull(expression.dispatchReceiver),
-                defaultSqlBuilderClass.typeWith(),
-            )
+        val sqlBuilder = checkNotNull(expression.dispatchReceiver)
+        val sqlBuilderClass = sqlBuilder.type.classOrFail
+        val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
+        return builder.irCall(addUnsafe, pluginContext.symbols.unit.defaultType).apply {
+            dispatchReceiver = sqlBuilder
             putValueArgument(0, expression.valueArguments.first())
         }
     }
 
     private fun transformUnaryPlusCall(expression: IrCall): IrCall {
         val builder = irBuilder(expression)
-        val defaultSqlBuilderClass = defaultSqlBuilderClass()
-        val addInternal = defaultSqlBuilderClass.functions.first { it.owner.name.asString() == "addInternal" }
-        return builder.irCall(addInternal, pluginContext.symbols.unit.defaultType).apply {
-            dispatchReceiver = builder.irCastIfNeeded(
-                checkNotNull(expression.dispatchReceiver),
-                defaultSqlBuilderClass.typeWith(),
-            )
+        val sqlBuilder = checkNotNull(expression.dispatchReceiver)
+        val sqlBuilderClass = sqlBuilder.type.classOrFail
+        val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
+        return builder.irCall(addUnsafe, pluginContext.symbols.unit.defaultType).apply {
+            dispatchReceiver = sqlBuilder
             putValueArgument(0, expression.extensionReceiver)
         }
     }
@@ -125,7 +122,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
             when (symbol.owner.name.asString()) {
                 "add", "unaryPlus" -> return true
             }
-            return true
+            return false
         }
 
         private fun IrPluginContext.listOfRef(): IrSimpleFunctionSymbol {
