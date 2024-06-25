@@ -4,6 +4,6 @@ import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
-object CallableIds {
+internal object CallableIds {
     val LIST_OF = CallableId(FqName("kotlin.collections"), Name.identifier("listOf"))
 }

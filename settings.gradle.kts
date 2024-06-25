@@ -29,3 +29,5 @@ include("kuery-client-spring-data-r2dbc")
 
 include("examples:spring-data-jdbc")
 include("examples:spring-data-r2dbc")
+
+include("functional-test")

@@ -6,6 +6,7 @@ import dev.hsbrysk.kuery.compiler.ir.misc.ClassNames
 import dev.hsbrysk.kuery.compiler.ir.misc.StringConcatenationProcessor
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
+import org.jetbrains.kotlin.ir.backend.js.utils.valueArguments
 import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irVararg
@@ -18,6 +19,7 @@ import org.jetbrains.kotlin.ir.types.classFqName
 import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.typeWith
 import org.jetbrains.kotlin.ir.util.functions
+import org.jetbrains.kotlin.ir.util.irCastIfNeeded
 import org.jetbrains.kotlin.ir.util.isVararg
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 
@@ -25,26 +27,53 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
     private var current: IrCall? = null
 
     override fun visitCall(expression: IrCall): IrExpression {
-        if (!expression.isTarget()) {
-            return super.visitCall(expression)
+        if (expression.isAddOrUnaryPlus()) {
+            return try {
+                current = expression
+                super.visitCall(expression)
+
+                when (expression.symbol.owner.name.asString()) {
+                    "add" -> transformAddCall(expression)
+                    "unaryPlus" -> transformUnaryPlusCall(expression)
+                    else -> error("Unexpected error") // not happened
+                }
+            } finally {
+                current = null
+            }
         }
-        return try {
-            current = expression
-            super.visitCall(expression)
-        } finally {
-            current = null
+
+        return super.visitCall(expression)
+    }
+
+    private fun transformAddCall(expression: IrCall): IrCall {
+        val builder = irBuilder(expression)
+        val defaultSqlBuilderClass = defaultSqlBuilderClass()
+        val addInternal = defaultSqlBuilderClass.functions.first { it.owner.name.asString() == "addInternal" }
+        return builder.irCall(addInternal, pluginContext.symbols.unit.defaultType).apply {
+            dispatchReceiver = builder.irCastIfNeeded(
+                checkNotNull(expression.dispatchReceiver),
+                defaultSqlBuilderClass.typeWith(),
+            )
+            putValueArgument(0, expression.valueArguments.first())
+        }
+    }
+
+    private fun transformUnaryPlusCall(expression: IrCall): IrCall {
+        val builder = irBuilder(expression)
+        val defaultSqlBuilderClass = defaultSqlBuilderClass()
+        val addInternal = defaultSqlBuilderClass.functions.first { it.owner.name.asString() == "addInternal" }
+        return builder.irCall(addInternal, pluginContext.symbols.unit.defaultType).apply {
+            dispatchReceiver = builder.irCastIfNeeded(
+                checkNotNull(expression.dispatchReceiver),
+                defaultSqlBuilderClass.typeWith(),
+            )
+            putValueArgument(0, expression.extensionReceiver)
         }
     }
 
     override fun visitStringConcatenation(expression: IrStringConcatenation): IrExpression {
         val current = current ?: return super.visitStringConcatenation(expression)
-
-        val builder = DeclarationIrBuilder(
-            pluginContext,
-            current.symbol,
-            current.startOffset,
-            current.endOffset,
-        )
+        val builder = irBuilder(current)
 
         val (fragments, values) = StringConcatenationProcessor(builder).process(expression.arguments).let {
             Pair(
@@ -52,18 +81,30 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
                 builder.irListOf(pluginContext.symbols.any.defaultType, it.second),
             )
         }
-        println(fragments)
-        println(values)
 
-        val defaultSqlBuilderClass = checkNotNull(pluginContext.referenceClass(ClassIds.DEFAULT_SQL_BUILDER))
+        val defaultSqlBuilderClass = defaultSqlBuilderClass()
         val interpolate = defaultSqlBuilderClass.functions.first { it.owner.name.asString() == "interpolate" }
 
         return builder.irCall(interpolate, pluginContext.symbols.string.defaultType).apply {
-            dispatchReceiver = current.dispatchReceiver
+            dispatchReceiver = builder.irCastIfNeeded(
+                checkNotNull(current.dispatchReceiver),
+                defaultSqlBuilderClass.typeWith(),
+            )
             putValueArgument(0, fragments)
             putValueArgument(1, values)
         }
     }
+
+    private fun irBuilder(expression: IrCall): DeclarationIrBuilder {
+        return DeclarationIrBuilder(
+            pluginContext,
+            expression.symbol,
+            expression.startOffset,
+            expression.endOffset,
+        )
+    }
+
+    private fun defaultSqlBuilderClass() = checkNotNull(pluginContext.referenceClass(ClassIds.DEFAULT_SQL_BUILDER))
 
     private fun IrBuilderWithScope.irListOf(
         type: IrType,
@@ -77,12 +118,12 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
     }
 
     companion object {
-        private fun IrCall.isTarget(): Boolean {
+        private fun IrCall.isAddOrUnaryPlus(): Boolean {
             if (dispatchReceiver?.type?.classFqName?.asString() != ClassNames.SQL_BUILDER) {
                 return false
             }
             when (symbol.owner.name.asString()) {
-                "unaryPlus", "add" -> return true
+                "add", "unaryPlus" -> return true
             }
             return true
         }
