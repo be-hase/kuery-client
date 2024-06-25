@@ -54,7 +54,7 @@ class CollectionConversionTest {
 
         val result = kueryClient.sql {
             val inList = listOf(StringWrapper("text1"), StringWrapper("text2"))
-            +"SELECT * FROM converter WHERE text IN (${bind(inList)})"
+            +"SELECT * FROM converter WHERE text IN ($inList)"
         }.listMap()
         assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 2L, "text" to "text2")))
     }

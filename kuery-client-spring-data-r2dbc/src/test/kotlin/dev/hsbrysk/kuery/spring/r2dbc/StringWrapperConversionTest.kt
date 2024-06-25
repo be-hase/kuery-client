@@ -49,7 +49,7 @@ class StringWrapperConversionTest {
     @Test
     fun test() = runTest {
         kueryClient.sql {
-            +"INSERT INTO converter (text) VALUES (${bind(StringWrapper("hoge"))})"
+            +"INSERT INTO converter (text) VALUES (${StringWrapper("hoge")})"
         }.rowsUpdated()
 
         val record: Record = kueryClient.sql {

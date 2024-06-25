@@ -96,7 +96,8 @@ open class BasicUsageTest {
 
     @Test
     fun singleMap() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.singleMap()
+        val userId = 1
+        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleMap()
         assertThat(result).isEqualTo(
             mapOf(
                 "user_id" to 1,
@@ -108,8 +109,9 @@ open class BasicUsageTest {
 
     @Test
     fun `singleMap no record`() = runTest {
+        val userId = 5
         assertFailure {
-            kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(5)}" }.singleMap()
+            kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleMap()
         }.isInstanceOf(EmptyResultDataAccessException::class)
     }
 
@@ -122,7 +124,8 @@ open class BasicUsageTest {
 
     @Test
     fun singleMapOrNull() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.singleMapOrNull()
+        val userId = 1
+        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleMapOrNull()
         assertThat(result).isEqualTo(
             mapOf(
                 "user_id" to 1,
@@ -134,7 +137,8 @@ open class BasicUsageTest {
 
     @Test
     fun `singleMapOrNull no record`() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(5)}" }.singleMapOrNull()
+        val userId = 5
+        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleMapOrNull()
         assertThat(result).isNull()
     }
 
@@ -147,7 +151,8 @@ open class BasicUsageTest {
 
     @Test
     fun single() = runTest {
-        val result: User = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.single()
+        val userId = 1
+        val result: User = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.single()
         assertThat(result).isEqualTo(
             User(
                 userId = 1,
@@ -161,15 +166,17 @@ open class BasicUsageTest {
     fun `single invalid type`() = runTest {
         data class InvalidUser(val userId: Int, val invalid: String)
 
+        val userId = 1
         assertFailure {
-            kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.single<InvalidUser>()
+            kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.single<InvalidUser>()
         }.isInstanceOf(DataRetrievalFailureException::class)
     }
 
     @Test
     fun `single no record`() = runTest {
+        val userId = 5
         assertFailure {
-            kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(5)}" }.single<User>()
+            kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.single<User>()
         }.isInstanceOf(EmptyResultDataAccessException::class)
     }
 
@@ -182,7 +189,8 @@ open class BasicUsageTest {
 
     @Test
     fun singleOrNull() = runTest {
-        val result: User? = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(1)}" }.singleOrNull()
+        val userId = 1
+        val result: User? = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleOrNull()
         assertThat(result).isEqualTo(
             User(
                 userId = 1,
@@ -194,7 +202,8 @@ open class BasicUsageTest {
 
     @Test
     fun `singleOrNull no record`() = runTest {
-        val result: User? = kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(5)}" }.singleOrNull()
+        val userId = 5
+        val result: User? = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleOrNull()
         assertThat(result).isNull()
     }
 
@@ -226,7 +235,8 @@ open class BasicUsageTest {
 
     @Test
     fun `listMap empty`() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > ${bind(3)}" }.listMap()
+        val userId = 3
+        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.listMap()
         assertThat(result).isEmpty()
     }
 
@@ -251,7 +261,8 @@ open class BasicUsageTest {
 
     @Test
     fun `list empty`() = runTest {
-        val result: List<User> = kueryClient.sql { +"SELECT * FROM users WHERE user_id > ${bind(3)}" }.list()
+        val userId = 3
+        val result: List<User> = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.list()
         assertThat(result).isEmpty()
     }
 
@@ -276,7 +287,8 @@ open class BasicUsageTest {
 
     @Test
     fun `flowMap empty`() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > ${bind(3)}" }.flowMap().toList()
+        val userId = 3
+        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.flowMap().toList()
         assertThat(result).isEmpty()
     }
 
@@ -301,15 +313,18 @@ open class BasicUsageTest {
 
     @Test
     fun `flow empty`() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > ${bind(3)}" }.flow<User>().toList()
+        val userId = 3
+        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.flow<User>().toList()
         assertThat(result).isEmpty()
     }
 
     @Test
     fun rowUpdated() = runTest {
+        val username = "user3"
+        val email = "user3"
         val result = kueryClient
             .sql {
-                +"INSERT INTO users (username, email) VALUES (${bind("user3")}, ${bind("user3@example.com")})"
+                +"INSERT INTO users (username, email) VALUES ($username, $email)"
             }
             .rowsUpdated()
         assertThat(result).isEqualTo(1)
@@ -317,9 +332,10 @@ open class BasicUsageTest {
 
     @Test
     fun `rowUpdated 0`() = runTest {
+        val userId = 5
         val result = kueryClient
             .sql {
-                +"DELETE FROM users WHERE user_id = ${bind(5)}"
+                +"DELETE FROM users WHERE user_id = $userId"
             }
             .rowsUpdated()
         assertThat(result).isEqualTo(0)
@@ -337,9 +353,11 @@ open class BasicUsageTest {
 
     @Test
     fun generatedValues() = runTest {
+        val username = "user3"
+        val email = "user3"
         val result = kueryClient
             .sql {
-                +"INSERT INTO users (username, email) VALUES (${bind("user3")}, ${bind("user3@example.com")})"
+                +"INSERT INTO users (username, email) VALUES ($username, $email)"
             }
             .generatedValues("user_id")
         assertThat(result).isEqualTo(mapOf("user_id" to 3L))
@@ -354,6 +372,7 @@ open class BasicUsageTest {
             val amount: BigDecimal,
         )
 
+        val userId = 1
         val result: List<UserOrder> = kueryClient
             .sql {
                 +"""
@@ -361,7 +380,7 @@ open class BasicUsageTest {
                 FROM users
                 JOIN orders ON users.user_id = orders.user_id
                 WHERE
-                    users.user_id = ${bind(1)}
+                    users.user_id = $userId
                 """.trimIndent()
             }
             .list()
@@ -408,7 +427,7 @@ open class BasicUsageTest {
     @Test
     fun `using extension function`() = runTest {
         fun SqlBuilder.userIdEqualsTo(userId: Int) {
-            +"users.user_id = ${bind(userId)}"
+            addUnsafe("users.user_id = ${bind(userId)}")
         }
 
         val result: User = kueryClient

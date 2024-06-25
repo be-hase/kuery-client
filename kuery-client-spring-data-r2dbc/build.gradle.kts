@@ -20,4 +20,6 @@ dependencies {
     testImplementation("org.testcontainers:mysql")
     testImplementation(libs.kotlin.coroutines.test)
     testImplementation(libs.micrometer.observation.test)
+
+    kotlinCompilerPluginClasspath(projects.kueryClientCompiler)
 }
