@@ -79,7 +79,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
             )
         }
 
-        val defaultSqlBuilderClass = defaultSqlBuilderClass()
+        val defaultSqlBuilderClass = checkNotNull(pluginContext.referenceClass(ClassIds.DEFAULT_SQL_BUILDER))
         val interpolate = defaultSqlBuilderClass.functions.first { it.owner.name.asString() == "interpolate" }
 
         return builder.irCall(interpolate, pluginContext.symbols.string.defaultType).apply {
@@ -100,8 +100,6 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
             expression.endOffset,
         )
     }
-
-    private fun defaultSqlBuilderClass() = checkNotNull(pluginContext.referenceClass(ClassIds.DEFAULT_SQL_BUILDER))
 
     private fun IrBuilderWithScope.irListOf(
         type: IrType,

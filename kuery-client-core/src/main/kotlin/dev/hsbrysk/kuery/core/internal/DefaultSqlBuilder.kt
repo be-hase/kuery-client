@@ -22,11 +22,6 @@ internal class DefaultSqlBuilder : SqlBuilder {
         return PARAMETER_NAME_PREFIX_WITH_COLON + currentIndex
     }
 
-//    @Suppress("unused") // used by compiler plugin
-//    fun addInternal(sql: String) {
-//        body.appendLine(sql)
-//    }
-
     @Suppress("unused") // used by compiler plugin
     fun interpolate(
         fragments: List<String>,
