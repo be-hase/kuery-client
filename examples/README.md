@@ -13,7 +13,7 @@ cd examples
 
 ```shell
 cd examples
-./run_containers.sh
+./init_mysql.sh
 ```
 
 ### Run application
