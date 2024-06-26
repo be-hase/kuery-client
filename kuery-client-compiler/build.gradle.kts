@@ -5,7 +5,7 @@ plugins {
     id("conventions.maven-publish")
 }
 
-description = "Kuery client's compiler module."
+description = "Compiler plugin for the Kuery client."
 
 dependencies {
     implementation(projects.kueryClientCore)

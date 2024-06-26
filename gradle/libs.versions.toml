@@ -32,5 +32,7 @@ gradle-plugin-ktlint = { module = "org.jlleitschuh.gradle:ktlint-gradle", versio
 gradle-plugin-maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.28.0" }
 
 [plugins]
+buildconfig = { id = "com.github.gmazzo.buildconfig", version = "5.3.5" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin-core" }
+plugin-publish = {id="com.gradle.plugin-publish", version="1.2.1"}
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
