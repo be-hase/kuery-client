@@ -75,7 +75,7 @@ class UserRepository(private val kueryClient: KueryClient) {
     suspend fun selectByUserId(userId: Int): User? {
         return kueryClient
             .sql {
-                +"SELECT * FROM users WHERE user_id = ${bind(userId)}"
+                +"SELECT * FROM users WHERE user_id = $userId"
             }
             .singleOrNull()
     }
@@ -116,12 +116,12 @@ class UserRepository(private val kueryClient: KueryClient) {
     suspend fun selectByUserId(userId: Int): UserAndDetail {
         val user: User = kueryClient
             .sql {
-                +"SELECT * FROM users WHERE user_id = ${bind(userId)}"
+                +"SELECT * FROM users WHERE user_id = $userId"
             }
             .single()
         val userDetail: UserDetail = kueryClient
             .sql {
-                +"SELECT * FROM user_details WHERE user_id = ${bind(userId)}"
+                +"SELECT * FROM user_details WHERE user_id = $userId"
             }
             .single()
         return UserAndDetail(user, userDetail)
@@ -138,12 +138,12 @@ class UserRepository(private val kueryClient: KueryClient) {
     suspend fun selectByUserId(userId: Int): UserAndDetail {
         val user: User = kueryClient
             .sql("my_sql_id_1") {
-                +"SELECT * FROM users WHERE user_id = ${bind(userId)}"
+                +"SELECT * FROM users WHERE user_id = $userId"
             }
             .single()
         val userDetail: UserDetail = kueryClient
             .sql("my_sql_id_2") {
-                +"SELECT * FROM user_details WHERE user_id = ${bind(userId)}"
+                +"SELECT * FROM user_details WHERE user_id = $userId"
             }
             .single()
         return UserAndDetail(user, userDetail)

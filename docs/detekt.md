@@ -1,9 +1,6 @@
 # Detekt Custom Rules
 
-If you use dynamic values without bind, there is a possibility of causing SQL Injection. To prevent this, we provide
-Detekt custom rules.
-
-To ensure safety, it is recommended to use this feature.
+Incorrect usage can result in SQL injection. To detect such cases, we provide custom Detekt rules.
 
 ## How to use
 
@@ -20,8 +17,6 @@ Next, please add the following to the detekt configuration YAML.
 
 ```yaml
 kuery-client:
-  StringInterpolation:
-    active: true
   UseStringLiteral:
     active: true
 ```
@@ -36,35 +31,20 @@ After that, by running the detektMain task, you can check for any violations.
 
 ## Rules
 
-### StringInterpolationRule
-
-String interpolation is being performed without using bind.
-
-#### Noncompliant Code:
-
-```kotlin
-client.sql {
-    +"SELECT * FROM user WHERE id = $id"
-}
-```
-
-#### Compliant Code:
-
-```kotlin
-client.sql {
-    +"SELECT * FROM user WHERE id = ${bind(id)}"
-}
-```
-
 ### UseStringLiteralRule
 
-To keep it concise, should use String Literal.
+In kuery client, string interpolation in string templates passed to `add` and `+`(unaryPlus) is customized. These are
+expanded as placeholders.
+
+However, in other places, the default string interpolation is executed.
+Therefore, if you write it incorrectly as follows, problems may arise.
 
 #### Noncompliant Code:
 
 ```kotlin
 client.sql {
-    val sql = "SELECT * FROM user WHERE id = ${bind(id)}"
+    // BAD !!
+    val sql = "SELECT * FROM user WHERE id = $id"
     +sql
 }
 ```

@@ -31,17 +31,17 @@ kueryClient
 It is an alias for `+`(unaryPlus). However, since the argument is annotated
 with `org.intellij.lang.annotations.Language`, if you are using a JetBrains IDE, you will get syntax assistance.
 
-### `fun <T : Any> bind(value: T?): String`
+### String interpolation
 
-When embedding dynamic values into SQL, MUST use bind. If you forget this, there is a possibility of SQL Injection
-occurring.
+When you want to embed dynamic values, use string interpolation.
 
 ```kotlin
+val userId = "..."
 kueryClient
     .sql {
         +"""
         SELECT * FROM users
-        WHERE user_id = ${bind(userId)}
+        WHERE user_id = $userId
         """
     }
 ```
@@ -55,9 +55,9 @@ kueryClient
     .sql {
         +"SELECT * FROM users"
         +"WHERE"
-        +"status = ${bind(status)}"
+        +"status = $status"
         if (vip != null) {
-            +"vip = ${bind(vip)}"
+            +"vip = $vip"
         }
     }
 ```
