@@ -1,6 +1,5 @@
 package dev.hsbrysk.kuery.gradle
 
-import dev.hsbrysk.kuery_client.kuery_client_gradle_plugin.BuildConfig
 import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
