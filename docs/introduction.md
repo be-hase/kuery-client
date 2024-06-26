@@ -10,7 +10,7 @@
       Spring's ecosystem as it is, such as `@Transactional`.
 - **Observability**
     - It supports Micrometer Observation, so Metrics/Tracing/Logging can also be customized.
-- **Highly extensible**
+- **Extensible**
     - When dealing with complex data schemas, there are often cases where you want to write common query logic. Thanks
       to Kotlin's extension functions, this becomes easier.
 
@@ -37,7 +37,7 @@ data class User(...)
 class UserRepository(private val kueryClient: KueryClient) {
     suspend fun findById(userId: Int): User? {
         return kueryClient
-            .sql { +"SELECT * FROM users WHERE user_id = ${bind(userId)}" }
+            .sql { +"SELECT * FROM users WHERE user_id = $userId" }
             .singleOrNull()
     }
 
@@ -46,9 +46,9 @@ class UserRepository(private val kueryClient: KueryClient) {
             .sql {
                 +"SELECT * FROM users"
                 +"WHERE"
-                +"status = ${bind(status)}"
+                +"status = $status"
                 if (vip != null) {
-                    +"vip = ${bind(vip)}"
+                    +"vip = $vip"
                 }
             }
             .list()
@@ -57,8 +57,9 @@ class UserRepository(private val kueryClient: KueryClient) {
     suspend fun insertMany(users: List<User>): Long {
         return kueryClient
             .sql {
-                +"INSERT INTO users (username, email) VALUES"
-                +values(users) { listOf(it.username, it.email) }
+                +"INSERT INTO users (username, email)"
+                // useful helper function
+                values(users) { listOf(it.username, it.email) }
             }
             .rowsUpdated()
     }
@@ -71,7 +72,7 @@ data class User(...)
 class UserRepository(private val kueryClient: KueryBlockingClient) {
     fun findById(userId: Int): User? {
         return kueryClient
-            .sql { +"SELECT * FROM users WHERE user_id = ${bind(userId)}" }
+            .sql { +"SELECT * FROM users WHERE user_id = $userId" }
             .singleOrNull()
     }
 
@@ -80,9 +81,9 @@ class UserRepository(private val kueryClient: KueryBlockingClient) {
             .sql {
                 +"SELECT * FROM users"
                 +"WHERE"
-                +"status = ${bind(status)}"
+                +"status = $status"
                 if (vip != null) {
-                    +"vip = ${bind(vip)}"
+                    +"vip = $vip"
                 }
             }
             .list()
@@ -91,8 +92,9 @@ class UserRepository(private val kueryClient: KueryBlockingClient) {
     fun insertMany(users: List<User>): Long {
         return kueryClient
             .sql {
-                +"INSERT INTO users (username, email) VALUES"
-                +values(users) { listOf(it.username, it.email) }
+                +"INSERT INTO users (username, email)"
+                // useful helper function
+                values(users) { listOf(it.username, it.email) }
             }
             .rowsUpdated()
     }
@@ -105,9 +107,9 @@ This SQL builder is very simple. There are only two things you need to remember:
 
 - You can concatenate SQL strings using `+`(unaryPlus).
     - You can also directly express logic such as if statements in Kotlin.
-- Use the `bind` function for dynamic values.
-    - Be careful not to evaluate variables directly as strings, as this will obviously lead to SQL injection.
-    - Kuery Client provides [Detekt custom rules](/detekt) that detect such dangerous cases.
+- When you want to embed dynamic values, use string interpolation.
+    - In kuery client, the behavior of string interpolation is modified using a Kotlin compiler plugin. When using
+      string interpolation, it is expanded as a placeholder.
 
 ## Based on spring-data-r2dbc and spring-data-jdbc
 

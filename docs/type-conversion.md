@@ -48,7 +48,7 @@ val kueryClient = SpringR2dbcKueryClient.builder()
 suspend fun write(str: StringWrapper) {
     kueryClient
         .sql {
-            +"INSERT INTO test_table (text) VALUES (${bind(str)})"
+            +"INSERT INTO test_table (text) VALUES ($str)"
         }
         .rowsUpdated()
 }
