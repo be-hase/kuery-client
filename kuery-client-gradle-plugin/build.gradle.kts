@@ -29,8 +29,8 @@ gradlePlugin {
         implementationClass = "dev.hsbrysk.kuery.gradle.KueryClientGradlePlugin"
     }
 
-    website = "https://github.com/be-hase/gradle-lookup-dependencies"
-    vcsUrl = "https://github.com/be-hase/gradle-lookup-dependencies"
+    website = "https://github.com/be-hase/kuery-client"
+    vcsUrl = "https://github.com/be-hase/kuery-client"
 }
 
 signing {
