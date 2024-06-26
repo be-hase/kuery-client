@@ -16,6 +16,8 @@ buildConfig {
     buildConfigField("VERSION", project.version.toString())
 }
 
+group = "io.github.be-hase.kuery-client" // TODO: changes
+
 @Suppress("UnstableApiUsage")
 gradlePlugin {
     val kueryClient by plugins.creating {
