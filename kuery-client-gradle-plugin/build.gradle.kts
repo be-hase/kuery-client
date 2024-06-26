@@ -13,6 +13,7 @@ dependencies {
 }
 
 buildConfig {
+    packageName = "dev.hsbrysk.kuery.gradle"
     buildConfigField("VERSION", project.version.toString())
 }
 
