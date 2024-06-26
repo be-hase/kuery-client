@@ -24,23 +24,23 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PGP_PASSWORD }}
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
 
-#  publish-gradle-plugin:
-#    runs-on: ubuntu-latest
-#    timeout-minutes: 60
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#      - name: Set up JDK
-#        uses: actions/setup-java@v4
-#        with:
-#          distribution: temurin
-#          java-version: 17
-#      - name: Set up gradle
-#        uses: gradle/actions/setup-gradle@v3
-#      - name: Publish to gradle plugin portal
-#        env:
-#          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
-#          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
-#          SIGNING_PGP_KEY: ${{ secrets.SIGNING_PGP_KEY }}
-#          SIGNING_PGP_PASSWORD: ${{ secrets.SIGNING_PGP_PASSWORD }}
-#        run: ./gradlew :kuery-client-gradle-plugin:publishPlugins
+  publish-gradle-plugin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Set up gradle
+        uses: gradle/actions/setup-gradle@v3
+      - name: Publish to gradle plugin portal
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+          SIGNING_PGP_KEY: ${{ secrets.SIGNING_PGP_KEY }}
+          SIGNING_PGP_PASSWORD: ${{ secrets.SIGNING_PGP_PASSWORD }}
+        run: ./gradlew :kuery-client-gradle-plugin:publishPlugins
