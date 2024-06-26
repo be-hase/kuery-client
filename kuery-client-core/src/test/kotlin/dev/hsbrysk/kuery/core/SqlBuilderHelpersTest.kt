@@ -13,11 +13,12 @@ class SqlBuilderHelpersTest {
             listOf("user0", "user0@example.com", 1),
         )
         val result = Sql.create {
-            +"INSERT INTO users (userid, email, age) ${values(input)}"
+            addUnsafe("INSERT INTO users (userid, email, age)")
+            values(input)
         }
 
         assertThat(result.body)
-            .isEqualTo("INSERT INTO users (userid, email, age) VALUES (:p0, :p1, :p2)")
+            .isEqualTo("INSERT INTO users (userid, email, age)\nVALUES (:p0, :p1, :p2)")
         assertThat(result.parameters).isEqualTo(
             listOf(
                 NamedSqlParameter.of("p0", "user0"),
@@ -35,12 +36,13 @@ class SqlBuilderHelpersTest {
             listOf("user2", "user2@example.com", 3),
         )
         val result = Sql.create {
-            +"INSERT INTO users (userid, email, age) ${values(input)}"
+            addUnsafe("INSERT INTO users (userid, email, age)")
+            values(input)
         }
 
         assertThat(result.body)
             .isEqualTo(
-                "INSERT INTO users (userid, email, age) VALUES (:p0, :p1, :p2), (:p3, :p4, :p5), (:p6, :p7, :p8)",
+                "INSERT INTO users (userid, email, age)\nVALUES (:p0, :p1, :p2), (:p3, :p4, :p5), (:p6, :p7, :p8)",
             )
         assertThat(result.parameters).isEqualTo(
             listOf(
@@ -61,7 +63,8 @@ class SqlBuilderHelpersTest {
     fun `values empty`() {
         assertFailure {
             Sql.create {
-                +"INSERT INTO users (userid, email) ${values(emptyList<List<Any>>())}"
+                addUnsafe("INSERT INTO users (userid, email, age)")
+                values(emptyList<List<Any>>())
             }
         }.isInstanceOf(IllegalArgumentException::class)
     }
@@ -73,7 +76,8 @@ class SqlBuilderHelpersTest {
         )
         assertFailure {
             Sql.create {
-                +"INSERT INTO users (userid, email, age) ${values(input)}"
+                addUnsafe("INSERT INTO users (userid, email, age)")
+                values(input)
             }
         }.isInstanceOf(IllegalArgumentException::class)
     }
@@ -87,7 +91,8 @@ class SqlBuilderHelpersTest {
         )
         assertFailure {
             Sql.create {
-                +"INSERT INTO users (userid, email, age) ${values(input)}"
+                addUnsafe("INSERT INTO users (userid, email, age)")
+                values(input)
             }
         }.isInstanceOf(IllegalArgumentException::class)
     }
@@ -102,12 +107,13 @@ class SqlBuilderHelpersTest {
             UserParam("user2", "user2@example.com", 3),
         )
         val result = Sql.create {
-            +"INSERT INTO users (userid, email, age) ${values(input) { listOf(it.userid, it.email, it.age) }}"
+            addUnsafe("INSERT INTO users (userid, email, age)")
+            values(input) { listOf(it.userid, it.email, it.age) }
         }
 
         assertThat(result.body)
             .isEqualTo(
-                "INSERT INTO users (userid, email, age) VALUES (:p0, :p1, :p2), (:p3, :p4, :p5), (:p6, :p7, :p8)",
+                "INSERT INTO users (userid, email, age)\nVALUES (:p0, :p1, :p2), (:p3, :p4, :p5), (:p6, :p7, :p8)",
             )
         assertThat(result.parameters).isEqualTo(
             listOf(

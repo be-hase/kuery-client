@@ -10,6 +10,9 @@ detekt {
 }
 
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt> {
+    exclude {
+        it.file.path.contains("${layout.buildDirectory.get()}/generated/")
+    }
     reports {
         sarif.required.set(true)
     }

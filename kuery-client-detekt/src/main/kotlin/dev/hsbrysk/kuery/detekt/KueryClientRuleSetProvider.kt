@@ -1,6 +1,5 @@
 package dev.hsbrysk.kuery.detekt
 
-import dev.hsbrysk.kuery.detekt.rules.StringInterpolationRule
 import dev.hsbrysk.kuery.detekt.rules.UseStringLiteralRule
 import io.gitlab.arturbosch.detekt.api.Config
 import io.gitlab.arturbosch.detekt.api.RuleSet
@@ -12,7 +11,6 @@ class KueryClientRuleSetProvider : RuleSetProvider {
     override fun instance(config: Config): RuleSet = RuleSet(
         ruleSetId,
         listOf(
-            StringInterpolationRule(config),
             UseStringLiteralRule(config),
         ),
     )

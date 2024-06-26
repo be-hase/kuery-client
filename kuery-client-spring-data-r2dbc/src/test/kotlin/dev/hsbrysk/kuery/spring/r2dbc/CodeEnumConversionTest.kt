@@ -112,7 +112,7 @@ class CodeEnumConversionTest {
     fun test() = runTest {
         kueryClient.sql {
             +"INSERT INTO code_enum (int_enum, string_enum)"
-            +"VALUES (${bind(SampleIntCodeEnum.HOGE)}, ${bind(SampleStringCodeEnum.BAR)})"
+            +"VALUES (${SampleIntCodeEnum.HOGE}, ${SampleStringCodeEnum.BAR})"
         }.rowsUpdated()
 
         val record: Record = kueryClient.sql {

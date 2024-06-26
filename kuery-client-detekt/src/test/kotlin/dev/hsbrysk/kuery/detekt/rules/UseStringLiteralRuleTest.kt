@@ -22,7 +22,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
                     client.sql {
-                        add("SELECT * FROM user WHERE id = ${'$'}{bind(id)}")
+                        add("SELECT * FROM user WHERE id = ${'$'}id")
                     }
                 }
             }
@@ -66,7 +66,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                 }
 
                 private fun SqlBuilder.idEqualsTo(id: Int) {
-                    add("id = ${'$'}{bind(id)}")
+                    add("id = ${'$'}id")
                 }
             }
         """.trimIndent()
@@ -110,7 +110,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                     client.sql {
                         add(
                         {TRIPLE_QUOTES}
-                        SELECT * FROM user WHERE id = ${'$'}{bind(id)}
+                        SELECT * FROM user WHERE id = ${'$'}id
                         {TRIPLE_QUOTES}.trimIndent()
                         )
                     }
@@ -130,54 +130,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
                     client.sql {
-                        add("SELECT * FROM user WHERE id = ${'$'}{bind(id)}".removePrefix("hoge").removePrefix("bar"))
-                    }
-                }
-            }
-        """.trimIndent()
-
-        val findings = rule.compileAndLintWithContext(env, code)
-        assertThat(findings).hasSize(0)
-    }
-
-    @Test
-    fun `add - OK pattern7`() {
-        val code = """
-            import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.values
-
-            class SomeRepository(private val client: KueryClient) {
-                suspend fun someFun() {
-                    val input = listOf(
-                        listOf("a", "a@example.com", 1)
-                    )
-                    client.sql {
-                        add("INSERT INTO users (username, email, age)")
-                        add(values(input))
-                    }
-                }
-            }
-        """.trimIndent()
-
-        val findings = rule.compileAndLintWithContext(env, code)
-        assertThat(findings).hasSize(0)
-    }
-
-    @Test
-    fun `add - OK pattern8`() {
-        val code = """
-            import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.values
-
-            class SomeRepository(private val client: KueryClient) {
-                suspend fun someFun() {
-                    data class Param(val username: String, val email: String, val age: Int)
-                    val input = listOf(
-                        Param("a", "a@example.com", 1),
-                    )
-                    client.sql {
-                        add("INSERT INTO users (username, email, age)")
-                        add(values(input) { listOf(it.username, it.email, it.age)})
+                        add("SELECT * FROM user WHERE id = ${'$'}id".removePrefix("hoge").removePrefix("bar"))
                     }
                 }
             }
@@ -195,7 +148,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
                     client.sql {
-                        val sql = "SELECT * FROM user WHERE id = ${'$'}{bind(id)}"
+                        val sql = "SELECT * FROM user WHERE id = ${'$'}id"
                         add(sql)
                     }
                 }
@@ -258,7 +211,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
                     client.sql {
-                        +"SELECT * FROM user WHERE id = ${'$'}{bind(id)}"
+                        +"SELECT * FROM user WHERE id = ${'$'}id"
                     }
                 }
             }
@@ -302,7 +255,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                 }
 
                 private fun SqlBuilder.idEqualsTo(id: Int) {
-                    +"id = ${'$'}{bind(id)}"
+                    +"id = ${'$'}id"
                 }
             }
         """.trimIndent()
@@ -345,7 +298,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
                 suspend fun someFun(id: Int) {
                     client.sql {
                         +{TRIPLE_QUOTES}
-                        SELECT * FROM user WHERE id = ${'$'}{bind(id)}
+                        SELECT * FROM user WHERE id = ${'$'}id
                         {TRIPLE_QUOTES}.trimIndent()
                     }
                 }
@@ -364,54 +317,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
                     client.sql {
-                        +"SELECT * FROM user WHERE id = ${'$'}{bind(id)}".removePrefix("hoge").removePrefix("bar")
-                    }
-                }
-            }
-        """.trimIndent()
-
-        val findings = rule.compileAndLintWithContext(env, code)
-        assertThat(findings).hasSize(0)
-    }
-
-    @Test
-    fun `unaryPlus - OK pattern7`() {
-        val code = """
-            import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.values
-
-            class SomeRepository(private val client: KueryClient) {
-                suspend fun someFun() {
-                    val input = listOf(
-                        listOf("a", "a@example.com", 1)
-                    )
-                    client.sql {
-                        +"INSERT INTO users (username, email, age)"
-                        +values(input)
-                    }
-                }
-            }
-        """.trimIndent()
-
-        val findings = rule.compileAndLintWithContext(env, code)
-        assertThat(findings).hasSize(0)
-    }
-
-    @Test
-    fun `unaryPlus - OK pattern8`() {
-        val code = """
-            import dev.hsbrysk.kuery.core.KueryClient
-            import dev.hsbrysk.kuery.core.values
-
-            class SomeRepository(private val client: KueryClient) {
-                suspend fun someFun() {
-                    data class Param(val username: String, val email: String, val age: Int)
-                    val input = listOf(
-                        Param("a", "a@example.com", 1),
-                    )
-                    client.sql {
-                        +"INSERT INTO users (username, email, age)"
-                        +values(input) { listOf(it.username, it.email, it.age)}
+                        +"SELECT * FROM user WHERE id = ${'$'}id".removePrefix("hoge").removePrefix("bar")
                     }
                 }
             }
@@ -429,7 +335,7 @@ class UseStringLiteralRuleTest(private val env: KotlinCoreEnvironment) {
             class SomeRepository(private val client: KueryClient) {
                 suspend fun someFun(id: Int) {
                     client.sql {
-                        val sql = "SELECT * FROM user WHERE id = ${'$'}{bind(id)}"
+                        val sql = "SELECT * FROM user WHERE id = ${'$'}id"
                         +sql
                     }
                 }

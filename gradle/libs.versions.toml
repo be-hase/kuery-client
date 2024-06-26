@@ -12,6 +12,7 @@ assertk = { module = "com.willowtreeapps.assertk:assertk-jvm", version = "0.28.1
 detekt-api = { module = "io.gitlab.arturbosch.detekt:detekt-api", version.ref = "detekt" }
 detekt-test = { module = "io.gitlab.arturbosch.detekt:detekt-test", version.ref = "detekt" }
 junit-bom = { module = "org.junit:junit-bom", version = "5.10.2" }
+kotlin-compile-testing = {module="com.github.tschuchortdev:kotlin-compile-testing", version="1.6.0"}
 kotlin-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
 kotlin-coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactor", version.ref = "kotlin-coroutines" }
 kotlin-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlin-coroutines" }
@@ -31,5 +32,7 @@ gradle-plugin-ktlint = { module = "org.jlleitschuh.gradle:ktlint-gradle", versio
 gradle-plugin-maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.29.0" }
 
 [plugins]
+buildconfig = { id = "com.github.gmazzo.buildconfig", version = "5.3.5" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin-core" }
+plugin-publish = {id="com.gradle.plugin-publish", version="1.2.1"}
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

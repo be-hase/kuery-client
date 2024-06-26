@@ -1,9 +1,7 @@
 import io.gitlab.arturbosch.detekt.Detekt
 
 plugins {
-    id("conventions.kotlin")
-    id("conventions.ktlint")
-    id("conventions.detekt")
+    id("conventions.preset.base")
     alias(libs.plugins.kotlin.spring)
     alias(libs.plugins.spring.boot)
 }
@@ -19,6 +17,8 @@ dependencies {
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("io.asyncer:r2dbc-mysql")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+
+    kotlinCompilerPluginClasspath(projects.kueryClientCompiler)
 
     detektPlugins(projects.kueryClientDetekt)
 }

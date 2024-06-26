@@ -1,7 +1,5 @@
 plugins {
-    id("conventions.kotlin")
-    id("conventions.ktlint")
-    id("conventions.detekt")
+    id("conventions.preset.base")
     id("conventions.maven-publish")
 }
 
@@ -20,4 +18,6 @@ dependencies {
     testImplementation("org.testcontainers:mysql")
     testImplementation(libs.kotlin.coroutines.test)
     testImplementation(libs.micrometer.observation.test)
+
+    kotlinCompilerPluginClasspath(projects.kueryClientCompiler)
 }

@@ -12,7 +12,7 @@ interface Sql {
     /**
      * SQL parameters
      */
-    val parameters: List<NamedSqlParameter<*>>
+    val parameters: List<NamedSqlParameter>
 
     companion object {
         /**
@@ -20,7 +20,7 @@ interface Sql {
          */
         fun of(
             body: String,
-            parameters: List<NamedSqlParameter<*>>,
+            parameters: List<NamedSqlParameter>,
         ): Sql {
             return DefaultSql(body, parameters)
         }
