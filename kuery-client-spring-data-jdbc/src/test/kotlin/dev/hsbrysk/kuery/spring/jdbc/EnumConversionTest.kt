@@ -32,7 +32,7 @@ class EnumConversionTest {
     @Test
     fun test() {
         kueryClient.sql {
-            +"INSERT INTO converter (text) VALUES (${bind(SampleEnum.HOGE)})"
+            +"INSERT INTO converter (text) VALUES (${SampleEnum.HOGE})"
         }.rowsUpdated()
 
         val record: Record = kueryClient.sql {

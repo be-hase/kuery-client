@@ -232,7 +232,7 @@ class UserRepository(private val client: KueryBlockingClient) {
     fun selectByUserId(userId: Int): User? {
         return client
             .sql {
-                +"SELECT * FROM users WHERE user_id = ${bind(userId)}"
+                +"SELECT * FROM users WHERE user_id = $userId"
             }
             .singleOrNull()
     }
@@ -243,7 +243,7 @@ class UserRepository(private val client: KueryBlockingClient) {
         }
         return client
             .sql {
-                +"SELECT * FROM users WHERE username IN (${bind(usernames)})"
+                +"SELECT * FROM users WHERE username IN ($usernames)"
             }
             .list()
     }
@@ -262,7 +262,7 @@ class UserRepository(private val client: KueryBlockingClient) {
     ): Int {
         return client
             .sql {
-                +"INSERT INTO users (username, email) VALUES (${bind(username)}, ${bind(email)})"
+                +"INSERT INTO users (username, email) VALUES ($username, $email)"
             }
             .generatedValues("user_id")
             .let { (it["GENERATED_KEY"] as BigInteger).toInt() }
@@ -274,7 +274,7 @@ class UserRepository(private val client: KueryBlockingClient) {
     ): Long {
         return client
             .sql {
-                +"UPDATE users SET email = ${bind(email)} WHERE user_id = ${bind(userId)}"
+                +"UPDATE users SET email = $email WHERE user_id = $userId"
             }
             .rowsUpdated()
     }
@@ -287,7 +287,7 @@ class UserRepository(private val client: KueryBlockingClient) {
                 FROM users
                 JOIN orders ON users.user_id = orders.user_id
                 WHERE
-                users.user_id = ${bind(userId)}
+                users.user_id = $userId
                 """.trimIndent()
             }
             .list()

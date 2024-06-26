@@ -28,8 +28,9 @@ class CSVConversionTest {
 
     @Test
     fun test() = runTest {
+        val text = "a, b,c"
         kueryClient.sql {
-            +"INSERT INTO converter (text) VALUES (${bind("a, b,c")})"
+            +"INSERT INTO converter (text) VALUES ($text)"
         }.rowsUpdated()
 
         val record: Record = kueryClient.sql {

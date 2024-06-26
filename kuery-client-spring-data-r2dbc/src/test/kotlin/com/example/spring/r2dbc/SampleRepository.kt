@@ -9,19 +9,19 @@ data class User(val userId: Int, val username: String, val email: String)
 
 class UserRepository(private val kueryClient: KueryClient) {
     suspend fun singleMap(id: Int): Map<String, Any?> {
-        return kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(id)}" }.singleMap()
+        return kueryClient.sql { +"SELECT * FROM users WHERE user_id = $id" }.singleMap()
     }
 
     suspend fun singleMapOrNull(id: Int): Map<String, Any?>? {
-        return kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(id)}" }.singleMapOrNull()
+        return kueryClient.sql { +"SELECT * FROM users WHERE user_id = $id" }.singleMapOrNull()
     }
 
     suspend fun single(id: Int): User {
-        return kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(id)}" }.single()
+        return kueryClient.sql { +"SELECT * FROM users WHERE user_id = $id" }.single()
     }
 
     suspend fun singleOrNull(id: Int): User? {
-        return kueryClient.sql { +"SELECT * FROM users WHERE user_id = ${bind(id)}" }.singleOrNull()
+        return kueryClient.sql { +"SELECT * FROM users WHERE user_id = $id" }.singleOrNull()
     }
 
     suspend fun listMap(): List<Map<String, Any?>> {
@@ -38,7 +38,7 @@ class UserRepository(private val kueryClient: KueryClient) {
     ): Long {
         return kueryClient
             .sql {
-                +"INSERT INTO users (username, email) VALUES (${bind(username)}, ${bind(email)})"
+                +"INSERT INTO users (username, email) VALUES ($username, $email)"
             }
             .rowsUpdated()
     }
@@ -49,7 +49,7 @@ class UserRepository(private val kueryClient: KueryClient) {
     ): Map<String, Any> {
         return kueryClient
             .sql {
-                +"INSERT INTO users (username, email) VALUES (${bind(username)}, ${bind(email)})"
+                +"INSERT INTO users (username, email) VALUES ($username, $email)"
             }
             .generatedValues("user_id")
     }

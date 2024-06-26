@@ -23,7 +23,5 @@ style:
     max: 4
 
 #kuery-client:
-#  StringInterpolation:
-#    active: true
 #  UseStringLiteral:
 #    active: true

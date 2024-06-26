@@ -60,7 +60,7 @@ internal class DefaultSpringR2dbcKueryClient(
         }
     }
 
-    private fun GenericExecuteSpec.bind(parameter: NamedSqlParameter<*>): GenericExecuteSpec {
+    private fun GenericExecuteSpec.bind(parameter: NamedSqlParameter): GenericExecuteSpec {
         val value = checkNotNull(parameter.value)
 
         val targetType = customConversions.getCustomWriteTarget(value::class.java)
