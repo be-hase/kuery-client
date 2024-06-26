@@ -2,6 +2,7 @@ pluginManagement {
     includeBuild("build-logic")
     repositories {
         gradlePluginPortal()
+        // mavenLocal()
     }
 }
 
@@ -9,6 +10,7 @@ dependencyResolutionManagement {
     @Suppress("UnstableApiUsage")
     repositories {
         mavenCentral()
+        // mavenLocal()
     }
 }
 

@@ -1,9 +1,7 @@
 import io.gitlab.arturbosch.detekt.Detekt
 
 plugins {
-    id("conventions.kotlin")
-    id("conventions.ktlint")
-    id("conventions.detekt")
+    id("conventions.preset.base")
     alias(libs.plugins.kotlin.spring)
     alias(libs.plugins.spring.boot)
 }

@@ -1,7 +1,5 @@
 plugins {
-    id("conventions.kotlin")
-    id("conventions.ktlint")
-    id("conventions.detekt")
+    id("conventions.preset.base")
     `java-gradle-plugin`
     signing
     alias(libs.plugins.plugin.publish)
@@ -20,7 +18,7 @@ buildConfig {
 
 @Suppress("UnstableApiUsage")
 gradlePlugin {
-    val lookupDependencies by plugins.creating {
+    val kueryClient by plugins.creating {
         id = "dev.hsbrysk.kuery-client"
         displayName = "Gradle plugin for the Kuery client compiler"
         description = """
