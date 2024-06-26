@@ -29,7 +29,7 @@ gradle-plugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", vers
 gradle-plugin-jmh = { module = "me.champeau.jmh:jmh-gradle-plugin", version = "0.7.2" }
 gradle-plugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-core" }
 gradle-plugin-ktlint = { module = "org.jlleitschuh.gradle:ktlint-gradle", version = "12.1.1" }
-gradle-plugin-maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.28.0" }
+gradle-plugin-maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.29.0" }
 
 [plugins]
 buildconfig = { id = "com.github.gmazzo.buildconfig", version = "5.3.5" }
