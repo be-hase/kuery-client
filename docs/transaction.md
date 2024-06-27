@@ -35,7 +35,7 @@ class UserService(
 }
 
 @Repository
-class UserRepository(private val client: KueryClient) {
+class UserRepository(private val kueryClient: KueryClient) {
     suspend fun insert(
         username: String,
         email: Email,
@@ -66,7 +66,7 @@ class UserService(
 }
 
 @Repository
-class UserRepository(private val client: KueryClient) {
+class UserRepository(private val kueryClient: KueryClient) {
     suspend fun insert(
         username: String,
         email: Email,
@@ -107,7 +107,7 @@ class UserService(
 }
 
 @Repository
-class UserRepository(private val client: KueryClient) {
+class UserRepository(private val kueryClient: KueryClient) {
     fun insert(
         username: String,
         email: Email,
@@ -138,7 +138,7 @@ class UserService(
 }
 
 @Repository
-class UserRepository(private val client: KueryClient) {
+class UserRepository(private val kueryClient: KueryClient) {
     fun insert(
         username: String,
         email: Email,

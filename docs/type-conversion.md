@@ -45,23 +45,19 @@ val kueryClient = SpringR2dbcKueryClient.builder()
 ### Let's Try
 
 ```kotlin
-suspend fun write(str: StringWrapper) {
-    kueryClient
-        .sql {
-            +"INSERT INTO test_table (text) VALUES ($str)"
-        }
-        .rowsUpdated()
-}
+suspend fun write(str: StringWrapper): Long = kueryClient
+    .sql {
+        +"INSERT INTO test_table (text) VALUES ($str)"
+    }
+    .rowsUpdated()
 
 data class Record(
     val text: StringWrapper,
 )
 
-suspend fun read(): List<Record> {
-    return kueryClient
-        .sql {
-            +"SELECT * FROM test_table"
-        }
-        .list()
-}
+suspend fun read(): List<Record> = kueryClient
+    .sql {
+        +"SELECT * FROM test_table"
+    }
+    .list()
 ```
