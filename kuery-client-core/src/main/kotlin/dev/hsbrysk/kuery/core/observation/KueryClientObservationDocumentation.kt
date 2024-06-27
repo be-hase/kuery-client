@@ -13,16 +13,13 @@ import io.micrometer.observation.docs.ObservationDocumentation
  */
 enum class KueryClientObservationDocumentation : ObservationDocumentation {
     FETCH {
-        override fun getDefaultConvention(): Class<out ObservationConvention<out Observation.Context>> {
-            return DefaultKueryClientFetchObservationConvention::class.java
-        }
+        override fun getDefaultConvention(): Class<out ObservationConvention<out Observation.Context>> =
+            DefaultKueryClientFetchObservationConvention::class.java
 
-        override fun getLowCardinalityKeyNames(): Array<KeyName> {
-            return DefaultKueryClientFetchObservationConvention.getLowCardinalityKeyNames()
-        }
+        override fun getLowCardinalityKeyNames(): Array<KeyName> =
+            DefaultKueryClientFetchObservationConvention.getLowCardinalityKeyNames()
 
-        override fun getHighCardinalityKeyNames(): Array<KeyName> {
-            return DefaultKueryClientFetchObservationConvention.getHighCardinalityKeyNames()
-        }
+        override fun getHighCardinalityKeyNames(): Array<KeyName> =
+            DefaultKueryClientFetchObservationConvention.getHighCardinalityKeyNames()
     },
 }

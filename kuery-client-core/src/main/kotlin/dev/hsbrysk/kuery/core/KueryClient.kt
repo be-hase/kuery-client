@@ -80,27 +80,19 @@ interface KueryClient {
 /**
  * Receives the results converted to the specified type.
  */
-suspend inline fun <reified T : Any> FetchSpec.single(): T {
-    return single(T::class)
-}
+suspend inline fun <reified T : Any> FetchSpec.single(): T = single(T::class)
 
 /**
  * Receives the results converted to the specified type.
  */
-suspend inline fun <reified T : Any> FetchSpec.singleOrNull(): T? {
-    return singleOrNull(T::class)
-}
+suspend inline fun <reified T : Any> FetchSpec.singleOrNull(): T? = singleOrNull(T::class)
 
 /**
  * Receives the results of multiple rows converted to the specified type.
  */
-suspend inline fun <reified T : Any> FetchSpec.list(): List<T> {
-    return list(T::class)
-}
+suspend inline fun <reified T : Any> FetchSpec.list(): List<T> = list(T::class)
 
 /**
  * Receives the results of multiple rows converted to the specified type.
  */
-inline fun <reified T : Any> FetchSpec.flow(): Flow<T> {
-    return flow(T::class)
-}
+inline fun <reified T : Any> FetchSpec.flow(): Flow<T> = flow(T::class)

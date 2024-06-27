@@ -163,7 +163,10 @@ open class BasicUsageTest {
 
     @Test
     fun `single invalid type`() = runTest {
-        data class InvalidUser(val userId: Int, val invalid: String)
+        data class InvalidUser(
+            val userId: Int,
+            val invalid: String,
+        )
 
         val userId = 1
         assertFailure {

@@ -69,20 +69,14 @@ interface KueryBlockingClient {
 /**
  * Receives the results converted to the specified type.
  */
-inline fun <reified T : Any> FetchSpec.single(): T {
-    return single(T::class)
-}
+inline fun <reified T : Any> FetchSpec.single(): T = single(T::class)
 
 /**
  * Receives the results converted to the specified type.
  */
-inline fun <reified T : Any> FetchSpec.singleOrNull(): T? {
-    return singleOrNull(T::class)
-}
+inline fun <reified T : Any> FetchSpec.singleOrNull(): T? = singleOrNull(T::class)
 
 /**
  * Receives the results of multiple rows converted to the specified type.
  */
-inline fun <reified T : Any> FetchSpec.list(): List<T> {
-    return list(T::class)
-}
+inline fun <reified T : Any> FetchSpec.list(): List<T> = list(T::class)
