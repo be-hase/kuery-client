@@ -247,11 +247,11 @@ class UserRepository(private val kueryClient: KueryClient) {
     suspend fun selectOrderByUserId(userId: Int): List<UserOrder> = kueryClient
         .sql {
             +"""
-                SELECT users.username, orders.order_id, orders.order_date, orders.amount
-                FROM users
-                JOIN orders ON users.user_id = orders.user_id
-                WHERE
-                users.user_id = $userId
+            SELECT users.username, orders.order_id, orders.order_date, orders.amount
+            FROM users
+            JOIN orders ON users.user_id = orders.user_id
+            WHERE
+            users.user_id = $userId
             """.trimIndent()
         }
         .list()
