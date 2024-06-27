@@ -50,9 +50,11 @@ class UserRepository(private val kueryClient: KueryClient) {
 
     suspend fun search(status: String, vip: Boolean?): List<User> = kueryClient
         .sql {
-            +"SELECT * FROM users"
-            +"WHERE"
-            +"status = $status"
+            +"""
+            SELECT * FROM users
+            WHERE
+            status = $status
+            """
             if (vip != null) {
                 +"vip = $vip"
             }
