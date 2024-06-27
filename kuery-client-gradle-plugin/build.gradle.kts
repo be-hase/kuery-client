@@ -17,12 +17,10 @@ buildConfig {
     buildConfigField("VERSION", project.version.toString())
 }
 
-group = "io.github.be-hase.kuery-client" // TODO: changes
-
 @Suppress("UnstableApiUsage")
 gradlePlugin {
     val kueryClient by plugins.creating {
-        id = "io.github.be-hase.kuery-client" // TODO: changes
+        id = "dev.hsbrysk.kuery-client"
         displayName = "Gradle plugin for the Kuery client compiler"
         description = """
             To use Kuery client, you need to use the Kotlin compiler plugin.
