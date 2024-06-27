@@ -15,9 +15,11 @@ class UserRepository(private val kueryClient: KueryBlockingClient) {
     fun singleMap(id: Int): Map<String, Any?> =
         kueryClient.sql { +"SELECT * FROM users WHERE user_id = $id" }.singleMap()
 
-    fun singleMapOrNull(id: Int): Map<String, Any?>? = kueryClient.sql {
-        +"SELECT * FROM users WHERE user_id = $id"
-    }.singleMapOrNull()
+    fun singleMapOrNull(id: Int): Map<String, Any?>? = kueryClient
+        .sql {
+            +"SELECT * FROM users WHERE user_id = $id"
+        }
+        .singleMapOrNull()
 
     fun single(id: Int): User = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $id" }.single()
 
