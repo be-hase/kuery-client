@@ -6,16 +6,12 @@ object SpringJdbcKueryClient {
     /**
      * Retrieve the running sqlId from thread local.
      */
-    fun sqlId(): String? {
-        return sqlIdThreadLocal.get()
-    }
+    fun sqlId(): String? = sqlIdThreadLocal.get()
 
     /**
      * Create [SpringJdbcKueryClientBuilder]
      */
-    fun builder(): SpringJdbcKueryClientBuilder {
-        return DefaultSpringJdbcKueryClientBuilder()
-    }
+    fun builder(): SpringJdbcKueryClientBuilder = DefaultSpringJdbcKueryClientBuilder()
 }
 
 private val sqlIdThreadLocal = ThreadLocal<String>()

@@ -50,13 +50,14 @@ internal class DefaultSpringR2dbcKueryClient(
         return sql(sqlId, block)
     }
 
-    private fun DatabaseClient.sql(sql: Sql): GenericExecuteSpec {
-        return sql.parameters.fold(this.sql(sql.body)) { acc, parameter ->
-            if (parameter.value != null) {
-                acc.bind(parameter)
-            } else {
-                acc.bindNull(parameter.name, Any::class.java)
-            }
+    private fun DatabaseClient.sql(sql: Sql): GenericExecuteSpec = sql.parameters.fold(this.sql(sql.body)) {
+            acc,
+            parameter,
+        ->
+        if (parameter.value != null) {
+            acc.bind(parameter)
+        } else {
+            acc.bindNull(parameter.name, Any::class.java)
         }
     }
 
@@ -76,35 +77,31 @@ internal class DefaultSpringR2dbcKueryClient(
         }
     }
 
-    private fun convertCollection(collection: Collection<*>): Collection<*> {
-        return collection.map {
-            if (it == null) {
-                null
+    private fun convertCollection(collection: Collection<*>): Collection<*> = collection.map {
+        if (it == null) {
+            null
+        } else {
+            val targetType = customConversions.getCustomWriteTarget(it::class.java)
+            if (targetType.isPresent) {
+                conversionService.convert(it, targetType.get())
             } else {
-                val targetType = customConversions.getCustomWriteTarget(it::class.java)
-                if (targetType.isPresent) {
-                    conversionService.convert(it, targetType.get())
-                } else {
-                    it
-                }
+                it
             }
         }
     }
 
-    private fun convertArray(array: Array<*>): Array<*> {
-        return array.map {
-            if (it == null) {
-                null
+    private fun convertArray(array: Array<*>): Array<*> = array.map {
+        if (it == null) {
+            null
+        } else {
+            val targetType = customConversions.getCustomWriteTarget(it::class.java)
+            if (targetType.isPresent) {
+                conversionService.convert(it, targetType.get())
             } else {
-                val targetType = customConversions.getCustomWriteTarget(it::class.java)
-                if (targetType.isPresent) {
-                    conversionService.convert(it, targetType.get())
-                } else {
-                    it
-                }
+                it
             }
-        }.toTypedArray()
-    }
+        }
+    }.toTypedArray()
 
     @Suppress("TooManyFunctions")
     inner class FetchSpec(
@@ -112,41 +109,29 @@ internal class DefaultSpringR2dbcKueryClient(
         private val sql: Sql,
         private val spec: GenericExecuteSpec,
     ) : KueryClient.FetchSpec {
-        override suspend fun singleMap(): Map<String, Any?> {
-            return observe {
-                spec.fetch().one().sqlId(sqlId).awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
-            }
+        override suspend fun singleMap(): Map<String, Any?> = observe {
+            spec.fetch().one().sqlId(sqlId).awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
         }
 
-        override suspend fun singleMapOrNull(): Map<String, Any?>? {
-            return observe {
-                spec.fetch().one().sqlId(sqlId).awaitSingleOrNull()
-            }
+        override suspend fun singleMapOrNull(): Map<String, Any?>? = observe {
+            spec.fetch().one().sqlId(sqlId).awaitSingleOrNull()
         }
 
-        override suspend fun <T : Any> single(returnType: KClass<T>): T {
-            return observe {
-                spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
-                    ?: throw EmptyResultDataAccessException(1)
-            }
+        override suspend fun <T : Any> single(returnType: KClass<T>): T = observe {
+            spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
+                ?: throw EmptyResultDataAccessException(1)
         }
 
-        override suspend fun <T : Any> singleOrNull(returnType: KClass<T>): T? {
-            return observe {
-                spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
-            }
+        override suspend fun <T : Any> singleOrNull(returnType: KClass<T>): T? = observe {
+            spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
         }
 
-        override suspend fun listMap(): List<Map<String, Any?>> {
-            return observe {
-                spec.fetch().all().collectList().sqlId(sqlId).awaitSingle()
-            }
+        override suspend fun listMap(): List<Map<String, Any?>> = observe {
+            spec.fetch().all().collectList().sqlId(sqlId).awaitSingle()
         }
 
-        override suspend fun <T : Any> list(returnType: KClass<T>): List<T> {
-            return observe {
-                spec.map(returnType).all().collectList().sqlId(sqlId).awaitSingle()
-            }
+        override suspend fun <T : Any> list(returnType: KClass<T>): List<T> = observe {
+            spec.map(returnType).all().collectList().sqlId(sqlId).awaitSingle()
         }
 
         override fun flowMap(): Flow<Map<String, Any?>> {
@@ -165,18 +150,14 @@ internal class DefaultSpringR2dbcKueryClient(
             return spec.map(returnType).all().sqlId(sqlId).asFlow()
         }
 
-        override suspend fun rowsUpdated(): Long {
-            return observe {
-                spec.fetch().rowsUpdated().awaitSingle()
-            }
+        override suspend fun rowsUpdated(): Long = observe {
+            spec.fetch().rowsUpdated().awaitSingle()
         }
 
-        override suspend fun generatedValues(vararg columns: String): Map<String, Any> {
-            return observe {
-                spec.filter(Function { it.returnGeneratedValues(*columns) }).fetch().one().sqlId(sqlId)
-                    .awaitSingleOrNull()
-                    ?: throw EmptyResultDataAccessException(1)
-            }
+        override suspend fun generatedValues(vararg columns: String): Map<String, Any> = observe {
+            spec.filter(Function { it.returnGeneratedValues(*columns) }).fetch().one().sqlId(sqlId)
+                .awaitSingleOrNull()
+                ?: throw EmptyResultDataAccessException(1)
         }
 
         private suspend fun <T> observe(block: suspend () -> T): T {
@@ -207,16 +188,12 @@ internal class DefaultSpringR2dbcKueryClient(
             )
         }
 
-        private fun <T> Mono<T>.sqlId(sqlId: String): Mono<T> {
-            return contextWrite {
-                it.put(SpringR2dbcKueryClient.SQL_ID_REACTOR_CONTEXT_KEY, sqlId)
-            }
+        private fun <T> Mono<T>.sqlId(sqlId: String): Mono<T> = contextWrite {
+            it.put(SpringR2dbcKueryClient.SQL_ID_REACTOR_CONTEXT_KEY, sqlId)
         }
 
-        private fun <T> Flux<T>.sqlId(sqlId: String): Flux<T> {
-            return contextWrite {
-                it.put(SpringR2dbcKueryClient.SQL_ID_REACTOR_CONTEXT_KEY, sqlId)
-            }
+        private fun <T> Flux<T>.sqlId(sqlId: String): Flux<T> = contextWrite {
+            it.put(SpringR2dbcKueryClient.SQL_ID_REACTOR_CONTEXT_KEY, sqlId)
         }
 
         private fun <T : Any> GenericExecuteSpec.map(returnType: KClass<T>): RowsFetchSpec<T> {

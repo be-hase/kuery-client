@@ -92,14 +92,12 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         }
     }
 
-    private fun irBuilder(expression: IrCall): DeclarationIrBuilder {
-        return DeclarationIrBuilder(
-            pluginContext,
-            expression.symbol,
-            expression.startOffset,
-            expression.endOffset,
-        )
-    }
+    private fun irBuilder(expression: IrCall): DeclarationIrBuilder = DeclarationIrBuilder(
+        pluginContext,
+        expression.symbol,
+        expression.startOffset,
+        expression.endOffset,
+    )
 
     private fun IrBuilderWithScope.irListOf(
         type: IrType,
@@ -123,9 +121,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
             return false
         }
 
-        private fun IrPluginContext.listOfRef(): IrSimpleFunctionSymbol {
-            return referenceFunctions(CallableIds.LIST_OF)
-                .first { it.owner.valueParameters.firstOrNull()?.isVararg ?: false }
-        }
+        private fun IrPluginContext.listOfRef(): IrSimpleFunctionSymbol = referenceFunctions(CallableIds.LIST_OF)
+            .first { it.owner.valueParameters.firstOrNull()?.isVararg ?: false }
     }
 }

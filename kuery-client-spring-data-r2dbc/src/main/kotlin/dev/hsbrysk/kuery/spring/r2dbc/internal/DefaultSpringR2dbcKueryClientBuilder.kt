@@ -66,14 +66,11 @@ internal class DefaultSpringR2dbcKueryClientBuilder : SpringR2dbcKueryClientBuil
         )
     }
 
-    private fun databaseClient(connectionFactory: ConnectionFactory): DatabaseClient {
-        return DatabaseClient.builder()
-            .connectionFactory(connectionFactory)
-            .bindMarkers(DialectResolver.getDialect(connectionFactory).bindMarkersFactory)
-            .build()
-    }
+    private fun databaseClient(connectionFactory: ConnectionFactory): DatabaseClient = DatabaseClient.builder()
+        .connectionFactory(connectionFactory)
+        .bindMarkers(DialectResolver.getDialect(connectionFactory).bindMarkersFactory)
+        .build()
 
-    private fun r2dbcCustomConversions(connectionFactory: ConnectionFactory): R2dbcCustomConversions {
-        return R2dbcCustomConversions.of(DialectResolver.getDialect(connectionFactory), converters)
-    }
+    private fun r2dbcCustomConversions(connectionFactory: ConnectionFactory): R2dbcCustomConversions =
+        R2dbcCustomConversions.of(DialectResolver.getDialect(connectionFactory), converters)
 }

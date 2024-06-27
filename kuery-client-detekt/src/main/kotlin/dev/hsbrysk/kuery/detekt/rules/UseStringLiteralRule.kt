@@ -71,17 +71,15 @@ class UseStringLiteralRule(config: Config) : Rule(config) {
         }
     }
 
-    private fun isValidExpression(expression: KtExpression?): Boolean {
-        return if (expression is KtStringTemplateExpression) {
-            true
-        } else if (
-            expression is KtDotQualifiedExpression &&
-            getLastReceiverExpression(expression) is KtStringTemplateExpression
-        ) {
-            true
-        } else {
-            false
-        }
+    private fun isValidExpression(expression: KtExpression?): Boolean = if (expression is KtStringTemplateExpression) {
+        true
+    } else if (
+        expression is KtDotQualifiedExpression &&
+        getLastReceiverExpression(expression) is KtStringTemplateExpression
+    ) {
+        true
+    } else {
+        false
     }
 
     private fun allowByRegexes(expression: KtExpression?): Boolean {

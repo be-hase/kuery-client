@@ -55,12 +55,10 @@ class KueryClientCompilerTest {
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
-    private fun compile(vararg sourceFiles: SourceFile): KotlinCompilation.Result {
-        return KotlinCompilation().apply {
-            sources = sourceFiles.asList()
-            commandLineProcessors = listOf(KueryClientCompilerCommandLineProcessor())
-            compilerPluginRegistrars = listOf(KueryClientCompilerPluginRegistrar())
-            inheritClassPath = true
-        }.compile()
-    }
+    private fun compile(vararg sourceFiles: SourceFile): KotlinCompilation.Result = KotlinCompilation().apply {
+        sources = sourceFiles.asList()
+        commandLineProcessors = listOf(KueryClientCompilerCommandLineProcessor())
+        compilerPluginRegistrars = listOf(KueryClientCompilerPluginRegistrar())
+        inheritClassPath = true
+    }.compile()
 }

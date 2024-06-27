@@ -19,15 +19,11 @@ class CollectionConversionTest {
     data class StringWrapper(val value: String)
 
     class StringWrapperToStringConverter : Converter<StringWrapper, String> {
-        override fun convert(source: StringWrapper): String {
-            return source.value
-        }
+        override fun convert(source: StringWrapper): String = source.value
     }
 
     class StringToStringWrapperConverter : Converter<String, StringWrapper> {
-        override fun convert(source: String): StringWrapper {
-            return StringWrapper(source)
-        }
+        override fun convert(source: String): StringWrapper = StringWrapper(source)
     }
 
     @BeforeEach

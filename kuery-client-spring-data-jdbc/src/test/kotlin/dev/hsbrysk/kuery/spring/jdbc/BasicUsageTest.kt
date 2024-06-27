@@ -101,7 +101,11 @@ class BasicUsageTest {
         }
     }
 
-    data class User(val userId: Int, val username: String, val email: String)
+    data class User(
+        val userId: Int,
+        val username: String,
+        val email: String,
+    )
 
     @Test
     fun singleMap() {
@@ -173,7 +177,10 @@ class BasicUsageTest {
 
     @Test
     fun `single invalid type`() {
-        data class InvalidUser(val userId: Int, val invalid: String)
+        data class InvalidUser(
+            val userId: Int,
+            val invalid: String,
+        )
 
         val userId = 1
         assertFailure {

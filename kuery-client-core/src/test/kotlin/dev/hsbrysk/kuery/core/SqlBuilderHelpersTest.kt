@@ -99,7 +99,11 @@ class SqlBuilderHelpersTest {
 
     @Test
     fun `values multi with transformer`() {
-        data class UserParam(val userid: String, val email: String?, val age: Int)
+        data class UserParam(
+            val userid: String,
+            val email: String?,
+            val age: Int,
+        )
 
         val input = listOf(
             UserParam("user0", "user0@example.com", 1),

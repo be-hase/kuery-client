@@ -26,20 +26,16 @@ internal class DefaultSqlBuilder : SqlBuilder {
     fun interpolate(
         fragments: List<String>,
         values: List<Any?>,
-    ): String {
-        return buildString {
-            fragments.forEachIndexed { index, fragment ->
-                append(fragment)
-                if (index < values.size) {
-                    append(bind(values[index]))
-                }
+    ): String = buildString {
+        fragments.forEachIndexed { index, fragment ->
+            append(fragment)
+            if (index < values.size) {
+                append(bind(values[index]))
             }
         }
     }
 
-    fun build(): Sql {
-        return DefaultSql(body.toString().trim(), parameters)
-    }
+    fun build(): Sql = DefaultSql(body.toString().trim(), parameters)
 
     companion object {
         internal const val PARAMETER_NAME_PREFIX = "p"

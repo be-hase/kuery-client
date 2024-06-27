@@ -17,8 +17,6 @@ interface NamedSqlParameter {
         fun of(
             name: String,
             value: Any?,
-        ): NamedSqlParameter {
-            return DefaultNamedSqlParameter(name, value)
-        }
+        ): NamedSqlParameter = DefaultNamedSqlParameter(name, value)
     }
 }

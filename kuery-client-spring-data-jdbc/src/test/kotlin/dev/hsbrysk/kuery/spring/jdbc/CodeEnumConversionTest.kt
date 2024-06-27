@@ -51,9 +51,7 @@ class CodeEnumConversionTest {
             fun <T, E : CodeEnum<T>> getByCode(
                 code: T,
                 clazz: Class<E>,
-            ): E? {
-                return clazz.enumConstants.firstOrNull { code == it.code }
-            }
+            ): E? = clazz.enumConstants.firstOrNull { code == it.code }
         }
     }
 
@@ -76,33 +74,25 @@ class CodeEnumConversionTest {
 
     @WritingConverter
     class IntCodeEnumWritingConverter : Converter<IntCodeEnum, Int> {
-        override fun convert(source: IntCodeEnum): Int {
-            return source.code
-        }
+        override fun convert(source: IntCodeEnum): Int = source.code
     }
 
     @ReadingConverter
     class IntCodeEnumReadingConverter : ConverterFactory<Int, IntCodeEnum> {
-        override fun <E : IntCodeEnum> getConverter(targetType: Class<E>): Converter<Int, E> {
-            return Converter {
-                CodeEnum.getByCode(it, targetType)
-            }
+        override fun <E : IntCodeEnum> getConverter(targetType: Class<E>): Converter<Int, E> = Converter {
+            CodeEnum.getByCode(it, targetType)
         }
     }
 
     @WritingConverter
     class StringCodeEnumWritingConverter : Converter<StringCodeEnum, String> {
-        override fun convert(source: StringCodeEnum): String {
-            return source.code
-        }
+        override fun convert(source: StringCodeEnum): String = source.code
     }
 
     @ReadingConverter
     class StringCodeEnumReadingConverter : ConverterFactory<String, StringCodeEnum> {
-        override fun <E : StringCodeEnum> getConverter(targetType: Class<E>): Converter<String, E> {
-            return Converter {
-                CodeEnum.getByCode(it, targetType)
-            }
+        override fun <E : StringCodeEnum> getConverter(targetType: Class<E>): Converter<String, E> = Converter {
+            CodeEnum.getByCode(it, targetType)
         }
     }
 

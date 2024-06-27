@@ -44,13 +44,11 @@ internal class DefaultSpringJdbcKueryClient(
         return sql(sqlId, block)
     }
 
-    private fun JdbcClient.sql(sql: Sql): StatementSpec {
-        return sql.parameters.fold(this.sql(sql.body)) { acc, parameter ->
-            if (parameter.value != null) {
-                acc.bind(parameter)
-            } else {
-                acc.param(parameter.name, null)
-            }
+    private fun JdbcClient.sql(sql: Sql): StatementSpec = sql.parameters.fold(this.sql(sql.body)) { acc, parameter ->
+        if (parameter.value != null) {
+            acc.bind(parameter)
+        } else {
+            acc.param(parameter.name, null)
         }
     }
 
@@ -70,35 +68,31 @@ internal class DefaultSpringJdbcKueryClient(
         }
     }
 
-    private fun convertCollection(collection: Collection<*>): Collection<*> {
-        return collection.map {
-            if (it == null) {
-                null
+    private fun convertCollection(collection: Collection<*>): Collection<*> = collection.map {
+        if (it == null) {
+            null
+        } else {
+            val targetType = customConversions.getCustomWriteTarget(it::class.java)
+            if (targetType.isPresent) {
+                conversionService.convert(it, targetType.get())
             } else {
-                val targetType = customConversions.getCustomWriteTarget(it::class.java)
-                if (targetType.isPresent) {
-                    conversionService.convert(it, targetType.get())
-                } else {
-                    it
-                }
+                it
             }
         }
     }
 
-    private fun convertArray(array: Array<*>): Array<*> {
-        return array.map {
-            if (it == null) {
-                null
+    private fun convertArray(array: Array<*>): Array<*> = array.map {
+        if (it == null) {
+            null
+        } else {
+            val targetType = customConversions.getCustomWriteTarget(it::class.java)
+            if (targetType.isPresent) {
+                conversionService.convert(it, targetType.get())
             } else {
-                val targetType = customConversions.getCustomWriteTarget(it::class.java)
-                if (targetType.isPresent) {
-                    conversionService.convert(it, targetType.get())
-                } else {
-                    it
-                }
+                it
             }
-        }.toTypedArray()
-    }
+        }
+    }.toTypedArray()
 
     @Suppress("TooManyFunctions")
     inner class FetchSpec(
@@ -106,66 +100,50 @@ internal class DefaultSpringJdbcKueryClient(
         private val sql: Sql,
         private val spec: StatementSpec,
     ) : KueryBlockingClient.FetchSpec {
-        override fun singleMap(): Map<String, Any?> {
-            return observe {
+        override fun singleMap(): Map<String, Any?> = observe {
+            spec.query().singleRow()
+        }
+
+        override fun singleMapOrNull(): Map<String, Any?>? = observe {
+            try {
                 spec.query().singleRow()
+            } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
+                null
             }
         }
 
-        override fun singleMapOrNull(): Map<String, Any?>? {
-            return observe {
-                try {
-                    spec.query().singleRow()
-                } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
-                    null
-                }
-            }
+        override fun <T : Any> single(returnType: KClass<T>): T = observe {
+            spec.queryType(returnType).single()
         }
 
-        override fun <T : Any> single(returnType: KClass<T>): T {
-            return observe {
+        override fun <T : Any> singleOrNull(returnType: KClass<T>): T? = observe {
+            try {
                 spec.queryType(returnType).single()
+            } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
+                null
             }
         }
 
-        override fun <T : Any> singleOrNull(returnType: KClass<T>): T? {
-            return observe {
-                try {
-                    spec.queryType(returnType).single()
-                } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
-                    null
-                }
-            }
+        override fun listMap(): List<Map<String, Any?>> = observe {
+            spec.query().listOfRows()
         }
 
-        override fun listMap(): List<Map<String, Any?>> {
-            return observe {
-                spec.query().listOfRows()
-            }
+        override fun <T : Any> list(returnType: KClass<T>): List<T> = observe {
+            spec.queryType(returnType).list()
         }
 
-        override fun <T : Any> list(returnType: KClass<T>): List<T> {
-            return observe {
-                spec.queryType(returnType).list()
-            }
+        override fun rowsUpdated(): Long = observe {
+            spec.update().toLong()
         }
 
-        override fun rowsUpdated(): Long {
-            return observe {
-                spec.update().toLong()
+        override fun generatedValues(vararg columns: String): Map<String, Any> = observe {
+            val keyHolder = GeneratedKeyHolder()
+            if (columns.isEmpty()) {
+                spec.update(keyHolder)
+            } else {
+                spec.update(keyHolder, *columns)
             }
-        }
-
-        override fun generatedValues(vararg columns: String): Map<String, Any> {
-            return observe {
-                val keyHolder = GeneratedKeyHolder()
-                if (columns.isEmpty()) {
-                    spec.update(keyHolder)
-                } else {
-                    spec.update(keyHolder, *columns)
-                }
-                checkNotNull(keyHolder.keys)
-            }
+            checkNotNull(keyHolder.keys)
         }
 
         private fun <T> observe(block: () -> T): T {

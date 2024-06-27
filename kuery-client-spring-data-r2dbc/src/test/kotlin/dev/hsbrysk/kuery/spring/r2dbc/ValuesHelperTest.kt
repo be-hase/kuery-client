@@ -37,7 +37,12 @@ class ValuesHelperTest {
         ).fetch().awaitRowsUpdated()
     }
 
-    data class User(val userId: Int, val username: String, val email: String?, val age: Int)
+    data class User(
+        val userId: Int,
+        val username: String,
+        val email: String?,
+        val age: Int,
+    )
 
     @Test
     fun test() = runTest {
@@ -67,7 +72,11 @@ class ValuesHelperTest {
 
     @Test
     fun `test with transformer`() = runTest {
-        data class UserParam(val username: String, val email: String?, val age: Int)
+        data class UserParam(
+            val username: String,
+            val email: String?,
+            val age: Int,
+        )
 
         val input = listOf(
             UserParam("user1", "user1@example.com", 1),

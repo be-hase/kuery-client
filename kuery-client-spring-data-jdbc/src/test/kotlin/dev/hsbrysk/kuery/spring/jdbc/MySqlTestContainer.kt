@@ -18,15 +18,13 @@ class MySqlTestContainer : AutoCloseable {
     fun kueryClient(
         converters: List<Any> = emptyList(),
         observationRegistry: ObservationRegistry? = null,
-    ): KueryBlockingClient {
-        return SpringJdbcKueryClient.builder()
-            .dataSource(dataSource)
-            .converters(converters)
-            .apply {
-                observationRegistry?.let { observationRegistry(it) }
-            }
-            .build()
-    }
+    ): KueryBlockingClient = SpringJdbcKueryClient.builder()
+        .dataSource(dataSource)
+        .converters(converters)
+        .apply {
+            observationRegistry?.let { observationRegistry(it) }
+        }
+        .build()
 
     fun setUpForConverterTest() {
         jdbcClient.sql(
