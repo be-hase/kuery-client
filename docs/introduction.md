@@ -35,34 +35,28 @@ writing is almost the same.
 data class User(...)
 
 class UserRepository(private val kueryClient: KueryClient) {
-    suspend fun findById(userId: Int): User? {
-        return kueryClient
-            .sql { +"SELECT * FROM users WHERE user_id = $userId" }
-            .singleOrNull()
-    }
+    suspend fun findById(userId: Int): User? = kueryClient
+        .sql { +"SELECT * FROM users WHERE user_id = $userId" }
+        .singleOrNull()
 
-    suspend fun search(status: String, vip: Boolean?): List<User> {
-        return kueryClient
-            .sql {
-                +"SELECT * FROM users"
-                +"WHERE"
-                +"status = $status"
-                if (vip != null) {
-                    +"vip = $vip"
-                }
+    suspend fun search(status: String, vip: Boolean?): List<User> = kueryClient
+        .sql {
+            +"SELECT * FROM users"
+            +"WHERE"
+            +"status = $status"
+            if (vip != null) {
+                +"vip = $vip"
             }
-            .list()
-    }
+        }
+        .list()
 
-    suspend fun insertMany(users: List<User>): Long {
-        return kueryClient
-            .sql {
-                +"INSERT INTO users (username, email)"
-                // useful helper function
-                values(users) { listOf(it.username, it.email) }
-            }
-            .rowsUpdated()
-    }
+    suspend fun insertMany(users: List<User>): Long = kueryClient
+        .sql {
+            +"INSERT INTO users (username, email)"
+            // useful helper function
+            values(users) { listOf(it.username, it.email) }
+        }
+        .rowsUpdated()
 }
 ```
 
@@ -70,34 +64,28 @@ class UserRepository(private val kueryClient: KueryClient) {
 data class User(...)
 
 class UserRepository(private val kueryClient: KueryBlockingClient) {
-    fun findById(userId: Int): User? {
-        return kueryClient
-            .sql { +"SELECT * FROM users WHERE user_id = $userId" }
-            .singleOrNull()
-    }
+    fun findById(userId: Int): User? = kueryClient
+        .sql { +"SELECT * FROM users WHERE user_id = $userId" }
+        .singleOrNull()
 
-    fun search(status: String, vip: Boolean?): List<User> {
-        return kueryClient
-            .sql {
-                +"SELECT * FROM users"
-                +"WHERE"
-                +"status = $status"
-                if (vip != null) {
-                    +"vip = $vip"
-                }
+    fun search(status: String, vip: Boolean?): List<User> = kueryClient
+        .sql {
+            +"SELECT * FROM users"
+            +"WHERE"
+            +"status = $status"
+            if (vip != null) {
+                +"vip = $vip"
             }
-            .list()
-    }
+        }
+        .list()
 
-    fun insertMany(users: List<User>): Long {
-        return kueryClient
-            .sql {
-                +"INSERT INTO users (username, email)"
-                // useful helper function
-                values(users) { listOf(it.username, it.email) }
-            }
-            .rowsUpdated()
-    }
+    fun insertMany(users: List<User>): Long = kueryClient
+        .sql {
+            +"INSERT INTO users (username, email)"
+            // useful helper function
+            values(users) { listOf(it.username, it.email) }
+        }
+        .rowsUpdated()
 }
 ```
 
