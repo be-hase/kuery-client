@@ -100,7 +100,6 @@ In the future, we may add a different foundation or possibly create a new one fr
 
 ```kotlin
 plugins {
-    // It has not been approved on the Gradle Plugin Portal yet... Please wait a moment.
     id("dev.hsbrysk.kuery-client") version "{{version}}"
 }
 

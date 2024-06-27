@@ -8,7 +8,6 @@
 
 ```kotlin [kuery-client-spring-data-r2dbc]
 plugins {
-    // It has not been approved on the Gradle Plugin Portal yet... Please wait a moment.
     id("dev.hsbrysk.kuery-client") version "{{version}}"
 }
 
@@ -17,7 +16,6 @@ implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-r2dbc:{{versio
 
 ```kotlin [kuery-client-spring-data-jdbc]
 plugins {
-    // It has not been approved on the Gradle Plugin Portal yet... Please wait a moment.
     id("dev.hsbrysk.kuery-client") version "{{version}}"
 }
 
