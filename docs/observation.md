@@ -72,13 +72,11 @@ package com.example.spring.data.r2dbc
 
 @Repository
 class UserRepository(private val kueryClient: KueryClient) {
-    suspend fun selectByUserId(userId: Int): User? {
-        return kueryClient
-            .sql {
-                +"SELECT * FROM users WHERE user_id = $userId"
-            }
-            .singleOrNull()
-    }
+    suspend fun selectByUserId(userId: Int): User? = kueryClient
+        .sql {
+            +"SELECT * FROM users WHERE user_id = $userId"
+        }
+        .singleOrNull()
 }
 ```
 

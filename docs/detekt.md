@@ -42,7 +42,7 @@ Therefore, if you write it incorrectly as follows, problems may arise.
 #### Noncompliant Code:
 
 ```kotlin
-client.sql {
+kueryClient.sql {
     // BAD !!
     val sql = "SELECT * FROM user WHERE id = $id"
     +sql
@@ -52,7 +52,7 @@ client.sql {
 #### Compliant Code:
 
 ```kotlin
-client.sql {
+kueryClient.sql {
     +"SELECT * FROM user WHERE id = ${bind(id)}"
 }
 ```
