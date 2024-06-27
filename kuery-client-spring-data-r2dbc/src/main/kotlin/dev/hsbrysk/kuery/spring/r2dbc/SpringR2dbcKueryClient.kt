@@ -9,14 +9,10 @@ object SpringR2dbcKueryClient {
     /**
      * Retrieve the current sqlId from reactor context.
      */
-    fun sqlId(context: ContextView): String? {
-        return context.getOrEmpty<String>(SQL_ID_REACTOR_CONTEXT_KEY).orElse(null)
-    }
+    fun sqlId(context: ContextView): String? = context.getOrEmpty<String>(SQL_ID_REACTOR_CONTEXT_KEY).orElse(null)
 
     /**
      * Create [SpringR2dbcKueryClientBuilder]
      */
-    fun builder(): SpringR2dbcKueryClientBuilder {
-        return DefaultSpringR2dbcKueryClientBuilder()
-    }
+    fun builder(): SpringR2dbcKueryClientBuilder = DefaultSpringR2dbcKueryClientBuilder()
 }

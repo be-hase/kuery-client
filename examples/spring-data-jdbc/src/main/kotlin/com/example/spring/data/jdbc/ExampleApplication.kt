@@ -42,18 +42,16 @@ class ExampleConfiguration {
     fun kueryClient(
         dataSource: DataSource,
         observationRegistry: ObservationRegistry,
-    ): KueryBlockingClient {
-        return SpringJdbcKueryClient.builder()
-            .dataSource(dataSource)
-            .observationRegistry(observationRegistry)
-            .converters(
-                listOf(
-                    EmailToStringConverter(),
-                    StringToEmailConverter(),
-                ),
-            )
-            .build()
-    }
+    ): KueryBlockingClient = SpringJdbcKueryClient.builder()
+        .dataSource(dataSource)
+        .observationRegistry(observationRegistry)
+        .converters(
+            listOf(
+                EmailToStringConverter(),
+                StringToEmailConverter(),
+            ),
+        )
+        .build()
 }
 
 data class User(
@@ -72,30 +70,22 @@ data class UserOrder(
 data class Email(val value: String)
 
 class EmailToStringConverter : Converter<Email, String> {
-    override fun convert(source: Email): String {
-        return source.value
-    }
+    override fun convert(source: Email): String = source.value
 }
 
 class StringToEmailConverter : Converter<String, Email> {
-    override fun convert(source: String): Email {
-        return Email(source)
-    }
+    override fun convert(source: String): Email = Email(source)
 }
 
 @RestController
-class UserController(
-    private val userService: UserService,
-) {
+class UserController(private val userService: UserService) {
     data class UserResponse(
         val userId: Int,
         val username: String,
         val email: String,
     ) {
         companion object {
-            fun of(user: User): UserResponse {
-                return UserResponse(user.userId, user.username, user.email.value)
-            }
+            fun of(user: User): UserResponse = UserResponse(user.userId, user.username, user.email.value)
         }
     }
 
@@ -106,14 +96,11 @@ class UserController(
     }
 
     @GetMapping("/users", params = ["usernames"])
-    fun getUsersByUsernames(@RequestParam usernames: List<String>): List<UserResponse> {
-        return userService.getUsers(usernames).map { UserResponse.of(it) }
-    }
+    fun getUsersByUsernames(@RequestParam usernames: List<String>): List<UserResponse> =
+        userService.getUsers(usernames).map { UserResponse.of(it) }
 
     @GetMapping("/users")
-    fun getUsers(): List<UserResponse> {
-        return userService.getUsers().map { UserResponse.of(it) }
-    }
+    fun getUsers(): List<UserResponse> = userService.getUsers().map { UserResponse.of(it) }
 
     @PostMapping("/users")
     fun addUser(@RequestBody req: AddUserRequest): AddUserResponse {
@@ -137,9 +124,7 @@ class UserController(
         return OkResponse
     }
 
-    data class UpdateEmailRequest(
-        val value: String,
-    )
+    data class UpdateEmailRequest(val value: String)
 
     object OkResponse {
         @Suppress("unused")
@@ -147,10 +132,8 @@ class UserController(
     }
 
     @GetMapping("/users/{userId}/orders")
-    fun getUserOrders(@PathVariable userId: Int): List<UserOrderResponse> {
-        return userService.getUserOrders(userId)
-            .map { UserOrderResponse.of(it) }
-    }
+    fun getUserOrders(@PathVariable userId: Int): List<UserOrderResponse> = userService.getUserOrders(userId)
+        .map { UserOrderResponse.of(it) }
 
     data class UserOrderResponse(
         val username: String,
@@ -159,14 +142,12 @@ class UserController(
         val amount: BigDecimal,
     ) {
         companion object {
-            fun of(userOrder: UserOrder): UserOrderResponse {
-                return UserOrderResponse(
-                    username = userOrder.username,
-                    orderId = userOrder.orderId,
-                    orderDate = userOrder.orderDate,
-                    amount = userOrder.amount,
-                )
-            }
+            fun of(userOrder: UserOrder): UserOrderResponse = UserOrderResponse(
+                username = userOrder.username,
+                orderId = userOrder.orderId,
+                orderDate = userOrder.orderDate,
+                amount = userOrder.amount,
+            )
         }
     }
 }
@@ -176,17 +157,13 @@ class UserService(
     private val userRepository: UserRepository,
     private val transaction: TransactionTemplate,
 ) {
-    fun getUser(userId: Int): User {
-        return userRepository.selectByUserId(userId)
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
-    }
+    fun getUser(userId: Int): User = userRepository.selectByUserId(userId)
+        ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
-    fun getUsers(usernames: List<String>? = null): List<User> {
-        return if (usernames == null) {
-            userRepository.selectAll()
-        } else {
-            userRepository.selectByUsernames(usernames)
-        }
+    fun getUsers(usernames: List<String>? = null): List<User> = if (usernames == null) {
+        userRepository.selectAll()
+    } else {
+        userRepository.selectByUsernames(usernames)
     }
 
     // Apply transactions using AOP
@@ -194,13 +171,11 @@ class UserService(
     fun addUser(
         username: String,
         email: Email,
-    ): Int {
-        return userRepository.insert(username, email)
-            .also {
-                // for checking rollback behavior
-                throwsExceptionsProbabilistically()
-            }
-    }
+    ): Int = userRepository.insert(username, email)
+        .also {
+            // for checking rollback behavior
+            throwsExceptionsProbabilistically()
+        }
 
     fun updateUserEmail(
         userId: Int,
@@ -216,9 +191,7 @@ class UserService(
         }!!
     }
 
-    fun getUserOrders(userId: Int): List<UserOrder> {
-        return userRepository.selectOrderByUserId(userId)
-    }
+    fun getUserOrders(userId: Int): List<UserOrder> = userRepository.selectOrderByUserId(userId)
 
     private fun throwsExceptionsProbabilistically() {
         if (Random.nextInt(2) == 0) {
@@ -228,68 +201,58 @@ class UserService(
 }
 
 @Repository
-class UserRepository(private val client: KueryBlockingClient) {
-    fun selectByUserId(userId: Int): User? {
-        return client
-            .sql {
-                +"SELECT * FROM users WHERE user_id = $userId"
-            }
-            .singleOrNull()
-    }
+class UserRepository(private val kueryClient: KueryBlockingClient) {
+    fun selectByUserId(userId: Int): User? = kueryClient
+        .sql {
+            +"SELECT * FROM users WHERE user_id = $userId"
+        }
+        .singleOrNull()
 
     fun selectByUsernames(usernames: List<String>): List<User> {
         if (usernames.isEmpty()) {
             return emptyList()
         }
-        return client
+        return kueryClient
             .sql {
                 +"SELECT * FROM users WHERE username IN ($usernames)"
             }
             .list()
     }
 
-    fun selectAll(): List<User> {
-        return client
-            .sql {
-                +"SELECT * FROM users"
-            }
-            .list()
-    }
+    fun selectAll(): List<User> = kueryClient
+        .sql {
+            +"SELECT * FROM users"
+        }
+        .list()
 
     fun insert(
         username: String,
         email: Email,
-    ): Int {
-        return client
-            .sql {
-                +"INSERT INTO users (username, email) VALUES ($username, $email)"
-            }
-            .generatedValues("user_id")
-            .let { (it["GENERATED_KEY"] as BigInteger).toInt() }
-    }
+    ): Int = kueryClient
+        .sql {
+            +"INSERT INTO users (username, email) VALUES ($username, $email)"
+        }
+        .generatedValues("user_id")
+        .let { (it["GENERATED_KEY"] as BigInteger).toInt() }
 
     fun updateEmail(
         userId: Int,
         email: Email,
-    ): Long {
-        return client
-            .sql {
-                +"UPDATE users SET email = $email WHERE user_id = $userId"
-            }
-            .rowsUpdated()
-    }
+    ): Long = kueryClient
+        .sql {
+            +"UPDATE users SET email = $email WHERE user_id = $userId"
+        }
+        .rowsUpdated()
 
-    fun selectOrderByUserId(userId: Int): List<UserOrder> {
-        return client
-            .sql {
-                +"""
+    fun selectOrderByUserId(userId: Int): List<UserOrder> = kueryClient
+        .sql {
+            +"""
                 SELECT users.username, orders.order_id, orders.order_date, orders.amount
                 FROM users
                 JOIN orders ON users.user_id = orders.user_id
                 WHERE
                 users.user_id = $userId
-                """.trimIndent()
-            }
-            .list()
-    }
+            """.trimIndent()
+        }
+        .list()
 }

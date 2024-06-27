@@ -10,17 +10,11 @@ import io.micrometer.observation.ObservationConvention
  * [ObservationConvention] for [KueryClient] and [KueryBlockingClient]
  */
 interface KueryClientFetchObservationConvention : ObservationConvention<KueryClientFetchContext> {
-    override fun getName(): String {
-        return "kuery.client.fetches"
-    }
+    override fun getName(): String = "kuery.client.fetches"
 
-    override fun supportsContext(context: Observation.Context): Boolean {
-        return context is KueryClientFetchContext
-    }
+    override fun supportsContext(context: Observation.Context): Boolean = context is KueryClientFetchContext
 
     companion object {
-        fun default(): KueryClientFetchObservationConvention {
-            return DefaultKueryClientFetchObservationConvention()
-        }
+        fun default(): KueryClientFetchObservationConvention = DefaultKueryClientFetchObservationConvention()
     }
 }

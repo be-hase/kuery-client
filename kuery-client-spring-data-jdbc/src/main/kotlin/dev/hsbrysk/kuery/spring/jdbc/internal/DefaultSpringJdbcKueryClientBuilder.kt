@@ -71,9 +71,7 @@ internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilde
         )
     }
 
-    private fun jdbcClient(dataSource: DataSource): JdbcClient {
-        return JdbcClient.create(dataSource)
-    }
+    private fun jdbcClient(dataSource: DataSource): JdbcClient = JdbcClient.create(dataSource)
 
     private fun jdbcCustomConversions(dataSource: DataSource): JdbcCustomConversions {
         val dialect = dialect(dataSource)
@@ -89,14 +87,10 @@ internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilde
         )
     }
 
-    private fun dialect(dataSource: DataSource): Dialect {
-        return DialectResolver.getDialect(JdbcTemplate(dataSource))
-    }
+    private fun dialect(dataSource: DataSource): Dialect = DialectResolver.getDialect(JdbcTemplate(dataSource))
 
-    private fun storeConverters(dialect: Dialect): List<Any> {
-        return buildList {
-            addAll(dialect.converters)
-            addAll(JdbcCustomConversions.storeConverters())
-        }
+    private fun storeConverters(dialect: Dialect): List<Any> = buildList {
+        addAll(dialect.converters)
+        addAll(JdbcCustomConversions.storeConverters())
     }
 }

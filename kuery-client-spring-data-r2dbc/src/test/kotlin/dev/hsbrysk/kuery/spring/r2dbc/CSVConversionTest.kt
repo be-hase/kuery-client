@@ -12,9 +12,7 @@ import org.junit.jupiter.api.Test
 class CSVConversionTest {
     private val kueryClient = mysql.kueryClient()
 
-    data class Record(
-        val text: List<String>,
-    )
+    data class Record(val text: List<String>)
 
     @BeforeEach
     fun beforeEach() = runTest {

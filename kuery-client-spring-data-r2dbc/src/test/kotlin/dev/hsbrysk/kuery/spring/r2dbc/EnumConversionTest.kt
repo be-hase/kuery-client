@@ -16,9 +16,7 @@ class EnumConversionTest {
         HOGE,
     }
 
-    data class Record(
-        val text: SampleEnum,
-    )
+    data class Record(val text: SampleEnum)
 
     @BeforeEach
     fun beforeEach() = runTest {
