@@ -4,6 +4,7 @@ plugins {
     id("conventions.preset.base")
     alias(libs.plugins.kotlin.spring)
     alias(libs.plugins.spring.boot)
+    alias(libs.plugins.kuery.client)
 }
 
 description = "Example of spring-data-r2dbc"
@@ -18,8 +19,6 @@ dependencies {
     implementation("io.asyncer:r2dbc-mysql")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
-    kotlinCompilerPluginClasspath(projects.kueryClientCompiler)
-
     detektPlugins(projects.kueryClientDetekt)
 }
 
@@ -28,6 +27,7 @@ detekt {
     disableDefaultRuleSets = true
 }
 
+// Since they are dependent within the same project, I am writing it this way. There is no need to imitate this.
 tasks.withType<Detekt> {
     dependsOn(":${projects.kueryClientDetekt.name}:assemble")
 }
