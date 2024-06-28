@@ -31,9 +31,9 @@ kueryClient
 It is an alias for `+`(unaryPlus). However, since the argument is annotated
 with `org.intellij.lang.annotations.Language`, if you are using a JetBrains IDE, you will get syntax assistance.
 
-### String interpolation
+## Binding Parameters
 
-When you want to embed dynamic values, use string interpolation.
+When you want to bind parameters, use string interpolation.
 
 ```kotlin
 val userId = "..."
@@ -46,7 +46,7 @@ kueryClient
     }
 ```
 
-### Logic such as `if` and `for` ...etc
+## Logic such as `if` and `for` ...etc
 
 Just write using Kotlin syntax. There is no need to learn special syntax.
 
