@@ -27,7 +27,7 @@ val kueryClient = SpringR2dbcKueryClient.builder()
 ## Example: spring-boot-starter-actuator & Prometheus
 
 ::: info
-I won't go into detail about Spring Boot, Micrometer, and Prometheus here.
+We won't go into detail about Spring Boot, Micrometer, and Prometheus here.
 The documentation is written concisely, assuming you are familiar with these.
 :::
 

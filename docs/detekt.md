@@ -33,11 +33,10 @@ After that, by running the detektMain task, you can check for any violations.
 
 ### UseStringLiteralRule
 
-In kuery client, string interpolation in string templates passed to `add` and `+`(unaryPlus) is customized. These are
-expanded as placeholders.
+By providing a Kotlin compiler plugin, we are customizing the behavior of string interpolation.
+However, this customization is only applied to `SqlBuilder#add` and `SqlBuilder#unaryPlus(+)`.
 
-However, in other places, the default string interpolation is executed.
-Therefore, if you write it incorrectly as follows, problems may arise.
+Therefore, if incorrectly written as follows, problems may arise.
 
 #### Noncompliant Code:
 
