@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.ir.util.irCastIfNeeded
 import org.jetbrains.kotlin.ir.util.isVararg
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 
+@Suppress("OPT_IN_USAGE")
 class StringInterpolationTransformer(private val pluginContext: IrPluginContext) : IrElementTransformerVoid() {
     private var current: IrCall? = null
 
