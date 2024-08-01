@@ -5,6 +5,7 @@ import assertk.assertions.isEqualTo
 import com.tschuchort.compiletesting.KotlinCompilation
 import com.tschuchort.compiletesting.SourceFile
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 /**
@@ -13,6 +14,9 @@ import org.junit.jupiter.api.Test
  */
 @OptIn(ExperimentalCompilerApi::class)
 class KueryClientCompilerTest {
+    // TODO: temporary disabled.
+    // see: https://github.com/tschuchortdev/kotlin-compile-testing/issues
+    @Disabled
     @Test
     fun test() {
         val source = SourceFile.kotlin(
