@@ -231,8 +231,8 @@ class SqlTest {
         }
         assertThat(sql1).isEqualTo(
             Sql.of(
-                "SELECT * FROM user WHERE user_id = 1",
-                emptyList(),
+                "SELECT * FROM user WHERE user_id = :p0",
+                listOf(NamedSqlParameter.of("p0", 1)),
             ),
         )
 
@@ -281,8 +281,8 @@ class SqlTest {
         }
         assertThat(sql1).isEqualTo(
             Sql.of(
-                "SELECT * FROM user WHERE user_id = true",
-                emptyList(),
+                "SELECT * FROM user WHERE user_id = :p0",
+                listOf(NamedSqlParameter.of("p0", true)),
             ),
         )
 
@@ -306,8 +306,8 @@ class SqlTest {
         }
         assertThat(sql1).isEqualTo(
             Sql.of(
-                "SELECT * FROM user WHERE user_id = null",
-                emptyList(),
+                "SELECT * FROM user WHERE user_id = :p0",
+                listOf(NamedSqlParameter.of("p0", null)),
             ),
         )
 
