@@ -11,7 +11,7 @@ spring-data = "3.3.4"
 assertk = { module = "com.willowtreeapps.assertk:assertk-jvm", version = "0.28.1" }
 detekt-api = { module = "io.gitlab.arturbosch.detekt:detekt-api", version.ref = "detekt" }
 detekt-test = { module = "io.gitlab.arturbosch.detekt:detekt-test", version.ref = "detekt" }
-junit-bom = { module = "org.junit:junit-bom", version = "5.11.1" }
+junit-bom = { module = "org.junit:junit-bom", version = "5.11.2" }
 kotlin-compile-testing = { module = "com.github.tschuchortdev:kotlin-compile-testing", version = "1.6.0" }
 kotlin-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
 kotlin-coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactor", version.ref = "kotlin-coroutines" }
