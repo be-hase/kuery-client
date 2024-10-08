@@ -1,0 +1,45 @@
+Type-safe project accessors is an incubating feature.
+> Task :build-logic:checkKotlinGradlePluginConfigurationErrors
+> Task :build-logic:generateExternalPluginSpecBuilders UP-TO-DATE
+> Task :build-logic:extractPrecompiledScriptPluginPlugins UP-TO-DATE
+> Task :build-logic:compilePluginsBlocks UP-TO-DATE
+> Task :build-logic:generatePrecompiledScriptPluginAccessors UP-TO-DATE
+> Task :build-logic:generateScriptPluginAdapters UP-TO-DATE
+> Task :build-logic:compileKotlin UP-TO-DATE
+> Task :build-logic:compileJava NO-SOURCE
+> Task :build-logic:pluginDescriptors UP-TO-DATE
+> Task :build-logic:processResources UP-TO-DATE
+> Task :build-logic:classes UP-TO-DATE
+> Task :build-logic:jar UP-TO-DATE
+
+The Kotlin Gradle plugin was loaded multiple times in different subprojects, which is not supported and may break the build. 
+This might happen in subprojects that apply the Kotlin plugins with the Gradle 'plugins { ... }' DSL if they specify explicit versions, even if the versions are equal.
+Please add the Kotlin plugin to the common parent project or the root project, then remove the versions in the subprojects.
+If the parent project does not need the plugin, add 'apply false' to the plugin line.
+See: https://docs.gradle.org/current/userguide/plugins.html#sec:subprojects_plugins_dsl
+The Kotlin plugin was loaded in the following projects: ':kuery-client-compiler', ':kuery-client-gradle-plugin', ':examples:spring-data-jdbc'
+
+> Task :kuery-client-compiler:functional-test:dependencies
+
+------------------------------------------------------------
+Project ':kuery-client-compiler:functional-test' - Kuery client's compiler functional test module.
+------------------------------------------------------------
+
+runtimeClasspath - Runtime classpath of 'main'.
++--- org.jetbrains.kotlin:kotlin-stdlib:2.0.20
+|    \--- org.jetbrains:annotations:13.0
+\--- project :kuery-client-core
+     +--- io.micrometer:micrometer-core:1.13.5
+     |    +--- io.micrometer:micrometer-commons:1.13.5
+     |    +--- io.micrometer:micrometer-observation:1.13.6
+     |    |    \--- io.micrometer:micrometer-commons:1.13.5
+     |    +--- org.hdrhistogram:HdrHistogram:2.2.2
+     |    \--- org.latencyutils:LatencyUtils:2.0.3
+     \--- org.jetbrains.kotlin:kotlin-stdlib:2.0.20 (*)
+
+(*) - Indicates repeated occurrences of a transitive dependency subtree. Gradle expands transitive dependency subtrees only once per project; repeat occurrences only display the root of the subtree, followed by this annotation.
+
+A web-based, searchable dependency report is available by adding the --scan option.
+
+BUILD SUCCESSFUL in 820ms
+11 actionable tasks: 2 executed, 9 up-to-date
