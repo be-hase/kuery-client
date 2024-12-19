@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.simple.JdbcClient
 import javax.sql.DataSource
 
+@Suppress("TooManyFunctions")
 internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilder {
     private var dataSource: DataSource? = null
     private var jdbcClient: JdbcClient? = null
