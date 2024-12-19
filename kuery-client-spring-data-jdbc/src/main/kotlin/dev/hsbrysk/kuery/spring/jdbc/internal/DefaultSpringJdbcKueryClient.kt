@@ -11,14 +11,18 @@ import dev.hsbrysk.kuery.core.observation.KueryClientObservationDocumentation
 import dev.hsbrysk.kuery.spring.jdbc.SqlIdInjector
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
+import org.springframework.beans.BeanUtils
 import org.springframework.core.convert.ConversionService
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.data.jdbc.core.convert.JdbcCustomConversions
 import org.springframework.jdbc.core.DataClassRowMapper
+import org.springframework.jdbc.core.RowMapper
+import org.springframework.jdbc.core.SingleColumnRowMapper
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.jdbc.core.simple.JdbcClient.MappedQuerySpec
 import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec
 import org.springframework.jdbc.support.GeneratedKeyHolder
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 
 internal class DefaultSpringJdbcKueryClient(
@@ -30,6 +34,7 @@ internal class DefaultSpringJdbcKueryClient(
     private val enableAutoSqlIdGeneration: Boolean,
 ) : KueryBlockingClient {
     private val defaultObservationConvention = KueryClientFetchObservationConvention.default()
+    private val rowMapperCache = ConcurrentHashMap<KClass<*>, RowMapper<*>>()
 
     override fun sql(
         sqlId: String,
@@ -178,9 +183,20 @@ internal class DefaultSpringJdbcKueryClient(
 
         private fun <T : Any> StatementSpec.queryType(returnType: KClass<T>): MappedQuerySpec<T> {
             val cs = conversionService
-            val mapper = DataClassRowMapper(returnType.java).apply {
-                conversionService = cs
-            }
+
+            @Suppress("UNCHECKED_CAST")
+            val mapper = rowMapperCache.computeIfAbsent(returnType) {
+                // Align with Spring Data JDBC's [DefaultJdbcClient] behavior
+                if (BeanUtils.isSimpleProperty(returnType.java)) {
+                    SingleColumnRowMapper(returnType.java).apply {
+                        setConversionService(cs)
+                    }
+                } else {
+                    DataClassRowMapper(returnType.java).apply {
+                        setConversionService(cs)
+                    }
+                }
+            } as RowMapper<T>
             return this.query(mapper)
         }
     }
