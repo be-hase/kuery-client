@@ -3,6 +3,7 @@ package dev.hsbrysk.kuery.spring.jdbc
 import dev.hsbrysk.kuery.core.KueryBlockingClient
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import io.micrometer.observation.ObservationRegistry
+import org.springframework.jdbc.core.simple.JdbcClient
 import javax.sql.DataSource
 
 interface SpringJdbcKueryClientBuilder {
@@ -10,6 +11,11 @@ interface SpringJdbcKueryClientBuilder {
      * Set [DataSource]
      */
     fun dataSource(dataSource: DataSource): SpringJdbcKueryClientBuilder
+
+    /**
+     * Set [JdbcClient]. It is useful if you need to customize [JdbcClient].
+     */
+    fun jdbcClient(jdbcClient: JdbcClient): SpringJdbcKueryClientBuilder
 
     /**
      * Set converters
