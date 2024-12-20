@@ -52,6 +52,6 @@ kueryClient.sql {
 
 ```kotlin
 kueryClient.sql {
-    +"SELECT * FROM user WHERE id = ${bind(id)}"
+    +"SELECT * FROM user WHERE id = $id"
 }
 ```

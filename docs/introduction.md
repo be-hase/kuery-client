@@ -50,7 +50,7 @@ class UserRepository(private val kueryClient: KueryClient) {
             status = $status
             """
             if (vip != null) {
-                +"vip = $vip"
+                +"AND vip = $vip"
             }
         }
         .list()
@@ -81,7 +81,7 @@ class UserRepository(private val kueryClient: KueryBlockingClient) {
             status = $status
             """
             if (vip != null) {
-                +"vip = $vip"
+                +"AND vip = $vip"
             }
         }
         .list()
