@@ -57,7 +57,7 @@ kueryClient
         +"WHERE"
         +"status = $status"
         if (vip != null) {
-            +"vip = $vip"
+            +"AND vip = $vip"
         }
     }
 ```
