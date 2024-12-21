@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.dao.IncorrectResultSizeDataAccessException
 import org.springframework.jdbc.BadSqlGrammarException
-import org.springframework.jdbc.UncategorizedSQLException
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.time.LocalDate
