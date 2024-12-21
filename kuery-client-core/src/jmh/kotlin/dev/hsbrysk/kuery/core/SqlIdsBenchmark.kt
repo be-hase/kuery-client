@@ -12,8 +12,8 @@ import kotlin.random.Random
 Thanks to the cache, there is little overhead
 
 Benchmark                          Mode  Cnt         Score   Error  Units
-SqlIdsBenchmark.autoIdGeneration  thrpt    2  18680410.913          ops/s
-SqlIdsBenchmark.baseline          thrpt    2  21090990.061          ops/s
+SqlIdsBenchmark.autoIdGeneration  thrpt    2  18483231.616          ops/s
+SqlIdsBenchmark.baseline          thrpt    2  21015628.298          ops/s
 */
 @State(Scope.Benchmark)
 open class SqlIdsBenchmark {

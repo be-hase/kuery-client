@@ -14,6 +14,9 @@ out/
 ### Mac OS ###
 .DS_Store
 
+### Kotlin ###
+.kotlin
+
 ### Vitepress ###
 /node_modules
 docs/.vitepress/cache
