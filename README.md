@@ -1,8 +1,6 @@
 <div align="center">
 <h1>
-<a href="https://kuery-client.hsbrysk.dev/">
-<img src="/docs/logo.png" alt="kuery-client-logo" width="400" /><br />
-</a>
+<a href="https://kuery-client.hsbrysk.dev/"><img src="/docs/logo.png" alt="kuery-client-logo" width="400" /></a>
 </h1>
 <a href="https://central.sonatype.com/search?q=kuery-client"><img alt="Maven Central Version" src="https://img.shields.io/maven-central/v/dev.hsbrysk.kuery-client/kuery-client-core"></a>
 <br />
