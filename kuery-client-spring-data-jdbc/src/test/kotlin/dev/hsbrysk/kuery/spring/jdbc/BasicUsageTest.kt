@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.dao.IncorrectResultSizeDataAccessException
+import org.springframework.jdbc.BadSqlGrammarException
 import org.springframework.jdbc.UncategorizedSQLException
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -185,7 +186,7 @@ class BasicUsageTest {
         val userId = 1
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.single<InvalidUser>()
-        }.isInstanceOf(UncategorizedSQLException::class)
+        }.isInstanceOf(BadSqlGrammarException::class)
     }
 
     @Test
