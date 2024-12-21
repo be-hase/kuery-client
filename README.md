@@ -4,7 +4,7 @@
 <img src="/docs/logo.png" alt="kuery-client-logo" width="400" /><br />
 </a>
 </h1>
-<img alt="Maven Central Version" src="https://img.shields.io/maven-central/v/dev.hsbrysk.kuery-client/kuery-client-core">
+<a href="https://central.sonatype.com/search?q=kuery-client"><img alt="Maven Central Version" src="https://img.shields.io/maven-central/v/dev.hsbrysk.kuery-client/kuery-client-core"></a>
 <br />
 <a href="https://kuery-client.hsbrysk.dev/"><b>Document Site</b></a>
 </div>
