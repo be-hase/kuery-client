@@ -12,7 +12,6 @@ dependencies {
     api(libs.spring.data.r2dbc)
     api(libs.kotlin.coroutines.core)
     api(libs.kotlin.coroutines.reactor)
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.21")
 
     testImplementation(platform(libs.spring.boot.bom))
     testImplementation("com.mysql:mysql-connector-j")
