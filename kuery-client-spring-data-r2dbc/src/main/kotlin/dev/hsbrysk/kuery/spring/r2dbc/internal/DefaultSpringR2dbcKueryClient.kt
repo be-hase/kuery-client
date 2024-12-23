@@ -219,7 +219,7 @@ internal class DefaultSpringR2dbcKueryClient(
     ) : Function<Readable, T?> {
         override fun apply(readable: Readable): T? = try {
             readable.get(0, requiredType)
-        } catch (e: IllegalArgumentException) {
+        } catch (ignored: IllegalArgumentException) {
             val result = readable.get(0)
             when {
                 conversionService.canConvert(result?.javaClass, requiredType) -> {
