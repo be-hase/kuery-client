@@ -15,8 +15,10 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.simple.JdbcClient
 import javax.sql.DataSource
 
+@Suppress("TooManyFunctions")
 internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilder {
     private var dataSource: DataSource? = null
+    private var jdbcClient: JdbcClient? = null
     private var converters: List<Any> = emptyList()
     private var observationRegistry: ObservationRegistry? = null
     private var observationConvention: KueryClientFetchObservationConvention? = null
@@ -24,6 +26,11 @@ internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilde
 
     override fun dataSource(dataSource: DataSource): SpringJdbcKueryClientBuilder {
         this.dataSource = dataSource
+        return this
+    }
+
+    override fun jdbcClient(jdbcClient: JdbcClient): SpringJdbcKueryClientBuilder {
+        this.jdbcClient = jdbcClient
         return this
     }
 
@@ -54,7 +61,7 @@ internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilde
             "Specify dataSource."
         }
 
-        val jdbcClient = jdbcClient(dataSource)
+        val jdbcClient = jdbcClient ?: createJdbcClient(dataSource)
         val conversionService = DefaultConversionService()
         val customConversions = jdbcCustomConversions(dataSource).apply {
             registerConvertersIn(conversionService)
@@ -71,7 +78,7 @@ internal class DefaultSpringJdbcKueryClientBuilder : SpringJdbcKueryClientBuilde
         )
     }
 
-    private fun jdbcClient(dataSource: DataSource): JdbcClient = JdbcClient.create(dataSource)
+    private fun createJdbcClient(dataSource: DataSource): JdbcClient = JdbcClient.create(dataSource)
 
     private fun jdbcCustomConversions(dataSource: DataSource): JdbcCustomConversions {
         val dialect = dialect(dataSource)
