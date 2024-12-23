@@ -11,10 +11,12 @@ import dev.hsbrysk.kuery.core.observation.KueryClientObservationDocumentation
 import dev.hsbrysk.kuery.spring.r2dbc.SpringR2dbcKueryClient
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
+import io.r2dbc.spi.Readable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import org.springframework.beans.BeanUtils
 import org.springframework.core.convert.ConversionService
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.data.r2dbc.convert.R2dbcCustomConversions
@@ -24,6 +26,7 @@ import org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec
 import org.springframework.r2dbc.core.RowsFetchSpec
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Function
 import kotlin.reflect.KClass
 
@@ -36,6 +39,7 @@ internal class DefaultSpringR2dbcKueryClient(
     private val enableAutoSqlIdGeneration: Boolean,
 ) : KueryClient {
     private val defaultObservationConvention = KueryClientFetchObservationConvention.default()
+    private val mapperCache = ConcurrentHashMap<KClass<*>, Function<Readable, *>>()
 
     override fun sql(
         sqlId: String,
@@ -118,8 +122,7 @@ internal class DefaultSpringR2dbcKueryClient(
         }
 
         override suspend fun <T : Any> single(returnType: KClass<T>): T = observe {
-            spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
-                ?: throw EmptyResultDataAccessException(1)
+            spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
         }
 
         override suspend fun <T : Any> singleOrNull(returnType: KClass<T>): T? = observe {
@@ -155,8 +158,7 @@ internal class DefaultSpringR2dbcKueryClient(
         }
 
         override suspend fun generatedValues(vararg columns: String): Map<String, Any> = observe {
-            spec.filter(Function { it.returnGeneratedValues(*columns) }).fetch().one().sqlId(sqlId)
-                .awaitSingleOrNull()
+            spec.filter(Function { it.returnGeneratedValues(*columns) }).fetch().one().sqlId(sqlId).awaitSingleOrNull()
                 ?: throw EmptyResultDataAccessException(1)
         }
 
@@ -197,8 +199,37 @@ internal class DefaultSpringR2dbcKueryClient(
         }
 
         private fun <T : Any> GenericExecuteSpec.map(returnType: KClass<T>): RowsFetchSpec<T> {
-            val mapper = DataClassRowMapper(returnType.java, conversionService)
+            @Suppress("UNCHECKED_CAST")
+            val mapper = mapperCache.computeIfAbsent(returnType) {
+                if (BeanUtils.isSimpleProperty(returnType.java)) {
+                    SingleColumnRowMapper(returnType.javaObjectType, conversionService)
+                } else {
+                    DataClassRowMapper(returnType.java, conversionService)
+                }
+            } as Function<Readable, T>
             return this.map(mapper)
+        }
+    }
+
+    // ref: https://github.com/spring-projects/spring-framework/blob/bf06d74879029593b40d3825aca39dad9f229f44/spring-jdbc/src/main/java/org/springframework/jdbc/core/SingleColumnRowMapper.java
+    // However, conversions such as any-to-string or string-to-number are intentionally not implemented.
+    class SingleColumnRowMapper<T : Any>(
+        private val requiredType: Class<T>,
+        private val conversionService: ConversionService,
+    ) : Function<Readable, T?> {
+        override fun apply(readable: Readable): T? = try {
+            readable.get(0, requiredType)
+        } catch (ignored: IllegalArgumentException) {
+            val result = readable.get(0)
+            when {
+                conversionService.canConvert(result?.javaClass, requiredType) -> {
+                    conversionService.convert(result, requiredType)
+                }
+                else -> throw IllegalArgumentException(
+                    "Value [$result] is of type [${result?.javaClass?.name}] and " +
+                        "cannot be converted to required type [${requiredType.name}]",
+                )
+            }
         }
     }
 }
