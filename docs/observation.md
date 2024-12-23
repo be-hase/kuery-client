@@ -52,12 +52,6 @@ class ExampleConfiguration {
         return SpringR2dbcKueryClient.builder()
             .connectionFactory(connectionFactory)
             .observationRegistry(observationRegistry)
-            .converters(
-                listOf(
-                    EmailToStringConverter(),
-                    StringToEmailConverter(),
-                ),
-            )
             .build()
     }
 }

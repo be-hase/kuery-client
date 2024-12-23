@@ -14,12 +14,14 @@ data class StringWrapper(val value: String)
 ### Prepare Type Converters
 
 ```kotlin
+@WritingConverter
 class StringWrapperToStringConverter : Converter<StringWrapper, String> {
     override fun convert(source: StringWrapper): String {
         return source.value
     }
 }
 
+@ReadingConverter
 class StringToStringWrapperConverter : Converter<String, StringWrapper> {
     override fun convert(source: String): StringWrapper {
         return StringWrapper(source)

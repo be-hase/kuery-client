@@ -9,6 +9,8 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.core.convert.converter.Converter
+import org.springframework.data.convert.ReadingConverter
+import org.springframework.data.convert.WritingConverter
 
 class StringWrapperConversionTest {
     private val kueryClient = mysql.kueryClient(
@@ -22,10 +24,12 @@ class StringWrapperConversionTest {
 
     data class Record(val text: StringWrapper)
 
+    @WritingConverter
     class StringWrapperToStringConverter : Converter<StringWrapper, String> {
         override fun convert(source: StringWrapper): String = source.value
     }
 
+    @ReadingConverter
     class StringToStringWrapperConverter : Converter<String, StringWrapper> {
         override fun convert(source: String): StringWrapper = StringWrapper(source)
     }
