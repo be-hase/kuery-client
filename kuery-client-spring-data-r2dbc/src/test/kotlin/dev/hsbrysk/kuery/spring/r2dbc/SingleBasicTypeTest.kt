@@ -12,6 +12,7 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.core.convert.converter.Converter
 import org.springframework.dao.DataRetrievalFailureException
+import org.springframework.data.convert.ReadingConverter
 import java.net.URI
 import kotlin.reflect.KClass
 
@@ -24,6 +25,7 @@ class SingleBasicTypeTest {
 
     data class StringWrapper(val value: String)
 
+    @ReadingConverter
     class StringToStringWrapperConverter : Converter<String, StringWrapper> {
         override fun convert(source: String): StringWrapper = StringWrapper(source)
     }
