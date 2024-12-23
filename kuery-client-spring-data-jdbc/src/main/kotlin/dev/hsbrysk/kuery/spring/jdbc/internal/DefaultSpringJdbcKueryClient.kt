@@ -13,7 +13,7 @@ import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
 import org.springframework.beans.BeanUtils
 import org.springframework.core.convert.ConversionService
-import org.springframework.dao.EmptyResultDataAccessException
+import org.springframework.dao.support.DataAccessUtils
 import org.springframework.data.jdbc.core.convert.JdbcCustomConversions
 import org.springframework.jdbc.core.DataClassRowMapper
 import org.springframework.jdbc.core.RowMapper
@@ -110,11 +110,7 @@ internal class DefaultSpringJdbcKueryClient(
         }
 
         override fun singleMapOrNull(): Map<String, Any?>? = observe {
-            try {
-                spec.query().singleRow()
-            } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
-                null
-            }
+            DataAccessUtils.singleResult(spec.query().listOfRows())
         }
 
         override fun <T : Any> single(returnType: KClass<T>): T = observe {
@@ -122,11 +118,7 @@ internal class DefaultSpringJdbcKueryClient(
         }
 
         override fun <T : Any> singleOrNull(returnType: KClass<T>): T? = observe {
-            try {
-                spec.queryType(returnType).single()
-            } catch (@Suppress("SwallowedException") e: EmptyResultDataAccessException) {
-                null
-            }
+            DataAccessUtils.singleResult(spec.queryType(returnType).list())
         }
 
         override fun listMap(): List<Map<String, Any?>> = observe {
