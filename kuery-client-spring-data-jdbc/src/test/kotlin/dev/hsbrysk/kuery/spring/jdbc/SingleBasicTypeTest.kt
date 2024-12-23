@@ -24,8 +24,7 @@ class SingleBasicTypeTest {
     data class StringWrapper(val value: String)
 
     class StringToStringWrapperConverter : Converter<String, StringWrapper> {
-        override fun convert(source: String): StringWrapper =
-            StringWrapper(source)
+        override fun convert(source: String): StringWrapper = StringWrapper(source)
     }
 
     @ParameterizedTest

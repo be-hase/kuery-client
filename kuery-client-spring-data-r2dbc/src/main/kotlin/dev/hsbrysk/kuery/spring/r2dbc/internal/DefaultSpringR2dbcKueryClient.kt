@@ -202,29 +202,33 @@ internal class DefaultSpringR2dbcKueryClient(
             @Suppress("UNCHECKED_CAST")
             val mapper = mapperCache.computeIfAbsent(returnType) {
                 if (BeanUtils.isSimpleProperty(returnType.java)) {
-                    singleColumnRowMapper(returnType.javaObjectType)
+                    SingleColumnRowMapper(returnType.javaObjectType, conversionService)
                 } else {
                     DataClassRowMapper(returnType.java, conversionService)
                 }
             } as Function<Readable, T>
             return this.map(mapper)
         }
+    }
 
-        // ref: https://github.com/spring-projects/spring-framework/blob/bf06d74879029593b40d3825aca39dad9f229f44/spring-jdbc/src/main/java/org/springframework/jdbc/core/SingleColumnRowMapper.java
-        // However, conversions such as any-to-string or string-to-number are intentionally not implemented.
-        private fun <T : Any> singleColumnRowMapper(requiredType: Class<T>) = Function { readable: Readable ->
-            try {
-                readable.get(0, requiredType)
-            } catch (e: IllegalArgumentException) {
-                val result = readable.get(0)
-                when {
-                    conversionService.canConvert(result?.javaClass, requiredType) -> {
-                        conversionService.convert(result, requiredType)
-                    }
-                    else -> throw IllegalArgumentException(
-                        "Value [$result] is of type [${result?.javaClass?.name}] and " + "cannot be converted to required type [${requiredType.name}]",
-                    )
+    // ref: https://github.com/spring-projects/spring-framework/blob/bf06d74879029593b40d3825aca39dad9f229f44/spring-jdbc/src/main/java/org/springframework/jdbc/core/SingleColumnRowMapper.java
+    // However, conversions such as any-to-string or string-to-number are intentionally not implemented.
+    class SingleColumnRowMapper<T : Any>(
+        private val requiredType: Class<T>,
+        private val conversionService: ConversionService,
+    ) : Function<Readable, T?> {
+        override fun apply(readable: Readable): T? = try {
+            readable.get(0, requiredType)
+        } catch (e: IllegalArgumentException) {
+            val result = readable.get(0)
+            when {
+                conversionService.canConvert(result?.javaClass, requiredType) -> {
+                    conversionService.convert(result, requiredType)
                 }
+                else -> throw IllegalArgumentException(
+                    "Value [$result] is of type [${result?.javaClass?.name}] and " +
+                        "cannot be converted to required type [${requiredType.name}]",
+                )
             }
         }
     }
