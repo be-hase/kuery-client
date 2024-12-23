@@ -1,7 +1,5 @@
 package conventions.preset
 
-import KUERY_CLIENT_VERSION
-
 plugins {
     id("conventions.kotlin")
     id("conventions.ktlint")
@@ -9,4 +7,9 @@ plugins {
 }
 
 group = "dev.hsbrysk.kuery-client"
-version = KUERY_CLIENT_VERSION
+
+val defaultVersion = "latest-SNAPSHOT"
+
+version = providers.gradleProperty("publishVersion").orNull
+    ?: providers.environmentVariable("PUBLISH_VERSION").orNull
+        ?: defaultVersion
