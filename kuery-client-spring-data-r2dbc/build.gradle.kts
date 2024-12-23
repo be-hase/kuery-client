@@ -1,6 +1,7 @@
 plugins {
     id("conventions.preset.base")
     id("conventions.maven-publish")
+    id("conventions.jmh")
 }
 
 description = "Kuery client implementation using spring-data-r2dbc."
