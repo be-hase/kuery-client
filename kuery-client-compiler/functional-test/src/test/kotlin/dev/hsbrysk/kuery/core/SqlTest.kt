@@ -8,10 +8,10 @@ import org.junit.jupiter.api.Test
 class SqlTest {
     @Test
     fun `simple create`() {
-        val sql = Sql.create {
+        val sql = Sql {
             +"SELECT * FROM user"
         }
-        assertThat(sql).isEqualTo(Sql.of("SELECT * FROM user", emptyList()))
+        assertThat(sql).isEqualTo(Sql("SELECT * FROM user"))
     }
 
     @Test
@@ -23,20 +23,20 @@ class SqlTest {
         )
 
         val user = User(name = "name", age = 18, address = "address")
-        val sql = Sql.create {
+        val sql = Sql {
             +"INSERT INTO user (name, age, address)"
             +"VALUES (${user.name}, ${user.age}, ${user.address})"
         }
         assertThat(sql).isEqualTo(
-            Sql.of(
+            Sql(
                 """
                 INSERT INTO user (name, age, address)
                 VALUES (:p0, :p1, :p2)
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of("p0", user.name),
-                    NamedSqlParameter.of("p1", user.age),
-                    NamedSqlParameter.of("p2", user.address),
+                    NamedSqlParameter("p0", user.name),
+                    NamedSqlParameter("p1", user.age),
+                    NamedSqlParameter("p2", user.address),
                 ),
             ),
         )
@@ -52,7 +52,7 @@ class SqlTest {
         )
 
         val user = User(id = "id", name = "name", age = 18, address = "address")
-        val sql = Sql.create {
+        val sql = Sql {
             add(
                 """
                 UPDATE user
@@ -66,7 +66,7 @@ class SqlTest {
             )
         }
         assertThat(sql).isEqualTo(
-            Sql.of(
+            Sql(
                 """
                 UPDATE user
                 SET
@@ -77,10 +77,10 @@ class SqlTest {
                     id = :p3
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of("p0", user.name),
-                    NamedSqlParameter.of("p1", user.age),
-                    NamedSqlParameter.of("p2", user.address),
-                    NamedSqlParameter.of("p3", user.id),
+                    NamedSqlParameter("p0", user.name),
+                    NamedSqlParameter("p1", user.age),
+                    NamedSqlParameter("p2", user.address),
+                    NamedSqlParameter("p3", user.id),
                 ),
             ),
         )
@@ -89,16 +89,16 @@ class SqlTest {
     @Test
     fun `simple delete`() {
         val id = "id"
-        val sql = Sql.create {
+        val sql = Sql {
             +"DELETE FROM user WHERE id = $id"
         }
         assertThat(sql).isEqualTo(
-            Sql.of(
+            Sql(
                 """
                 DELETE FROM user WHERE id = :p0
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of("p0", "id"),
+                    NamedSqlParameter("p0", "id"),
                 ),
             ),
         )
@@ -107,20 +107,20 @@ class SqlTest {
     @Test
     fun `select in`() {
         val ids = listOf(1, 2, 3, 4, 5)
-        val sql = Sql.create {
+        val sql = Sql {
             +"SELECT *"
             +"FROM user"
             +"WHERE id IN ($ids)"
         }
         assertThat(sql).isEqualTo(
-            Sql.of(
+            Sql(
                 """
                 SELECT *
                 FROM user
                 WHERE id IN (:p0)
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of("p0", ids),
+                    NamedSqlParameter("p0", ids),
                 ),
             ),
         )
@@ -139,21 +139,21 @@ class SqlTest {
             User(name = "name2", age = 2, address = "address2"),
             User(name = "name3", age = 3, address = "address3"),
         )
-        val sql = Sql.create {
+        val sql = Sql {
             +"INSERT INTO user (name, age, address)"
             values(users) { listOf(it.name, it.age, it.address) }
         }
         assertThat(sql).isEqualTo(
-            Sql.of(
+            Sql(
                 """
                 INSERT INTO user (name, age, address)
                 VALUES (:p0, :p1, :p2), (:p3, :p4, :p5), (:p6, :p7, :p8)
                 """.trimIndent(),
                 users.flatMapIndexed { i, user ->
                     listOf(
-                        NamedSqlParameter.of("p${(i * 3)}", user.name),
-                        NamedSqlParameter.of("p${(i * 3 + 1)}", user.age),
-                        NamedSqlParameter.of("p${(i * 3) + 2}", user.address),
+                        NamedSqlParameter("p${(i * 3)}", user.name),
+                        NamedSqlParameter("p${(i * 3 + 1)}", user.age),
+                        NamedSqlParameter("p${(i * 3) + 2}", user.address),
                     )
                 },
             ),
@@ -170,7 +170,7 @@ class SqlTest {
         )
 
         val filter = UserFilter(id = "id", name = null, age = 18, address = null)
-        val sql = Sql.create {
+        val sql = Sql {
             +"SELECT *"
             +"FROM user"
             +"WHERE"
@@ -180,7 +180,7 @@ class SqlTest {
             filter.address?.let { +"AND address = $it" }
         }
         assertThat(sql).isEqualTo(
-            Sql.of(
+            Sql(
                 """
                 SELECT *
                 FROM user
@@ -189,8 +189,8 @@ class SqlTest {
                 AND age = :p1
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of("p0", filter.id),
-                    NamedSqlParameter.of("p1", filter.age),
+                    NamedSqlParameter("p0", filter.id),
+                    NamedSqlParameter("p1", filter.age),
                 ),
             ),
         )
@@ -198,7 +198,7 @@ class SqlTest {
 
     @Test
     fun mixedOrder() {
-        val sql = Sql.create {
+        val sql = Sql {
             val line2 = "L2=${bind(2)}"
             val line1 = "L1=${bind(1)}"
             val line0 = "L0=${bind(0)}"
@@ -208,16 +208,16 @@ class SqlTest {
             +line2
         }
         assertThat(sql).isEqualTo(
-            Sql.of(
+            Sql(
                 """
                 L0=:p2
                 L1=:p1
                 L2=:p0
                 """.trimIndent(),
                 listOf(
-                    NamedSqlParameter.of("p0", 2),
-                    NamedSqlParameter.of("p1", 1),
-                    NamedSqlParameter.of("p2", 0),
+                    NamedSqlParameter("p0", 2),
+                    NamedSqlParameter("p1", 1),
+                    NamedSqlParameter("p2", 0),
                 ),
             ),
         )
@@ -226,24 +226,24 @@ class SqlTest {
     @Test
     fun `int string interpolation`() {
         // In such cases, string interpolation will not be executed.
-        val sql1 = Sql.create {
+        val sql1 = Sql {
             +"SELECT * FROM user WHERE user_id = ${1}"
         }
         assertThat(sql1).isEqualTo(
-            Sql.of(
+            Sql(
                 "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter.of("p0", 1)),
+                listOf(NamedSqlParameter("p0", 1)),
             ),
         )
 
         // On the other hand, in such cases, it will be executed.
-        val sql2 = Sql.create {
+        val sql2 = Sql {
             +"SELECT * FROM user WHERE user_id = ${1 + 1}"
         }
         assertThat(sql2).isEqualTo(
-            Sql.of(
+            Sql(
                 "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter.of("p0", 2)),
+                listOf(NamedSqlParameter("p0", 2)),
             ),
         )
     }
@@ -251,24 +251,23 @@ class SqlTest {
     @Test
     fun `string string interpolation`() {
         // In such cases, string interpolation will not be executed.
-        val sql1 = Sql.create {
+        val sql1 = Sql {
             +"SELECT * FROM user WHERE user_id = ${"hoge"}"
         }
         assertThat(sql1).isEqualTo(
-            Sql.of(
+            Sql(
                 "SELECT * FROM user WHERE user_id = hoge",
-                emptyList(),
             ),
         )
 
         // On the other hand, in such cases, it will be executed.
-        val sql2 = Sql.create {
+        val sql2 = Sql {
             +"SELECT * FROM user WHERE user_id = ${"hoge".removePrefix("h").removePrefix("o")}"
         }
         assertThat(sql2).isEqualTo(
-            Sql.of(
+            Sql(
                 "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter.of("p0", "ge")),
+                listOf(NamedSqlParameter("p0", "ge")),
             ),
         )
     }
@@ -276,24 +275,24 @@ class SqlTest {
     @Test
     fun `boolean string interpolation`() {
         // In such cases, string interpolation will not be executed.
-        val sql1 = Sql.create {
+        val sql1 = Sql {
             +"SELECT * FROM user WHERE user_id = ${true}"
         }
         assertThat(sql1).isEqualTo(
-            Sql.of(
+            Sql(
                 "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter.of("p0", true)),
+                listOf(NamedSqlParameter("p0", true)),
             ),
         )
 
         // On the other hand, in such cases, it will be executed.
-        val sql2 = Sql.create {
+        val sql2 = Sql {
             +"SELECT * FROM user WHERE user_id = ${true && true}"
         }
         assertThat(sql2).isEqualTo(
-            Sql.of(
+            Sql(
                 "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter.of("p0", true)),
+                listOf(NamedSqlParameter("p0", true)),
             ),
         )
     }
@@ -301,24 +300,24 @@ class SqlTest {
     @Test
     fun `null string interpolation`() {
         // In such cases, string interpolation will not be executed.
-        val sql1 = Sql.create {
+        val sql1 = Sql {
             +"SELECT * FROM user WHERE user_id = ${null}"
         }
         assertThat(sql1).isEqualTo(
-            Sql.of(
+            Sql(
                 "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter.of("p0", null)),
+                listOf(NamedSqlParameter("p0", null)),
             ),
         )
 
         // On the other hand, in such cases, it will be executed.
-        val sql2 = Sql.create {
+        val sql2 = Sql {
             +"SELECT * FROM user WHERE user_id = ${null.toStr()}"
         }
         assertThat(sql2).isEqualTo(
-            Sql.of(
+            Sql(
                 "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter.of("p0", "null")),
+                listOf(NamedSqlParameter("p0", "null")),
             ),
         )
     }

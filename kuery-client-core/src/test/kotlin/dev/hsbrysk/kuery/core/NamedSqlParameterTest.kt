@@ -8,10 +8,10 @@ import org.junit.jupiter.api.Test
 class NamedSqlParameterTest {
     @Test
     fun of() {
-        assertThat(NamedSqlParameter.of("hoge", "hoge-value"))
+        assertThat(NamedSqlParameter("hoge", "hoge-value"))
             .isEqualTo(DefaultNamedSqlParameter("hoge", "hoge-value"))
 
-        assertThat(NamedSqlParameter.of("hoge", "hoge-value"))
+        assertThat(NamedSqlParameter("hoge", "hoge-value"))
             .isEqualTo(DefaultNamedSqlParameter("hoge", "hoge-value"))
     }
 }

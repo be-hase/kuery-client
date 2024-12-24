@@ -40,7 +40,7 @@ internal class DefaultSpringJdbcKueryClient(
         sqlId: String,
         block: SqlBuilder.() -> Unit,
     ): KueryBlockingClient.FetchSpec {
-        val sql = Sql.create(block)
+        val sql = Sql(block)
         return FetchSpec(sqlId, sql, jdbcClient.sql(sql))
     }
 

@@ -11,7 +11,7 @@ class DefaultKueryClientFetchObservationConventionTest {
 
     @Test
     fun getLowCardinalityKeyValues() {
-        val ctx = KueryClientFetchContext("id", Sql.of("body", listOf()))
+        val ctx = KueryClientFetchContext("id", Sql("body"))
         val result = target.getLowCardinalityKeyValues(ctx)
         assertThat(result.toList().size).isEqualTo(1)
         assertThat(result.first().key).isEqualTo("sql.id")
@@ -20,7 +20,7 @@ class DefaultKueryClientFetchObservationConventionTest {
 
     @Test
     fun getHighCardinalityKeyValues() {
-        val ctx = KueryClientFetchContext("id", Sql.of("body", listOf()))
+        val ctx = KueryClientFetchContext("id", Sql("body"))
         val result = target.getHighCardinalityKeyValues(ctx)
         assertThat(result.toList().size).isEqualTo(1)
         assertThat(result.first().key).isEqualTo("sql")
