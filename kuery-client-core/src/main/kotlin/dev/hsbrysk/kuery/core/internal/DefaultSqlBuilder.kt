@@ -37,11 +37,19 @@ internal class DefaultSqlBuilder : SqlBuilder {
     fun interpolate(
         fragments: List<String>,
         values: List<Any?>,
-    ): String = buildString {
-        fragments.forEachIndexed { index, fragment ->
-            append(fragment)
-            if (index < values.size) {
-                append(bind(values[index]))
+    ): String {
+        val fragmentsSize = fragments.size
+        val valuesSize = values.size
+        check(fragmentsSize == valuesSize || fragmentsSize == valuesSize + 1) {
+            "The number of elements in `fragments`($fragmentsSize) and `values`($valuesSize) is incorrect. " +
+                "There might be an issue with the Kotlin compiler plugin."
+        }
+        return buildString {
+            fragments.forEachIndexed { index, fragment ->
+                append(fragment)
+                if (index < valuesSize) {
+                    append(bind(values[index]))
+                }
             }
         }
     }
