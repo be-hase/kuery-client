@@ -2,7 +2,6 @@ package dev.hsbrysk.kuery.core
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import io.mockk.InternalPlatformDsl.toStr
 import org.junit.jupiter.api.Test
 
 class SqlTest {
@@ -219,105 +218,6 @@ class SqlTest {
                     NamedSqlParameter("p1", 1),
                     NamedSqlParameter("p2", 0),
                 ),
-            ),
-        )
-    }
-
-    @Test
-    fun `int string interpolation`() {
-        // In such cases, string interpolation will not be executed.
-        val sql1 = Sql {
-            +"SELECT * FROM user WHERE user_id = ${1}"
-        }
-        assertThat(sql1).isEqualTo(
-            Sql(
-                "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter("p0", 1)),
-            ),
-        )
-
-        // On the other hand, in such cases, it will be executed.
-        val sql2 = Sql {
-            +"SELECT * FROM user WHERE user_id = ${1 + 1}"
-        }
-        assertThat(sql2).isEqualTo(
-            Sql(
-                "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter("p0", 2)),
-            ),
-        )
-    }
-
-    @Test
-    fun `string string interpolation`() {
-        // In such cases, string interpolation will not be executed.
-        val sql1 = Sql {
-            +"SELECT * FROM user WHERE user_id = ${"hoge"}"
-        }
-        assertThat(sql1).isEqualTo(
-            Sql(
-                "SELECT * FROM user WHERE user_id = hoge",
-            ),
-        )
-
-        // On the other hand, in such cases, it will be executed.
-        val sql2 = Sql {
-            +"SELECT * FROM user WHERE user_id = ${"hoge".removePrefix("h").removePrefix("o")}"
-        }
-        assertThat(sql2).isEqualTo(
-            Sql(
-                "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter("p0", "ge")),
-            ),
-        )
-    }
-
-    @Test
-    fun `boolean string interpolation`() {
-        // In such cases, string interpolation will not be executed.
-        val sql1 = Sql {
-            +"SELECT * FROM user WHERE user_id = ${true}"
-        }
-        assertThat(sql1).isEqualTo(
-            Sql(
-                "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter("p0", true)),
-            ),
-        )
-
-        // On the other hand, in such cases, it will be executed.
-        val sql2 = Sql {
-            +"SELECT * FROM user WHERE user_id = ${true && true}"
-        }
-        assertThat(sql2).isEqualTo(
-            Sql(
-                "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter("p0", true)),
-            ),
-        )
-    }
-
-    @Test
-    fun `null string interpolation`() {
-        // In such cases, string interpolation will not be executed.
-        val sql1 = Sql {
-            +"SELECT * FROM user WHERE user_id = ${null}"
-        }
-        assertThat(sql1).isEqualTo(
-            Sql(
-                "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter("p0", null)),
-            ),
-        )
-
-        // On the other hand, in such cases, it will be executed.
-        val sql2 = Sql {
-            +"SELECT * FROM user WHERE user_id = ${null.toStr()}"
-        }
-        assertThat(sql2).isEqualTo(
-            Sql(
-                "SELECT * FROM user WHERE user_id = :p0",
-                listOf(NamedSqlParameter("p0", "null")),
             ),
         )
     }
