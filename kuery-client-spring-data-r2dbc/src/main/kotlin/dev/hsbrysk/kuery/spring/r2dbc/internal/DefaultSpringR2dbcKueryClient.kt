@@ -45,7 +45,7 @@ internal class DefaultSpringR2dbcKueryClient(
         sqlId: String,
         block: SqlBuilder.() -> Unit,
     ): KueryClient.FetchSpec {
-        val sql = Sql.create(block)
+        val sql = Sql(block)
         return FetchSpec(sqlId, sql, databaseClient.sql(sql))
     }
 

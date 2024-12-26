@@ -9,7 +9,7 @@ class MockKueryClient {
         sqlId: String,
         block: SqlBuilder.() -> Unit,
     ): Pair<String, Sql> {
-        val sql = Sql.create(block)
+        val sql = Sql(block)
         return sqlId to sql
     }
 
