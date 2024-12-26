@@ -18,7 +18,7 @@ class KueryClientFetchObservationConventionTest {
 
     @Test
     fun supportsContext() {
-        assertThat(target.supportsContext(KueryClientFetchContext("id", Sql.of("", listOf())))).isTrue()
+        assertThat(target.supportsContext(KueryClientFetchContext("id", Sql("")))).isTrue()
         assertThat(target.supportsContext(Observation.Context())).isFalse()
     }
 }

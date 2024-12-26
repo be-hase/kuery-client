@@ -9,15 +9,15 @@ class SqlTest {
     @Test
     fun of() {
         assertThat(
-            Sql.of(
+            Sql(
                 "SELECT * FROM some_table",
-                listOf(NamedSqlParameter.of("hoge", "hoge-value")),
+                listOf(NamedSqlParameter("hoge", "hoge-value")),
             ),
         )
             .isEqualTo(
                 DefaultSql(
                     "SELECT * FROM some_table",
-                    listOf(NamedSqlParameter.of("hoge", "hoge-value")),
+                    listOf(NamedSqlParameter("hoge", "hoge-value")),
                 ),
             )
     }
