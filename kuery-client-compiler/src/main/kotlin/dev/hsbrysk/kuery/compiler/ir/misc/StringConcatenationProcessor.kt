@@ -31,10 +31,6 @@ internal class StringConcatenationProcessor(private val builder: IrBuilderWithSc
             }
         }
 
-        if (mustAddFragment) {
-            fragments.add(builder.irString(""))
-        }
-
         return fragments to values
     }
 

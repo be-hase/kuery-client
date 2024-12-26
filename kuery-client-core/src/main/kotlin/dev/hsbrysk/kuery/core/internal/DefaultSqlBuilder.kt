@@ -22,6 +22,17 @@ internal class DefaultSqlBuilder : SqlBuilder {
         return PARAMETER_NAME_PREFIX_WITH_COLON + currentIndex
     }
 
+    /**
+     * @param fragments It refers to string parts.
+     * @param values It refers to the values of string interpolation.
+     * e.g.
+     * ```
+     * """a${1}b""" -> fragments=["a", "b"], values=[1]
+     * """${1}a""" -> fragments=["", "a"], values=[1]
+     * """a${1}""" -> fragments=["a"], values=[1]
+     * """a${1}${2}${3}""" -> fragments=["a", "", ""], values=[1, 2, 3]
+     * ```
+     */
     @Suppress("unused") // used by compiler plugin
     fun interpolate(
         fragments: List<String>,
