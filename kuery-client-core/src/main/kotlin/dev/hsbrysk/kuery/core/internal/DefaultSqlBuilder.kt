@@ -40,7 +40,7 @@ internal class DefaultSqlBuilder : SqlBuilder {
     ): String {
         val fragmentsSize = fragments.size
         val valuesSize = values.size
-        // Just in case, check pre-conditions
+        // `StringConcatenationProcessor` should adhere to this assumption, but I'll double-check just to be sure.
         check(fragmentsSize == valuesSize || fragmentsSize == valuesSize + 1) {
             "The number of elements in `fragments`($fragmentsSize) and `values`($valuesSize) is incorrect. " +
                 "There might be an issue with the Kotlin compiler plugin."
