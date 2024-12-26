@@ -23,6 +23,7 @@ internal class StringConcatenationProcessor(private val builder: IrBuilderWithSc
                 fragments.add(current)
                 mustAddFragment = false
             } else {
+                // The reason for adding an empty string fragment can be found in `DefaultSqlBuilder.interpolate`.
                 if (mustAddFragment) {
                     fragments.add(builder.irString(""))
                 }
