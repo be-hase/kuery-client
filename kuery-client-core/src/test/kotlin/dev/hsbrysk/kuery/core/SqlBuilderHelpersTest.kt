@@ -6,6 +6,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import org.junit.jupiter.api.Test
 
+@OptIn(DelicateKueryClientApi::class)
 class SqlBuilderHelpersTest {
     @Test
     fun `values single`() {

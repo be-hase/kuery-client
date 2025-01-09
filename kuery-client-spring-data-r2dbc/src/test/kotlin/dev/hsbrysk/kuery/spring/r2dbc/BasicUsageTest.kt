@@ -7,6 +7,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import com.example.spring.r2dbc.User
+import dev.hsbrysk.kuery.core.DelicateKueryClientApi
 import dev.hsbrysk.kuery.core.SqlBuilder
 import dev.hsbrysk.kuery.core.flow
 import dev.hsbrysk.kuery.core.list
@@ -428,6 +429,7 @@ open class BasicUsageTest {
 
     @Test
     fun `using extension function`() = runTest {
+        @OptIn(DelicateKueryClientApi::class)
         fun SqlBuilder.userIdEqualsTo(userId: Int) {
             addUnsafe("users.user_id = ${bind(userId)}")
         }

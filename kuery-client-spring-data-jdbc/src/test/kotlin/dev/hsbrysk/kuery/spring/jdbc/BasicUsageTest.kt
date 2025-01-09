@@ -6,6 +6,7 @@ import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
+import dev.hsbrysk.kuery.core.DelicateKueryClientApi
 import dev.hsbrysk.kuery.core.SqlBuilder
 import dev.hsbrysk.kuery.core.list
 import dev.hsbrysk.kuery.core.single
@@ -391,6 +392,7 @@ class BasicUsageTest {
 
     @Test
     fun `using extension function`() {
+        @OptIn(DelicateKueryClientApi::class)
         fun SqlBuilder.userIdEqualsTo(userId: Int) {
             addUnsafe("users.user_id = ${bind(userId)}")
         }
