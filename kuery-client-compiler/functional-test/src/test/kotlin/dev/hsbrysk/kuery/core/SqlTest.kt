@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import org.junit.jupiter.api.Test
 
+@OptIn(DelicateKueryClientApi::class)
 class SqlTest {
     @Test
     fun `simple create`() {

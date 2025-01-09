@@ -1,5 +1,6 @@
 package dev.hsbrysk.kuery.core.internal
 
+import dev.hsbrysk.kuery.core.DelicateKueryClientApi
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
 import dev.hsbrysk.kuery.core.SqlBuilder
@@ -12,10 +13,14 @@ internal class DefaultSqlBuilder : SqlBuilder {
 
     override fun String.unaryPlus(): Unit = injectByPlugin()
 
+    // Only the developers of the kuery client will use the DefaultSqlBuilder, so we’ll make it opt-in here.
+    @OptIn(DelicateKueryClientApi::class)
     override fun addUnsafe(sql: String) {
         body.appendLine(sql)
     }
 
+    // Only the developers of the kuery client will use the DefaultSqlBuilder, so we’ll make it opt-in here.
+    @OptIn(DelicateKueryClientApi::class)
     override fun bind(parameter: Any?): String {
         val currentIndex = parameters.size
         parameters.add(DefaultNamedSqlParameter(PARAMETER_NAME_PREFIX + currentIndex, parameter))

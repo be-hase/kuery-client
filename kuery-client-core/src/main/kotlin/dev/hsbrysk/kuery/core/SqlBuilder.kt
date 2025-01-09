@@ -37,11 +37,13 @@ interface SqlBuilder {
      * addUnsafe("user_id = ${bind(userId)}")
      * ```
      */
+    @DelicateKueryClientApi
     fun addUnsafe(@Language("sql") sql: String)
 
     /**
      * Bind variables to SQL
      * It is intended to be used together with addUnsafe.
      */
+    @DelicateKueryClientApi
     fun bind(parameter: Any?): String
 }
