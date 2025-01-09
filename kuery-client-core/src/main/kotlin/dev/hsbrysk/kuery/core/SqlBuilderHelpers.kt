@@ -1,5 +1,6 @@
 package dev.hsbrysk.kuery.core
 
+@OptIn(DelicateKueryClientApi::class)
 fun SqlBuilder.values(input: List<List<Any?>>) {
     require(input.isNotEmpty()) { "inputted list is empty" }
     val firstSize = input.first().size
