@@ -39,3 +39,5 @@ jobs:
           java-version: 17
       - name: Report gradle dependencies diff
         uses: be-hase/gradle-dependency-diff-action@v0
+        with:
+          update-pr-body: true
