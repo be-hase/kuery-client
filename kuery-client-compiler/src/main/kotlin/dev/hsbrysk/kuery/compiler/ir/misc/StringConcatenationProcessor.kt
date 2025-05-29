@@ -38,6 +38,6 @@ internal class StringConcatenationProcessor(private val builder: IrBuilderWithSc
     private fun isFragment(expression: IrExpression): Boolean {
         val isString = expression.type.classFqName?.asString() == ClassNames.STRING ||
             expression.type.superTypes().any { it.classFqName?.asString() == ClassNames.STRING }
-        return isString && expression is IrConst<*> && expression.kind == IrConstKind.String
+        return isString && expression is IrConst && expression.kind == IrConstKind.String
     }
 }
