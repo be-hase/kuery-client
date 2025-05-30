@@ -19,9 +19,10 @@ cd examples
 ### Run application
 
 ```shell
-./gradlew :examples:spring-data-r2dbc:bootRun
+cd examples
+./gradlew :spring-data-r2dbc:bootRun
 
 # or
 
-./gradlew :examples:spring-data-jdbc:bootRun
+./gradlew :spring-data-jdbc:bootRun
 ```
