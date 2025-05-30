@@ -1,5 +1,6 @@
 pluginManagement {
-    includeBuild("build-logic")
+    includeBuild("../build-logic")
+    includeBuild("../")
     repositories {
         gradlePluginPortal()
         // mavenLocal()
@@ -10,11 +11,15 @@ dependencyResolutionManagement {
     @Suppress("UnstableApiUsage")
     repositories {
         mavenCentral()
-        // mavenLocal()
+    }
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
+        }
     }
 }
 
-rootProject.name = "kuery-client"
+rootProject.name = "examples"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
@@ -23,10 +28,8 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.10.0"
 }
 
-include("kuery-client-compiler")
-include("kuery-client-compiler:functional-test")
-include("kuery-client-core")
-include("kuery-client-detekt")
-include("kuery-client-gradle-plugin")
-include("kuery-client-spring-data-jdbc")
-include("kuery-client-spring-data-r2dbc")
+include("spring-data-jdbc")
+include("spring-data-r2dbc")
+
+// Include the root project to use `dev.hsbrysk.kuery-client:*` modules
+includeBuild("../")

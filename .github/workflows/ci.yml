@@ -24,7 +24,9 @@ jobs:
       - name: Set up gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Check
-        run: ./gradlew check detektMain detektTest
+        run: |
+          ./gradlew check detektMain detektTest
+          ./gradlew -p examples check detektMain detektTest
 
   report-gradle-dependency-diff:
     runs-on: ubuntu-latest
