@@ -7,8 +7,8 @@ import io.micrometer.observation.ObservationRegistry
 import org.springframework.core.convert.support.DefaultConversionService
 import org.springframework.data.convert.CustomConversions
 import org.springframework.data.jdbc.core.convert.JdbcCustomConversions
+import org.springframework.data.jdbc.core.dialect.DialectResolver
 import org.springframework.data.jdbc.core.mapping.JdbcSimpleTypes
-import org.springframework.data.jdbc.repository.config.DialectResolver
 import org.springframework.data.mapping.model.SimpleTypeHolder
 import org.springframework.data.relational.core.dialect.Dialect
 import org.springframework.jdbc.core.JdbcTemplate
