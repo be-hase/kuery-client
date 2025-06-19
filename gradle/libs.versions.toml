@@ -4,7 +4,7 @@ kotlin-core = "2.1.21"
 kotlin-coroutines = "1.10.2"
 ktlint = "1.6.0"
 micrometer = "1.15.1"
-spring-boot = "3.5.0"
+spring-boot = "3.5.2"
 spring-data = "3.5.1"
 
 [libraries]
