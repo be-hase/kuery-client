@@ -126,10 +126,9 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
             return false
         }
 
-        private fun IrCall.valueParameters(): List<IrValueParameter> =
-            symbol.owner.parameters.filter {
-                it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context
-            }
+        private fun IrCall.valueParameters(): List<IrValueParameter> = symbol.owner.parameters.filter {
+            it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context
+        }
 
         private fun IrCall.extensionReceiver(): IrValueParameter =
             symbol.owner.parameters.first { it.kind == IrParameterKind.ExtensionReceiver }
