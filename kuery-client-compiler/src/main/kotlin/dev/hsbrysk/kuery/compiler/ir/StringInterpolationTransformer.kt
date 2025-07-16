@@ -4,12 +4,13 @@ import dev.hsbrysk.kuery.compiler.ir.misc.CallableIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassNames
 import dev.hsbrysk.kuery.compiler.ir.misc.StringConcatenationProcessor
-import org.jetbrains.kotlin.DeprecatedForRemovalCompilerApi
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irVararg
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
+import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrStringConcatenation
@@ -23,8 +24,8 @@ import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.irCastIfNeeded
 import org.jetbrains.kotlin.ir.util.isVararg
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
+import kotlin.collections.filter
 
-@OptIn(DeprecatedForRemovalCompilerApi::class)
 @Suppress("OPT_IN_USAGE")
 class StringInterpolationTransformer(private val pluginContext: IrPluginContext) : IrElementTransformerVoid() {
     private var current: IrCall? = null
@@ -55,11 +56,8 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
         return builder.irCall(addUnsafe, pluginContext.symbols.unit.defaultType).apply {
             dispatchReceiver = sqlBuilder
-            putValueArgument(
-                0,
-                List(expression.valueArgumentsCount) { expression.getValueArgument(it) }
-                    .first(),
-            )
+            arguments[valueParameters().first()] =
+                expression.arguments[expression.valueParameters().first()]
         }
     }
 
@@ -70,7 +68,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
         return builder.irCall(addUnsafe, pluginContext.symbols.unit.defaultType).apply {
             dispatchReceiver = sqlBuilder
-            putValueArgument(0, expression.extensionReceiver)
+            arguments[valueParameters().first()] = expression.arguments[expression.extensionReceiver()]
         }
     }
 
@@ -93,8 +91,9 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
                 checkNotNull(current.dispatchReceiver),
                 defaultSqlBuilderClass.typeWith(),
             )
-            putValueArgument(0, fragments)
-            putValueArgument(1, values)
+            val valueParams = valueParameters()
+            arguments[valueParams[0]] = fragments
+            arguments[valueParams[1]] = values
         }
     }
 
@@ -111,8 +110,8 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
     ): IrExpression {
         val vararg = irVararg(type, values)
         return irCall(pluginContext.listOfRef(), pluginContext.symbols.list.typeWith(type)).apply {
-            putTypeArgument(0, type)
-            putValueArgument(0, vararg)
+            typeArguments[0] = type
+            arguments[valueParameters().first()] = vararg
         }
     }
 
@@ -127,7 +126,20 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
             return false
         }
 
+        private fun IrCall.valueParameters(): List<IrValueParameter> =
+            symbol.owner.parameters.filter {
+                it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context
+            }
+
+        private fun IrCall.extensionReceiver(): IrValueParameter =
+            symbol.owner.parameters.first { it.kind == IrParameterKind.ExtensionReceiver }
+
         private fun IrPluginContext.listOfRef(): IrSimpleFunctionSymbol = referenceFunctions(CallableIds.LIST_OF)
-            .first { it.owner.valueParameters.firstOrNull()?.isVararg ?: false }
+            .first {
+                it.owner
+                    .parameters
+                    .firstOrNull { i -> i.kind == IrParameterKind.Regular || i.kind == IrParameterKind.Context }
+                    ?.isVararg ?: false
+            }
     }
 }
