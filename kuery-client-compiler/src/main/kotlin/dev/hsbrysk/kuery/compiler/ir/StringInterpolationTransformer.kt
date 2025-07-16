@@ -4,9 +4,9 @@ import dev.hsbrysk.kuery.compiler.ir.misc.CallableIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassNames
 import dev.hsbrysk.kuery.compiler.ir.misc.StringConcatenationProcessor
+import org.jetbrains.kotlin.DeprecatedForRemovalCompilerApi
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
-import org.jetbrains.kotlin.ir.backend.js.utils.valueArguments
 import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irVararg
@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.ir.util.irCastIfNeeded
 import org.jetbrains.kotlin.ir.util.isVararg
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 
+@OptIn(DeprecatedForRemovalCompilerApi::class)
 @Suppress("OPT_IN_USAGE")
 class StringInterpolationTransformer(private val pluginContext: IrPluginContext) : IrElementTransformerVoid() {
     private var current: IrCall? = null
@@ -54,7 +55,11 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
         return builder.irCall(addUnsafe, pluginContext.symbols.unit.defaultType).apply {
             dispatchReceiver = sqlBuilder
-            putValueArgument(0, expression.valueArguments.first())
+            putValueArgument(
+                0,
+                List(expression.valueArgumentsCount) { expression.getValueArgument(it) }
+                    .first(),
+            )
         }
     }
 
