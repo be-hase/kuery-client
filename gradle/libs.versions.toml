@@ -2,7 +2,7 @@
 detekt = "1.23.8"
 kotlin-core = "2.2.0"
 kotlin-coroutines = "1.10.2"
-ktlint = "1.6.0"
+ktlint = "1.7.1"
 micrometer = "1.15.2"
 spring-boot = "3.5.3"
 spring-data = "3.5.2"
