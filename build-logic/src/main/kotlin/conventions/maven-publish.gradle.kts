@@ -2,7 +2,6 @@ package conventions
 
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinJvm
-import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     id("com.vanniktech.maven.publish")
@@ -10,7 +9,7 @@ plugins {
 }
 
 mavenPublishing {
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
     signAllPublications()
     coordinates(
         project.group.toString(),
