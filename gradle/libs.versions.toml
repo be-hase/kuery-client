@@ -5,7 +5,7 @@ kotlin-coroutines = "1.10.2"
 ktlint = "1.7.1"
 micrometer = "1.16.0"
 spring-boot = "3.5.7"
-spring-data = "3.5.5"
+spring-data = "3.5.6"
 
 [libraries]
 assertk = { module = "com.willowtreeapps.assertk:assertk-jvm", version = "0.28.1" }
