@@ -1,6 +1,6 @@
 [versions]
 detekt = "1.23.8"
-kotlin-core = "2.2.21"
+kotlin-core = "2.3.10"
 kotlin-coroutines = "1.10.2"
 ktlint = "1.8.0"
 micrometer = "1.16.3"
