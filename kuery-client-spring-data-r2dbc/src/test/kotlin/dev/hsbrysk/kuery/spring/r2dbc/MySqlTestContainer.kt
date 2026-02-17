@@ -8,7 +8,7 @@ import io.r2dbc.spi.ConnectionFactoryOptions
 import org.springframework.data.r2dbc.dialect.DialectResolver
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.awaitRowsUpdated
-import org.testcontainers.containers.MySQLContainer
+import org.testcontainers.mysql.MySQLContainer
 
 class MySqlTestContainer : AutoCloseable {
     private val mysqlContainer = MySQLContainer("mysql:8.0.37").also { it.start() }

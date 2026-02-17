@@ -16,7 +16,7 @@ dependencies {
     testImplementation(platform(libs.spring.boot.bom))
     testImplementation("com.mysql:mysql-connector-j")
     testImplementation("io.asyncer:r2dbc-mysql")
-    testImplementation("org.testcontainers:mysql")
+    testImplementation("org.testcontainers:testcontainers-mysql")
     testImplementation(libs.kotlin.coroutines.test)
     testImplementation(libs.micrometer.observation.test)
 
