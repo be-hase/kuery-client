@@ -53,7 +53,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         val sqlBuilder = checkNotNull(expression.dispatchReceiver)
         val sqlBuilderClass = sqlBuilder.type.classOrFail
         val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
-        return builder.irCall(addUnsafe, pluginContext.symbols.unit.defaultType).apply {
+        return builder.irCall(addUnsafe).apply {
             dispatchReceiver = sqlBuilder
             putValueArgument(
                 0,
@@ -68,7 +68,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         val sqlBuilder = checkNotNull(expression.dispatchReceiver)
         val sqlBuilderClass = sqlBuilder.type.classOrFail
         val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
-        return builder.irCall(addUnsafe, pluginContext.symbols.unit.defaultType).apply {
+        return builder.irCall(addUnsafe).apply {
             dispatchReceiver = sqlBuilder
             putValueArgument(0, expression.extensionReceiver)
         }
@@ -80,15 +80,15 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
 
         val (fragments, values) = StringConcatenationProcessor(builder).process(expression.arguments).let {
             Pair(
-                builder.irListOf(pluginContext.symbols.string.defaultType, it.first),
-                builder.irListOf(pluginContext.symbols.any.defaultType, it.second),
+                builder.irListOf(pluginContext.irBuiltIns.stringType, it.first),
+                builder.irListOf(pluginContext.irBuiltIns.anyType, it.second),
             )
         }
 
         val defaultSqlBuilderClass = checkNotNull(pluginContext.referenceClass(ClassIds.DEFAULT_SQL_BUILDER))
         val interpolate = defaultSqlBuilderClass.functions.first { it.owner.name.asString() == "interpolate" }
 
-        return builder.irCall(interpolate, pluginContext.symbols.string.defaultType).apply {
+        return builder.irCall(interpolate).apply {
             dispatchReceiver = builder.irCastIfNeeded(
                 checkNotNull(current.dispatchReceiver),
                 defaultSqlBuilderClass.typeWith(),
@@ -105,13 +105,12 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         expression.endOffset,
     )
 
-    private fun IrBuilderWithScope.irListOf(
+    private fun DeclarationIrBuilder.irListOf(
         type: IrType,
         values: List<IrExpression>,
     ): IrExpression {
         val vararg = irVararg(type, values)
-        return irCall(pluginContext.listOfRef(), pluginContext.symbols.list.typeWith(type)).apply {
-            putTypeArgument(0, type)
+        return irCall(pluginContext.listOfRef()).apply {
             putValueArgument(0, vararg)
         }
     }

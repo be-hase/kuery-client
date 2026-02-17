@@ -8,6 +8,9 @@ import org.jetbrains.kotlin.config.CompilerConfiguration
 
 @ExperimentalCompilerApi
 class KueryClientCompilerPluginRegistrar : CompilerPluginRegistrar() {
+    override val pluginId: String
+        get() = KueryClientCompilerCommandLineProcessor.PLUGIN_ID
+
     override val supportsK2: Boolean = true
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {

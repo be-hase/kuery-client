@@ -4,6 +4,11 @@
 config:
   warningsAsErrors: true
 
+coroutines:
+  # https://github.com/detekt/detekt/issues/8997
+  RedundantSuspendModifier:
+    active: false
+
 naming:
   FunctionNaming:
     excludes: [ '**/src/test/**', '**/src/functionalTest/**' ]
