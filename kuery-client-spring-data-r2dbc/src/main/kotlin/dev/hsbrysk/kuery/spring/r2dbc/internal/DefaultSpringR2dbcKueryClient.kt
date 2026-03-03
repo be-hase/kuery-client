@@ -190,11 +190,11 @@ internal class DefaultSpringR2dbcKueryClient(
             )
         }
 
-        private fun <T> Mono<T>.sqlId(sqlId: String): Mono<T> = contextWrite {
+        private fun <T : Any> Mono<T>.sqlId(sqlId: String): Mono<T> = contextWrite {
             it.put(SpringR2dbcKueryClient.SQL_ID_REACTOR_CONTEXT_KEY, sqlId)
         }
 
-        private fun <T> Flux<T>.sqlId(sqlId: String): Flux<T> = contextWrite {
+        private fun <T : Any> Flux<T>.sqlId(sqlId: String): Flux<T> = contextWrite {
             it.put(SpringR2dbcKueryClient.SQL_ID_REACTOR_CONTEXT_KEY, sqlId)
         }
 

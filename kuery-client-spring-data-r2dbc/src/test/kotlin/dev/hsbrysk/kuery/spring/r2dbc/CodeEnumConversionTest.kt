@@ -81,7 +81,7 @@ class CodeEnumConversionTest {
 
     @ReadingConverter
     class IntCodeEnumReadingConverter : ConverterFactory<Int, IntCodeEnum> {
-        override fun <E : IntCodeEnum> getConverter(targetType: Class<E>): Converter<Int, E> = Converter {
+        override fun <E : IntCodeEnum> getConverter(targetType: Class<E>): Converter<Int, E?> = Converter {
             CodeEnum.getByCode(it, targetType)
         }
     }
@@ -93,7 +93,7 @@ class CodeEnumConversionTest {
 
     @ReadingConverter
     class StringCodeEnumReadingConverter : ConverterFactory<String, StringCodeEnum> {
-        override fun <E : StringCodeEnum> getConverter(targetType: Class<E>): Converter<String, E> = Converter {
+        override fun <E : StringCodeEnum> getConverter(targetType: Class<E>): Converter<String, E?> = Converter {
             CodeEnum.getByCode(it, targetType)
         }
     }

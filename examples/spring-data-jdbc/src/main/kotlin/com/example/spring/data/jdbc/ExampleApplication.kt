@@ -192,7 +192,7 @@ class UserService(
                     // for checking rollback behavior
                     throwsExceptionsProbabilistically()
                 }
-        }!!
+        }
     }
 
     fun getUserOrders(userId: Int): List<UserOrder> = userRepository.selectOrderByUserId(userId)
