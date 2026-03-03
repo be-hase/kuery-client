@@ -12,7 +12,7 @@ dependencies {
 
     testImplementation(platform(libs.spring.boot.bom))
     testImplementation("com.mysql:mysql-connector-j")
-    testImplementation("org.testcontainers:mysql")
+    testImplementation("org.testcontainers:testcontainers-mysql")
     testImplementation(libs.micrometer.observation.test)
 
     kotlinCompilerPluginClasspath(projects.kueryClientCompiler)

@@ -4,7 +4,7 @@ import com.mysql.cj.jdbc.MysqlDataSource
 import dev.hsbrysk.kuery.core.KueryBlockingClient
 import io.micrometer.observation.ObservationRegistry
 import org.springframework.jdbc.core.simple.JdbcClient
-import org.testcontainers.containers.MySQLContainer
+import org.testcontainers.mysql.MySQLContainer
 
 class MySqlTestContainer : AutoCloseable {
     private val mysqlContainer = MySQLContainer("mysql:8.0.37").also { it.start() }
