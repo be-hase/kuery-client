@@ -190,3 +190,38 @@ val result: Map<String, Any> = kueyClient
     .sql {+"INSERT INTO users (username, email) VALUES ('username1', 'email1')"}
     .generatedValues("user_id")
 ```
+
+### `fun fetchSize(fetchSize: Int): FetchSpec`
+
+Apply the given fetch size to any subsequent query statement.
+
+Available for both `kuery-client-spring-data-r2dbc` and `kuery-client-spring-data-jdbc`.
+
+```kotlin
+val users: List<User> = kueyClient
+    .sql { +"SELECT * FROM users" }
+    .fetchSize(100)
+    .list()
+```
+
+### [`kuery-client-spring-data-jdbc` only] `fun maxRows(maxRows: Int): FetchSpec`
+
+Apply the given maximum number of rows to any subsequent query statement.
+
+```kotlin
+val users: List<User> = kueyClient
+    .sql { +"SELECT * FROM users" }
+    .maxRows(1000)
+    .list()
+```
+
+### [`kuery-client-spring-data-jdbc` only] `fun queryTimeoutSeconds(queryTimeout: Int): FetchSpec`
+
+Set the query timeout (in seconds) for this query.
+
+```kotlin
+val users: List<User> = kueyClient
+    .sql { +"SELECT * FROM users" }
+    .queryTimeoutSeconds(30)
+    .list()
+```

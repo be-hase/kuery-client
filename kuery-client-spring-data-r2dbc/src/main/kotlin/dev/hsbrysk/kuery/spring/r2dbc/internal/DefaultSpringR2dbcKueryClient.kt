@@ -113,6 +113,9 @@ internal class DefaultSpringR2dbcKueryClient(
         private val sql: Sql,
         private val spec: GenericExecuteSpec,
     ) : KueryClient.FetchSpec {
+        override fun fetchSize(fetchSize: Int): KueryClient.FetchSpec =
+            FetchSpec(sqlId, sql, spec.filter(Function { it.fetchSize(fetchSize) }))
+
         override suspend fun singleMap(): Map<String, Any?> = observe {
             spec.fetch().one().sqlId(sqlId).awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
         }

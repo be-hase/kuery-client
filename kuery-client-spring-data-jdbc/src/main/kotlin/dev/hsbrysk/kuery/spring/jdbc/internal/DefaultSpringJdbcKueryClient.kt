@@ -43,7 +43,7 @@ internal class DefaultSpringJdbcKueryClient(
         block: SqlBuilder.() -> Unit,
     ): KueryBlockingClient.FetchSpec {
         val sql = Sql(block)
-        return FetchSpec(sqlId, sql, jdbcClient.sql(sql))
+        return FetchSpec(sqlId, sql)
     }
 
     override fun sql(block: SqlBuilder.() -> Unit): KueryBlockingClient.FetchSpec {
@@ -105,30 +105,49 @@ internal class DefaultSpringJdbcKueryClient(
     inner class FetchSpec(
         private val sqlId: String,
         private val sql: Sql,
-        private val spec: StatementSpec,
+        private val fetchSizeOpt: Int? = null,
+        private val maxRowsOpt: Int? = null,
+        private val queryTimeoutSecondsOpt: Int? = null,
     ) : KueryBlockingClient.FetchSpec {
+        override fun fetchSize(fetchSize: Int): KueryBlockingClient.FetchSpec =
+            FetchSpec(sqlId, sql, fetchSize, maxRowsOpt, queryTimeoutSecondsOpt)
+
+        override fun maxRows(maxRows: Int): KueryBlockingClient.FetchSpec =
+            FetchSpec(sqlId, sql, fetchSizeOpt, maxRows, queryTimeoutSecondsOpt)
+
+        override fun queryTimeoutSeconds(queryTimeoutSeconds: Int): KueryBlockingClient.FetchSpec =
+            FetchSpec(sqlId, sql, fetchSizeOpt, maxRowsOpt, queryTimeoutSeconds)
+
+        private fun buildSpec(): StatementSpec {
+            var s = jdbcClient.sql(sql)
+            if (fetchSizeOpt != null) s = s.withFetchSize(fetchSizeOpt)
+            if (maxRowsOpt != null) s = s.withMaxRows(maxRowsOpt)
+            if (queryTimeoutSecondsOpt != null) s = s.withQueryTimeout(queryTimeoutSecondsOpt)
+            return s
+        }
+
         override fun singleMap(): Map<String, Any?> = observe {
-            spec.query().singleRow()
+            buildSpec().query().singleRow()
         }
 
         override fun singleMapOrNull(): Map<String, Any?>? = observe {
-            DataAccessUtils.singleResult(spec.query().listOfRows())
+            DataAccessUtils.singleResult(buildSpec().query().listOfRows())
         }
 
         override fun <T : Any> single(returnType: KClass<T>): T = observe {
-            spec.queryType(returnType).single()
+            buildSpec().queryType(returnType).single()
         }
 
         override fun <T : Any> singleOrNull(returnType: KClass<T>): T? = observe {
-            DataAccessUtils.singleResult(spec.queryType(returnType).list())
+            DataAccessUtils.singleResult(buildSpec().queryType(returnType).list())
         }
 
         override fun listMap(): List<Map<String, Any?>> = observe {
-            spec.query().listOfRows()
+            buildSpec().query().listOfRows()
         }
 
         override fun <T : Any> list(returnType: KClass<T>): List<T> = observe {
-            spec.queryType(returnType).list()
+            buildSpec().queryType(returnType).list()
         }
 
         override fun sequenceMap(): Sequence<Map<String, Any?>> {
@@ -136,7 +155,7 @@ internal class DefaultSpringJdbcKueryClient(
             // I also want to measure the observation of flow.
             // However, should it be the time until the flow terminates or the time until the first element is obtained?
             // There are many uncertainties, so I will not implement it for now.
-            return spec.query(ColumnMapRowMapper()).stream().asSequence()
+            return buildSpec().query(ColumnMapRowMapper()).stream().asSequence()
         }
 
         override fun <T : Any> sequence(returnType: KClass<T>): Sequence<T> {
@@ -144,15 +163,16 @@ internal class DefaultSpringJdbcKueryClient(
             // I also want to measure the observation of flow.
             // However, should it be the time until the flow terminates or the time until the first element is obtained?
             // There are many uncertainties, so I will not implement it for now.
-            return spec.queryType(returnType).stream().asSequence()
+            return buildSpec().queryType(returnType).stream().asSequence()
         }
 
         override fun rowsUpdated(): Long = observe {
-            spec.update().toLong()
+            buildSpec().update().toLong()
         }
 
         override fun generatedValues(vararg columns: String): Map<String, Any> = observe {
             val keyHolder = GeneratedKeyHolder()
+            val spec = buildSpec()
             if (columns.isEmpty()) {
                 spec.update(keyHolder)
             } else {
