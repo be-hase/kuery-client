@@ -191,13 +191,13 @@ val users: List<User> = kueyClient
     .list()
 ```
 
-### [`kuery-client-spring-data-jdbc` only] `fun queryTimeout(queryTimeout: Int): FetchSpec`
+### [`kuery-client-spring-data-jdbc` only] `fun queryTimeoutSeconds(queryTimeout: Int): FetchSpec`
 
-Apply the given query timeout (in seconds) to any subsequent query statement.
+Set the query timeout (in seconds) for this query.
 
 ```kotlin
 val users: List<User> = kueyClient
     .sql { +"SELECT * FROM users" }
-    .queryTimeout(30)
+    .queryTimeoutSeconds(30)
     .list()
 ```

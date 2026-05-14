@@ -48,9 +48,9 @@ class StatementOptionsTest {
     }
 
     @Test
-    fun `queryTimeout does not break normal query`() {
+    fun `queryTimeoutSeconds does not break normal query`() {
         val result = kueryClient.sql { +"SELECT * FROM users" }
-            .queryTimeout(10)
+            .queryTimeoutSeconds(10)
             .listMap()
         assertThat(result).hasSize(10)
     }
@@ -60,7 +60,7 @@ class StatementOptionsTest {
         val result = kueryClient.sql { +"SELECT * FROM users" }
             .fetchSize(3)
             .maxRows(4)
-            .queryTimeout(10)
+            .queryTimeoutSeconds(10)
             .listMap()
         assertThat(result).hasSize(4)
     }

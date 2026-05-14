@@ -37,7 +37,7 @@ interface KueryBlockingClient {
         /**
          * Set the query timeout (in seconds) for this query.
          */
-        fun queryTimeout(queryTimeout: Int): FetchSpec
+        fun queryTimeoutSeconds(queryTimeoutSeconds: Int): FetchSpec
 
         /**
          * Receives the results as a map.

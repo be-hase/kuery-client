@@ -105,22 +105,22 @@ internal class DefaultSpringJdbcKueryClient(
         private val sql: Sql,
         private val fetchSizeOpt: Int? = null,
         private val maxRowsOpt: Int? = null,
-        private val queryTimeoutOpt: Int? = null,
+        private val queryTimeoutSecondsOpt: Int? = null,
     ) : KueryBlockingClient.FetchSpec {
         override fun fetchSize(fetchSize: Int): KueryBlockingClient.FetchSpec =
-            FetchSpec(sqlId, sql, fetchSize, maxRowsOpt, queryTimeoutOpt)
+            FetchSpec(sqlId, sql, fetchSize, maxRowsOpt, queryTimeoutSecondsOpt)
 
         override fun maxRows(maxRows: Int): KueryBlockingClient.FetchSpec =
-            FetchSpec(sqlId, sql, fetchSizeOpt, maxRows, queryTimeoutOpt)
+            FetchSpec(sqlId, sql, fetchSizeOpt, maxRows, queryTimeoutSecondsOpt)
 
-        override fun queryTimeout(queryTimeout: Int): KueryBlockingClient.FetchSpec =
-            FetchSpec(sqlId, sql, fetchSizeOpt, maxRowsOpt, queryTimeout)
+        override fun queryTimeoutSeconds(queryTimeoutSeconds: Int): KueryBlockingClient.FetchSpec =
+            FetchSpec(sqlId, sql, fetchSizeOpt, maxRowsOpt, queryTimeoutSeconds)
 
         private fun buildSpec(): StatementSpec {
             var s = jdbcClient.sql(sql)
             if (fetchSizeOpt != null) s = s.withFetchSize(fetchSizeOpt)
             if (maxRowsOpt != null) s = s.withMaxRows(maxRowsOpt)
-            if (queryTimeoutOpt != null) s = s.withQueryTimeout(queryTimeoutOpt)
+            if (queryTimeoutSecondsOpt != null) s = s.withQueryTimeout(queryTimeoutSecondsOpt)
             return s
         }
 
