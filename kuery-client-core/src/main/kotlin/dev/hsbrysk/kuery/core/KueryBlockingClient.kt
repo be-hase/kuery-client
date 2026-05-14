@@ -26,19 +26,16 @@ interface KueryBlockingClient {
     interface FetchSpec {
         /**
          * Apply the given fetch size to any subsequent query statement.
-         * @see org.springframework.jdbc.core.simple.JdbcClient.StatementSpec.withFetchSize
          */
         fun fetchSize(fetchSize: Int): FetchSpec
 
         /**
          * Apply the given maximum number of rows to any subsequent query statement.
-         * @see org.springframework.jdbc.core.simple.JdbcClient.StatementSpec.withMaxRows
          */
         fun maxRows(maxRows: Int): FetchSpec
 
         /**
          * Apply the given query timeout (in seconds) to any subsequent query statement.
-         * @see org.springframework.jdbc.core.simple.JdbcClient.StatementSpec.withQueryTimeout
          */
         fun queryTimeout(queryTimeout: Int): FetchSpec
 
