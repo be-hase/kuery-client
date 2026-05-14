@@ -15,6 +15,7 @@ import org.springframework.beans.BeanUtils
 import org.springframework.core.convert.ConversionService
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.data.jdbc.core.convert.JdbcCustomConversions
+import org.springframework.jdbc.core.ColumnMapRowMapper
 import org.springframework.jdbc.core.DataClassRowMapper
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.SingleColumnRowMapper
@@ -24,6 +25,7 @@ import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec
 import org.springframework.jdbc.support.GeneratedKeyHolder
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
+import kotlin.streams.asSequence
 
 internal class DefaultSpringJdbcKueryClient(
     private val jdbcClient: JdbcClient,
@@ -127,6 +129,22 @@ internal class DefaultSpringJdbcKueryClient(
 
         override fun <T : Any> list(returnType: KClass<T>): List<T> = observe {
             spec.queryType(returnType).list()
+        }
+
+        override fun sequenceMap(): Sequence<Map<String, Any?>> {
+            // TODO:
+            // I also want to measure the observation of flow.
+            // However, should it be the time until the flow terminates or the time until the first element is obtained?
+            // There are many uncertainties, so I will not implement it for now.
+            return spec.query(ColumnMapRowMapper()).stream().asSequence()
+        }
+
+        override fun <T : Any> sequence(returnType: KClass<T>): Sequence<T> {
+            // TODO:
+            // I also want to measure the observation of flow.
+            // However, should it be the time until the flow terminates or the time until the first element is obtained?
+            // There are many uncertainties, so I will not implement it for now.
+            return spec.queryType(returnType).stream().asSequence()
         }
 
         override fun rowsUpdated(): Long = observe {
