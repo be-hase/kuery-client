@@ -9,6 +9,7 @@ import assertk.assertions.isNull
 import dev.hsbrysk.kuery.core.DelicateKueryClientApi
 import dev.hsbrysk.kuery.core.SqlBuilder
 import dev.hsbrysk.kuery.core.list
+import dev.hsbrysk.kuery.core.sequence
 import dev.hsbrysk.kuery.core.single
 import dev.hsbrysk.kuery.core.singleOrNull
 import org.junit.jupiter.api.AfterAll
@@ -280,6 +281,60 @@ class BasicUsageTest {
     fun `list empty`() {
         val userId = 3
         val result: List<User> = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.list()
+        assertThat(result).isEmpty()
+    }
+
+    @Test
+    fun sequenceMap() {
+        val result = kueryClient.sql { +"SELECT * FROM users" }.sequenceMap().toList()
+        assertThat(result).isEqualTo(
+            listOf(
+                mapOf(
+                    "user_id" to 1,
+                    "username" to "user1",
+                    "email" to "user1@example.com",
+                ),
+                mapOf(
+                    "user_id" to 2,
+                    "username" to "user2",
+                    "email" to "user2@example.com",
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `sequenceMap empty`() {
+        val userId = 3
+        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.sequenceMap().toList()
+        assertThat(result).isEmpty()
+    }
+
+    @Test
+    fun sequence() {
+        val result: List<User> = kueryClient.sql { +"SELECT * FROM users" }.sequence<User>().toList()
+        assertThat(result).isEqualTo(
+            listOf(
+                User(
+                    userId = 1,
+                    username = "user1",
+                    email = "user1@example.com",
+                ),
+                User(
+                    userId = 2,
+                    username = "user2",
+                    email = "user2@example.com",
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `sequence empty`() {
+        val userId = 3
+        val result: List<User> = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }
+            .sequence<User>()
+            .toList()
         assertThat(result).isEmpty()
     }
 
