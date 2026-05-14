@@ -22,7 +22,23 @@ interface KueryBlockingClient {
      */
     fun sql(block: SqlBuilder.() -> Unit): FetchSpec
 
+    @Suppress("TooManyFunctions")
     interface FetchSpec {
+        /**
+         * Set the fetch size to use when executing this query.
+         */
+        fun fetchSize(fetchSize: Int): FetchSpec
+
+        /**
+         * Set the maximum number of rows to return from this query.
+         */
+        fun maxRows(maxRows: Int): FetchSpec
+
+        /**
+         * Set the query timeout (in seconds) for this query.
+         */
+        fun queryTimeoutSeconds(queryTimeoutSeconds: Int): FetchSpec
+
         /**
          * Receives the results as a map.
          */

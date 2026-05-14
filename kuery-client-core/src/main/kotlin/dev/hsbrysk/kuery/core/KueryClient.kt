@@ -23,7 +23,13 @@ interface KueryClient {
      */
     fun sql(block: SqlBuilder.() -> Unit): FetchSpec
 
+    @Suppress("TooManyFunctions")
     interface FetchSpec {
+        /**
+         * Set the fetch size to use when executing this query.
+         */
+        fun fetchSize(fetchSize: Int): FetchSpec
+
         /**
          * Receives the results as a map.
          */
