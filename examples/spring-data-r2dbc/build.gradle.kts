@@ -15,7 +15,7 @@ dependencies {
     implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-r2dbc")
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("io.asyncer:r2dbc-mysql")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("tools.jackson.module:jackson-module-kotlin")
 
     detektPlugins("dev.hsbrysk.kuery-client:kuery-client-detekt")
 }

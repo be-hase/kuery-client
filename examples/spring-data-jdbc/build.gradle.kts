@@ -15,7 +15,7 @@ dependencies {
     implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-jdbc")
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("com.mysql:mysql-connector-j")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("tools.jackson.module:jackson-module-kotlin")
 
     detektPlugins("dev.hsbrysk.kuery-client:kuery-client-detekt")
 }
