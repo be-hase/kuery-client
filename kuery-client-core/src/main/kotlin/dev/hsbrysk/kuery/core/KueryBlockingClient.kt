@@ -70,6 +70,18 @@ interface KueryBlockingClient {
         fun <T : Any> list(returnType: KClass<T>): List<T>
 
         /**
+         * Receives the results of multiple rows as a sequence of maps.
+         * The returned sequence is backed by an open JDBC ResultSet; iterate it within an active transaction.
+         */
+        fun sequenceMap(): Sequence<Map<String, Any?>>
+
+        /**
+         * Receives the results of multiple rows converted to the specified type as a sequence.
+         * The returned sequence is backed by an open JDBC ResultSet; iterate it within an active transaction.
+         */
+        fun <T : Any> sequence(returnType: KClass<T>): Sequence<T>
+
+        /**
          * Contract for fetching the number of affected rows
          */
         fun rowsUpdated(): Long
@@ -96,3 +108,8 @@ inline fun <reified T : Any> FetchSpec.singleOrNull(): T? = singleOrNull(T::clas
  * Receives the results of multiple rows converted to the specified type.
  */
 inline fun <reified T : Any> FetchSpec.list(): List<T> = list(T::class)
+
+/**
+ * Receives the results of multiple rows converted to the specified type as a sequence.
+ */
+inline fun <reified T : Any> FetchSpec.sequence(): Sequence<T> = sequence(T::class)

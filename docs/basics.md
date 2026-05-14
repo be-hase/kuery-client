@@ -147,6 +147,30 @@ val users: Flow<User> = kueyClient
     .flow()
 ```
 
+### [`kuery-client-spring-data-jdbc` only] `fun sequenceMap(): Sequence<Map<String, Any?>>`
+
+Receives the results of multiple rows as a sequence of maps.
+
+```kotlin
+val result: Sequence<Map<String, Any?>> = kueyClient
+    .sql { +"SELECT * FROM users WHERE user_id = 1" }
+    .sequenceMap()
+```
+
+Note: backed by an open JDBC ResultSet — iterate within an active transaction. Single-pass.
+
+### [`kuery-client-spring-data-jdbc` only] `fun <T : Any> sequence(returnType: KClass<T>): Sequence<T>`
+
+Receives the results of multiple rows converted to the specified type as a sequence.
+
+```kotlin
+val users: Sequence<User> = kueyClient
+    .sql { +"SELECT * FROM users WHERE user_id = 1" }
+    .sequence()
+```
+
+Note: backed by an open JDBC ResultSet — iterate within an active transaction. Single-pass.
+
 ### `(suspend) fun rowsUpdated(): Long`
 
 Contract for fetching the number of affected rows
