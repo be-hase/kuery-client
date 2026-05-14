@@ -7,7 +7,6 @@ import dev.hsbrysk.kuery.compiler.ir.misc.StringConcatenationProcessor
 import org.jetbrains.kotlin.DeprecatedForRemovalCompilerApi
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
-import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irVararg
 import org.jetbrains.kotlin.ir.expressions.IrCall
@@ -17,14 +16,12 @@ import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.classFqName
 import org.jetbrains.kotlin.ir.types.classOrFail
-import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.typeWith
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.irCastIfNeeded
 import org.jetbrains.kotlin.ir.util.isVararg
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 
-@OptIn(DeprecatedForRemovalCompilerApi::class)
 @Suppress("OPT_IN_USAGE")
 class StringInterpolationTransformer(private val pluginContext: IrPluginContext) : IrElementTransformerVoid() {
     private var current: IrCall? = null
@@ -55,6 +52,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
         return builder.irCall(addUnsafe).apply {
             dispatchReceiver = sqlBuilder
+            @OptIn(DeprecatedForRemovalCompilerApi::class)
             putValueArgument(
                 0,
                 List(expression.valueArgumentsCount) { expression.getValueArgument(it) }
@@ -70,6 +68,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
         return builder.irCall(addUnsafe).apply {
             dispatchReceiver = sqlBuilder
+            @OptIn(DeprecatedForRemovalCompilerApi::class)
             putValueArgument(0, expression.extensionReceiver)
         }
     }
@@ -93,7 +92,9 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
                 checkNotNull(current.dispatchReceiver),
                 defaultSqlBuilderClass.typeWith(),
             )
+            @OptIn(DeprecatedForRemovalCompilerApi::class)
             putValueArgument(0, fragments)
+            @OptIn(DeprecatedForRemovalCompilerApi::class)
             putValueArgument(1, values)
         }
     }
@@ -111,6 +112,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
     ): IrExpression {
         val vararg = irVararg(type, values)
         return irCall(pluginContext.listOfRef()).apply {
+            @OptIn(DeprecatedForRemovalCompilerApi::class)
             putValueArgument(0, vararg)
         }
     }
@@ -127,6 +129,9 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         }
 
         private fun IrPluginContext.listOfRef(): IrSimpleFunctionSymbol = referenceFunctions(CallableIds.LIST_OF)
-            .first { it.owner.valueParameters.firstOrNull()?.isVararg ?: false }
+            .first {
+                @OptIn(DeprecatedForRemovalCompilerApi::class)
+                it.owner.valueParameters.firstOrNull()?.isVararg ?: false
+            }
     }
 }
