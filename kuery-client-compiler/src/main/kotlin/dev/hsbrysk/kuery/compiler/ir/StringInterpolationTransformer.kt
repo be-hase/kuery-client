@@ -88,7 +88,8 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
             )
         }
 
-        val defaultSqlBuilderClass = checkNotNull(pluginContext.referenceClass(ClassIds.DEFAULT_SQL_BUILDER))
+        val defaultSqlBuilderClass =
+            checkNotNull(pluginContext.finderForBuiltins().findClass(ClassIds.DEFAULT_SQL_BUILDER))
         val interpolate = defaultSqlBuilderClass.functions.first { it.owner.name.asString() == "interpolate" }
 
         return builder.irCall(interpolate).apply {
@@ -132,9 +133,10 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
             return false
         }
 
-        private fun IrPluginContext.listOfRef(): IrSimpleFunctionSymbol = referenceFunctions(CallableIds.LIST_OF)
-            .first {
-                it.owner.parameters.firstOrNull { p -> p.kind == IrParameterKind.Regular }?.isVararg ?: false
-            }
+        private fun IrPluginContext.listOfRef(): IrSimpleFunctionSymbol =
+            finderForBuiltins().findFunctions(CallableIds.LIST_OF)
+                .first {
+                    it.owner.parameters.firstOrNull { p -> p.kind == IrParameterKind.Regular }?.isVararg ?: false
+                }
     }
 }
