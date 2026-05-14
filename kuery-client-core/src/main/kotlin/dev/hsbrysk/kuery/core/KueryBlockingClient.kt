@@ -25,17 +25,17 @@ interface KueryBlockingClient {
     @Suppress("TooManyFunctions")
     interface FetchSpec {
         /**
-         * Apply the given fetch size to any subsequent query statement.
+         * Set the fetch size to use when executing this query.
          */
         fun fetchSize(fetchSize: Int): FetchSpec
 
         /**
-         * Apply the given maximum number of rows to any subsequent query statement.
+         * Set the maximum number of rows to return from this query.
          */
         fun maxRows(maxRows: Int): FetchSpec
 
         /**
-         * Apply the given query timeout (in seconds) to any subsequent query statement.
+         * Set the query timeout (in seconds) for this query.
          */
         fun queryTimeout(queryTimeout: Int): FetchSpec
 

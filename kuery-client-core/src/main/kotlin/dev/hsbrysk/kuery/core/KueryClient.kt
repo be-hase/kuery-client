@@ -26,7 +26,7 @@ interface KueryClient {
     @Suppress("TooManyFunctions")
     interface FetchSpec {
         /**
-         * Apply the given fetch size to any subsequent query statement.
+         * Set the fetch size to use when executing this query.
          */
         fun fetchSize(fetchSize: Int): FetchSpec
 
