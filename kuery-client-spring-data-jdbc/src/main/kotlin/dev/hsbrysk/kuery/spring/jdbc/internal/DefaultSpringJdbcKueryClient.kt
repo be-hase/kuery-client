@@ -41,7 +41,7 @@ internal class DefaultSpringJdbcKueryClient(
         block: SqlBuilder.() -> Unit,
     ): KueryBlockingClient.FetchSpec {
         val sql = Sql(block)
-        return FetchSpec(sqlId, sql, jdbcClient.sql(sql))
+        return FetchSpec(sqlId, sql)
     }
 
     override fun sql(block: SqlBuilder.() -> Unit): KueryBlockingClient.FetchSpec {
@@ -103,38 +103,58 @@ internal class DefaultSpringJdbcKueryClient(
     inner class FetchSpec(
         private val sqlId: String,
         private val sql: Sql,
-        private val spec: StatementSpec,
+        private val fetchSizeOpt: Int? = null,
+        private val maxRowsOpt: Int? = null,
+        private val queryTimeoutOpt: Int? = null,
     ) : KueryBlockingClient.FetchSpec {
+        override fun fetchSize(fetchSize: Int): KueryBlockingClient.FetchSpec =
+            FetchSpec(sqlId, sql, fetchSize, maxRowsOpt, queryTimeoutOpt)
+
+        override fun maxRows(maxRows: Int): KueryBlockingClient.FetchSpec =
+            FetchSpec(sqlId, sql, fetchSizeOpt, maxRows, queryTimeoutOpt)
+
+        override fun queryTimeout(queryTimeout: Int): KueryBlockingClient.FetchSpec =
+            FetchSpec(sqlId, sql, fetchSizeOpt, maxRowsOpt, queryTimeout)
+
+        private fun buildSpec(): StatementSpec {
+            var s = jdbcClient.sql(sql)
+            if (fetchSizeOpt != null) s = s.withFetchSize(fetchSizeOpt)
+            if (maxRowsOpt != null) s = s.withMaxRows(maxRowsOpt)
+            if (queryTimeoutOpt != null) s = s.withQueryTimeout(queryTimeoutOpt)
+            return s
+        }
+
         override fun singleMap(): Map<String, Any?> = observe {
-            spec.query().singleRow()
+            buildSpec().query().singleRow()
         }
 
         override fun singleMapOrNull(): Map<String, Any?>? = observe {
-            DataAccessUtils.singleResult(spec.query().listOfRows())
+            DataAccessUtils.singleResult(buildSpec().query().listOfRows())
         }
 
         override fun <T : Any> single(returnType: KClass<T>): T = observe {
-            spec.queryType(returnType).single()
+            buildSpec().queryType(returnType).single()
         }
 
         override fun <T : Any> singleOrNull(returnType: KClass<T>): T? = observe {
-            DataAccessUtils.singleResult(spec.queryType(returnType).list())
+            DataAccessUtils.singleResult(buildSpec().queryType(returnType).list())
         }
 
         override fun listMap(): List<Map<String, Any?>> = observe {
-            spec.query().listOfRows()
+            buildSpec().query().listOfRows()
         }
 
         override fun <T : Any> list(returnType: KClass<T>): List<T> = observe {
-            spec.queryType(returnType).list()
+            buildSpec().queryType(returnType).list()
         }
 
         override fun rowsUpdated(): Long = observe {
-            spec.update().toLong()
+            buildSpec().update().toLong()
         }
 
         override fun generatedValues(vararg columns: String): Map<String, Any> = observe {
             val keyHolder = GeneratedKeyHolder()
+            val spec = buildSpec()
             if (columns.isEmpty()) {
                 spec.update(keyHolder)
             } else {
