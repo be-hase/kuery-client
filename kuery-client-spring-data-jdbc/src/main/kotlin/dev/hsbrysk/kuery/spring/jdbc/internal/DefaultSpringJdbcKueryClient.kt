@@ -155,7 +155,7 @@ internal class DefaultSpringJdbcKueryClient(
             // I also want to measure the observation of flow.
             // However, should it be the time until the flow terminates or the time until the first element is obtained?
             // There are many uncertainties, so I will not implement it for now.
-            return spec.query(ColumnMapRowMapper()).stream().asSequence()
+            return buildSpec().query(ColumnMapRowMapper()).stream().asSequence()
         }
 
         override fun <T : Any> sequence(returnType: KClass<T>): Sequence<T> {
@@ -163,7 +163,7 @@ internal class DefaultSpringJdbcKueryClient(
             // I also want to measure the observation of flow.
             // However, should it be the time until the flow terminates or the time until the first element is obtained?
             // There are many uncertainties, so I will not implement it for now.
-            return spec.queryType(returnType).stream().asSequence()
+            return buildSpec().queryType(returnType).stream().asSequence()
         }
 
         override fun rowsUpdated(): Long = observe {
