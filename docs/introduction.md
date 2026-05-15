@@ -1,3 +1,7 @@
+---
+description: Overview of Kuery Client's features, motivation, and the SQL builder with string interpolation (R2DBC / JDBC).
+---
+
 # Introduction
 
 ## Features

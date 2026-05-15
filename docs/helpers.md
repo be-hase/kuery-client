@@ -1,3 +1,7 @@
+---
+description: Built-in values helper for multi-row inserts and guidance on writing custom SqlBuilder extension helpers using addUnsafe / bind.
+---
+
 # Helpers
 
 ## Functions
