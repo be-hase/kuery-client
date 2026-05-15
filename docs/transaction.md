@@ -1,3 +1,7 @@
+---
+description: Use Spring transactions with Kuery Client — programmatic (TransactionalOperator / TransactionTemplate) and declarative @Transactional.
+---
+
 # Transaction
 
 You can use the transaction mechanisms provided by Spring.

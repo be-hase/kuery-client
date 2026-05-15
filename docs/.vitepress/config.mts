@@ -1,10 +1,14 @@
 import {defineConfig} from 'vitepress'
+import llmstxt from 'vitepress-plugin-llms'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     lang: "en-US",
     title: "Kuery Client",
     description: "A Kotlin/JVM database client for those who want to write SQL",
+    vite: {
+        plugins: [llmstxt()],
+    },
     themeConfig: {
         // https://vitepress.dev/reference/default-theme-config
         nav: [

@@ -1,3 +1,7 @@
+---
+description: kuery-client-detekt plugin and the UseStringLiteralRule that catches SQL-injection-prone misuse of the SQL builder.
+---
+
 # Detekt Custom Rules
 
 Incorrect usage can result in SQL injection. To detect such cases, we provide custom Detekt rules.

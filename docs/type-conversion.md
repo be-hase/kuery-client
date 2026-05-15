@@ -1,3 +1,7 @@
+---
+description: Register Spring's @WritingConverter / @ReadingConverter via the builder's converters(...) to support custom types.
+---
+
 # Type Conversion
 
 By using Spring Type Conversion, you can support your own custom types.
