@@ -1,3 +1,7 @@
+---
+description: Version compatibility matrix between Kuery Client releases and Kotlin / Spring Boot / Spring Data versions.
+---
+
 # Compatibility
 
 The following table lists the versions of Kotlin, Spring Boot, and Spring Data that each kuery-client release

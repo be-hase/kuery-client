@@ -1,3 +1,7 @@
+---
+description: "Links to runnable example projects: Spring WebFlux + R2DBC and Spring WebMVC + JDBC."
+---
+
 # Examples
 
 ## Spring WebFlux and `kuery-client-spring-data-r2dbc`

@@ -1,3 +1,7 @@
+---
+description: Wire Micrometer ObservationRegistry and ObservationConvention; example with Prometheus/Actuator and the sql_id constraint.
+---
+
 # Observation
 
 Kuery Client supports [Micrometer Observation](https://micrometer.io/).

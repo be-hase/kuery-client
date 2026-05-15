@@ -1,3 +1,7 @@
+---
+description: Install via Gradle plugin and dependency, then build a KueryClient from a ConnectionFactory or DataSource with a minimal example.
+---
+
 # Getting Started
 
 ## Install

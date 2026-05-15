@@ -1,3 +1,7 @@
+---
+description: "SQL builder API: +/add, parameter binding via string interpolation, Kotlin control flow, and the fetch API (single, list, flow, sequence, rowsUpdated, generatedValues, fetchSize, maxRows, queryTimeoutSeconds)."
+---
+
 # Basics
 
 ## Building SQL
