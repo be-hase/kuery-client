@@ -1,5 +1,10 @@
+import {execSync} from 'node:child_process'
 import {defineConfig} from 'vitepress'
 import llmstxt from 'vitepress-plugin-llms'
+
+// Latest release version, derived from the latest git tag (e.g. "v1.0.0" -> "1.0.0").
+// Used to replace `{{version}}` placeholders in markdown files at build time.
+const version = execSync('git describe --tags --abbrev=0').toString().trim().replace(/^v/, '')
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -7,7 +12,18 @@ export default defineConfig({
     title: "Kuery Client",
     description: "A Kotlin/JVM database client for those who want to write SQL",
     vite: {
-        plugins: [llmstxt()],
+        plugins: [
+            {
+                name: 'replace-kuery-client-version',
+                enforce: 'pre',
+                transform(code, id) {
+                    if (id.endsWith('.md') && code.includes('{{version}}')) {
+                        return code.replaceAll('{{version}}', version)
+                    }
+                },
+            },
+            llmstxt(),
+        ],
     },
     themeConfig: {
         // https://vitepress.dev/reference/default-theme-config
@@ -30,7 +46,6 @@ export default defineConfig({
                     {text: "Helpers", link: '/helpers'},
                     {text: "Examples", link: '/examples'},
                     {text: "Compatibility", link: '/compatibility'},
-                    {text: "Roadmap", link: '/roadmap'},
                 ]
             }
         ],

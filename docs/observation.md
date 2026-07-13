@@ -42,8 +42,8 @@ dependencies.
 // ...
 // other dependencies
 // ...
-implementation("org.springframework.boot:spring-boot-starter-actuator:{{version}}")
-implementation("io.micrometer:micrometer-registry-prometheus:{{version}}")
+implementation("org.springframework.boot:spring-boot-starter-actuator")
+implementation("io.micrometer:micrometer-registry-prometheus")
 ```
 
 Then, write the following and register KueryClient as a Bean:
