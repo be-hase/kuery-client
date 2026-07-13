@@ -188,6 +188,74 @@ class StringInterpolationTest {
     }
 
     @Test
+    fun `nested add`() {
+        val x = "X"
+        val y = "1; DROP TABLE users"
+        val sql = Sql {
+            add(
+                run {
+                    add("B $x")
+                    "S $y"
+                },
+            )
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "B :p0\nS :p1",
+                listOf(NamedSqlParameter("p0", "X"), NamedSqlParameter("p1", y)),
+            ),
+        )
+    }
+
+    @Test
+    fun `nested unaryPlus`() {
+        val x = "X"
+        val y = "1; DROP TABLE users"
+        val sql = Sql {
+            +run {
+                +"B $x"
+                "S $y"
+            }
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "B :p0\nS :p1",
+                listOf(NamedSqlParameter("p0", "X"), NamedSqlParameter("p1", y)),
+            ),
+        )
+    }
+
+    @Test
+    fun `doubly nested add`() {
+        val x = "X"
+        val y = "Y"
+        val z = "Z"
+        val sql = Sql {
+            add(
+                run {
+                    add(
+                        run {
+                            add("A $x")
+                            "B $y"
+                        },
+                    )
+                    "C $z"
+                },
+            )
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "A :p0\nB :p1\nC :p2",
+                listOf(
+                    NamedSqlParameter("p0", "X"),
+                    NamedSqlParameter("p1", "Y"),
+                    NamedSqlParameter("p2", "Z"),
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun `null string interpolation`() {
         // In such cases, string interpolation will not be executed.
         val sql1 = Sql {

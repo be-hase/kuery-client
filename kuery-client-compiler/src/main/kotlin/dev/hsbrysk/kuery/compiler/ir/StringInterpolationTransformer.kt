@@ -28,6 +28,9 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
 
     override fun visitCall(expression: IrCall): IrExpression {
         if (expression.isAddOrUnaryPlus()) {
+            // Save/restore so that a nested add/unaryPlus inside the argument expression
+            // doesn't clear the enclosing call's context.
+            val previous = current
             return try {
                 current = expression
                 super.visitCall(expression)
@@ -38,7 +41,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
                     else -> error("Unexpected error") // not happened
                 }
             } finally {
-                current = null
+                current = previous
             }
         }
 
