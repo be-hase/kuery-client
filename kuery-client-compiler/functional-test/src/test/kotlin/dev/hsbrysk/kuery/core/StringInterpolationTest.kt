@@ -351,6 +351,48 @@ class StringInterpolationTest {
     }
 
     @Test
+    fun `receiver expression is evaluated only once`() {
+        var count = 0
+        val sql = Sql {
+            fun receiver(): SqlBuilder {
+                count++
+                return this
+            }
+            receiver().add("WHERE id = ${1}")
+        }
+        assertThat(sql).isEqualTo(
+            Sql("WHERE id = :p0", listOf(NamedSqlParameter("p0", 1))),
+        )
+        assertThat(count).isEqualTo(1)
+    }
+
+    @Test
+    fun `body and parameter go to the same builder even if the receiver expression is impure`() {
+        var callCount = 0
+        lateinit var outerBuilder: SqlBuilder
+        val innerSqls = mutableListOf<Sql>()
+        val outerSql = Sql {
+            outerBuilder = this
+            val innerSql = Sql {
+                val innerBuilder = this
+                fun receiver(): SqlBuilder {
+                    callCount++
+                    // Returns a different builder on each call
+                    return if (callCount == 1) outerBuilder else innerBuilder
+                }
+                receiver().add("WHERE id = ${42}")
+            }
+            innerSqls.add(innerSql)
+        }
+        // The receiver expression must be evaluated once, so both the SQL body and
+        // the parameter must go to its first result (= outerBuilder).
+        assertThat(outerSql).isEqualTo(
+            Sql("WHERE id = :p0", listOf(NamedSqlParameter("p0", 42))),
+        )
+        assertThat(innerSqls.first()).isEqualTo(Sql(""))
+    }
+
+    @Test
     fun `null string interpolation`() {
         // In such cases, string interpolation will not be executed.
         val sql1 = Sql {
