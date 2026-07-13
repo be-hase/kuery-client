@@ -1,9 +1,11 @@
 package com.example.spring.r2dbc
 
 import dev.hsbrysk.kuery.core.KueryClient
+import dev.hsbrysk.kuery.core.flow
 import dev.hsbrysk.kuery.core.list
 import dev.hsbrysk.kuery.core.single
 import dev.hsbrysk.kuery.core.singleOrNull
+import kotlinx.coroutines.flow.Flow
 
 data class User(
     val userId: Int,
@@ -32,6 +34,10 @@ class UserRepository(private val kueryClient: KueryClient) {
     suspend fun listMap(): List<Map<String, Any?>> = kueryClient.sql { +"SELECT * FROM users" }.listMap()
 
     suspend fun list(): List<User> = kueryClient.sql { +"SELECT * FROM users" }.list()
+
+    fun flowMap(): Flow<Map<String, Any?>> = kueryClient.sql { +"SELECT * FROM users" }.flowMap()
+
+    fun flow(): Flow<User> = kueryClient.sql { +"SELECT * FROM users" }.flow()
 
     suspend fun rowUpdated(
         username: String,

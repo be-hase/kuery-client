@@ -157,7 +157,7 @@ internal class DefaultSpringR2dbcKueryClient(
         }
 
         override suspend fun rowsUpdated(): Long = observe {
-            spec.fetch().rowsUpdated().awaitSingle()
+            spec.fetch().rowsUpdated().sqlId(sqlId).awaitSingle()
         }
 
         override suspend fun generatedValues(vararg columns: String): Map<String, Any> = observe {
