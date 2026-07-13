@@ -1,0 +1,15 @@
+public final class dev/hsbrysk/kuery/spring/jdbc/SpringJdbcKueryClient {
+	public static final field INSTANCE Ldev/hsbrysk/kuery/spring/jdbc/SpringJdbcKueryClient;
+	public final fun builder ()Ldev/hsbrysk/kuery/spring/jdbc/SpringJdbcKueryClientBuilder;
+	public final fun sqlId ()Ljava/lang/String;
+}
+
+public abstract interface class dev/hsbrysk/kuery/spring/jdbc/SpringJdbcKueryClientBuilder {
+	public abstract fun build ()Ldev/hsbrysk/kuery/core/KueryBlockingClient;
+	public abstract fun converters (Ljava/util/List;)Ldev/hsbrysk/kuery/spring/jdbc/SpringJdbcKueryClientBuilder;
+	public abstract fun dataSource (Ljavax/sql/DataSource;)Ldev/hsbrysk/kuery/spring/jdbc/SpringJdbcKueryClientBuilder;
+	public abstract fun enableAutoSqlIdGeneration (Z)Ldev/hsbrysk/kuery/spring/jdbc/SpringJdbcKueryClientBuilder;
+	public abstract fun observationConvention (Ldev/hsbrysk/kuery/core/observation/KueryClientFetchObservationConvention;)Ldev/hsbrysk/kuery/spring/jdbc/SpringJdbcKueryClientBuilder;
+	public abstract fun observationRegistry (Lio/micrometer/observation/ObservationRegistry;)Ldev/hsbrysk/kuery/spring/jdbc/SpringJdbcKueryClientBuilder;
+}
+

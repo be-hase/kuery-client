@@ -1,5 +1,6 @@
 plugins {
     id("conventions.preset.base")
+    id("conventions.public-api")
     id("conventions.maven-publish")
 }
 

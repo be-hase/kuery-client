@@ -11,7 +11,7 @@ import io.micrometer.observation.docs.ObservationDocumentation
 /**
  * [ObservationDocumentation] for [KueryClient] and [KueryBlockingClient]
  */
-enum class KueryClientObservationDocumentation : ObservationDocumentation {
+public enum class KueryClientObservationDocumentation : ObservationDocumentation {
     FETCH {
         override fun getDefaultConvention(): Class<out ObservationConvention<out Observation.Context>> =
             DefaultKueryClientFetchObservationConvention::class.java

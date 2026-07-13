@@ -1,0 +1,16 @@
+public final class dev/hsbrysk/kuery/spring/r2dbc/SpringR2dbcKueryClient {
+	public static final field INSTANCE Ldev/hsbrysk/kuery/spring/r2dbc/SpringR2dbcKueryClient;
+	public final fun builder ()Ldev/hsbrysk/kuery/spring/r2dbc/SpringR2dbcKueryClientBuilder;
+	public final fun getSQL_ID_REACTOR_CONTEXT_KEY ()Ljava/lang/String;
+	public final fun sqlId (Lreactor/util/context/ContextView;)Ljava/lang/String;
+}
+
+public abstract interface class dev/hsbrysk/kuery/spring/r2dbc/SpringR2dbcKueryClientBuilder {
+	public abstract fun build ()Ldev/hsbrysk/kuery/core/KueryClient;
+	public abstract fun connectionFactory (Lio/r2dbc/spi/ConnectionFactory;)Ldev/hsbrysk/kuery/spring/r2dbc/SpringR2dbcKueryClientBuilder;
+	public abstract fun converters (Ljava/util/List;)Ldev/hsbrysk/kuery/spring/r2dbc/SpringR2dbcKueryClientBuilder;
+	public abstract fun enableAutoSqlIdGeneration (Z)Ldev/hsbrysk/kuery/spring/r2dbc/SpringR2dbcKueryClientBuilder;
+	public abstract fun observationConvention (Ldev/hsbrysk/kuery/core/observation/KueryClientFetchObservationConvention;)Ldev/hsbrysk/kuery/spring/r2dbc/SpringR2dbcKueryClientBuilder;
+	public abstract fun observationRegistry (Lio/micrometer/observation/ObservationRegistry;)Ldev/hsbrysk/kuery/spring/r2dbc/SpringR2dbcKueryClientBuilder;
+}
+

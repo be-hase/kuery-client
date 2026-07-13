@@ -13,7 +13,7 @@ import org.intellij.lang.annotations.Language
  * library exists to provide.
  */
 @SqlBuilderMarker
-interface SqlBuilder {
+public interface SqlBuilder {
     /**
      * Specify the sql you want to execute. Appended to the internally held [StringBuilder].
      * Due to the Kotlin compiler plugin, the string interpolation within the string template passed to
@@ -24,7 +24,7 @@ interface SqlBuilder {
      * add("SELECT * FROM users WHERE user_id = $userId")
      * ```
      */
-    fun add(@Language("sql") sql: String)
+    public fun add(@Language("sql") sql: String)
 
     /**
      * Specify the sql you want to execute. Appended to the internally held [StringBuilder].
@@ -36,7 +36,7 @@ interface SqlBuilder {
      * +"SELECT * FROM users WHERE user_id = $userId"
      * ```
      */
-    operator fun String.unaryPlus()
+    public operator fun String.unaryPlus()
 
     /**
      * Specify the sql you want to execute. Appended to the internally held [StringBuilder].
@@ -48,12 +48,12 @@ interface SqlBuilder {
      * ```
      */
     @DelicateKueryClientApi
-    fun addUnsafe(@Language("sql") sql: String)
+    public fun addUnsafe(@Language("sql") sql: String)
 
     /**
      * Bind variables to SQL
      * It is intended to be used together with addUnsafe.
      */
     @DelicateKueryClientApi
-    fun bind(parameter: Any?): String
+    public fun bind(parameter: Any?): String
 }

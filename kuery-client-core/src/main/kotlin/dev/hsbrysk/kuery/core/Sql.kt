@@ -3,24 +3,24 @@ package dev.hsbrysk.kuery.core
 import dev.hsbrysk.kuery.core.internal.DefaultSql
 import dev.hsbrysk.kuery.core.internal.DefaultSqlBuilder
 
-interface Sql {
+public interface Sql {
     /**
      * SQL body
      */
-    val body: String
+    public val body: String
 
     /**
      * SQL parameters
      */
-    val parameters: List<NamedSqlParameter>
+    public val parameters: List<NamedSqlParameter>
 
-    companion object
+    public companion object
 }
 
 /**
  * Create [Sql]
  */
-fun Sql(
+public fun Sql(
     body: String,
     parameters: List<NamedSqlParameter> = emptyList(),
 ): Sql = DefaultSql(body, parameters.toList())
@@ -28,7 +28,7 @@ fun Sql(
 /**
  * Create [Sql] using [SqlBuilder]
  */
-fun Sql(block: SqlBuilder.() -> Unit): Sql {
+public fun Sql(block: SqlBuilder.() -> Unit): Sql {
     val builder = DefaultSqlBuilder()
     block(builder)
     return builder.build()

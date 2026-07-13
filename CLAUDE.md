@@ -30,6 +30,9 @@ Kuery Client is a Kotlin SQL client library that enables writing raw SQL using K
 
 # Auto-format
 ./gradlew ktlintFormat
+
+# Update ABI reference dumps (run after changing public API; commit the api/*.api files)
+./gradlew updateKotlinAbi
 ```
 
 Integration tests (`kuery-client-spring-data-r2dbc`, `kuery-client-spring-data-jdbc`) spin up a MySQL container via Testcontainers and require Docker to be running.
@@ -73,6 +76,8 @@ Row mapping uses `DataClassRowMapper` (Spring's data class mapper) for complex t
 ### Build Conventions
 
 All modules apply `conventions.preset.base` (= `conventions.kotlin` + `conventions.ktlint` + `conventions.detekt`). The Kotlin toolchain is Java 17 (Adoptium). `allWarningsAsErrors = true` is enforced. Versions are centralized in `gradle/libs.versions.toml`.
+
+`kuery-client-core`, `kuery-client-spring-data-jdbc`, and `kuery-client-spring-data-r2dbc` additionally apply `conventions.public-api`, which enables Kotlin explicit API mode and KGP built-in ABI validation. `checkKotlinAbi` runs as part of `check`; when the public API changes intentionally, run `./gradlew updateKotlinAbi` and commit the updated `api/*.api` files. Declarations annotated with `@KueryClientInternalApi` are excluded from the ABI dumps and carry no compatibility guarantee.
 
 ### `@DelicateKueryClientApi`
 

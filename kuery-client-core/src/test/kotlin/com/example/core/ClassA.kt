@@ -1,11 +1,13 @@
 package com.example.core
 
+import dev.hsbrysk.kuery.core.KueryClientInternalApi
 import dev.hsbrysk.kuery.core.SqlBuilder
 import dev.hsbrysk.kuery.core.internal.SqlIds.id
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
+@OptIn(KueryClientInternalApi::class)
 internal class ClassA {
     fun sql1(block: SqlBuilder.() -> Unit): String = block.id()
 

@@ -2,16 +2,16 @@ package dev.hsbrysk.kuery.spring.jdbc
 
 import dev.hsbrysk.kuery.spring.jdbc.internal.DefaultSpringJdbcKueryClientBuilder
 
-object SpringJdbcKueryClient {
+public object SpringJdbcKueryClient {
     /**
      * Retrieve the running sqlId from thread local.
      */
-    fun sqlId(): String? = sqlIdThreadLocal.get()
+    public fun sqlId(): String? = sqlIdThreadLocal.get()
 
     /**
      * Create [SpringJdbcKueryClientBuilder]
      */
-    fun builder(): SpringJdbcKueryClientBuilder = DefaultSpringJdbcKueryClientBuilder()
+    public fun builder(): SpringJdbcKueryClientBuilder = DefaultSpringJdbcKueryClientBuilder()
 }
 
 private val sqlIdThreadLocal = ThreadLocal<String>()

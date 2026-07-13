@@ -1,9 +1,11 @@
 package com.example.core
 
+import dev.hsbrysk.kuery.core.KueryClientInternalApi
 import dev.hsbrysk.kuery.core.Sql
 import dev.hsbrysk.kuery.core.SqlBuilder
 import dev.hsbrysk.kuery.core.internal.SqlIds.id
 
+@OptIn(KueryClientInternalApi::class)
 class MockKueryClient {
     fun sql(
         sqlId: String,
