@@ -72,14 +72,18 @@ interface KueryBlockingClient {
         /**
          * Receives the results of multiple rows as a sequence of maps.
          * The returned sequence is backed by an open JDBC ResultSet; iterate it within an active transaction.
+         * It is closed automatically when fully iterated or when an exception is thrown during the iteration.
+         * If you stop iterating midway, close it explicitly (e.g., with [use]). It can be iterated only once.
          */
-        fun sequenceMap(): Sequence<Map<String, Any?>>
+        fun sequenceMap(): CloseableSequence<Map<String, Any?>>
 
         /**
          * Receives the results of multiple rows converted to the specified type as a sequence.
          * The returned sequence is backed by an open JDBC ResultSet; iterate it within an active transaction.
+         * It is closed automatically when fully iterated or when an exception is thrown during the iteration.
+         * If you stop iterating midway, close it explicitly (e.g., with [use]). It can be iterated only once.
          */
-        fun <T : Any> sequence(returnType: KClass<T>): Sequence<T>
+        fun <T : Any> sequence(returnType: KClass<T>): CloseableSequence<T>
 
         /**
          * Contract for fetching the number of affected rows
@@ -112,4 +116,4 @@ inline fun <reified T : Any> FetchSpec.list(): List<T> = list(T::class)
 /**
  * Receives the results of multiple rows converted to the specified type as a sequence.
  */
-inline fun <reified T : Any> FetchSpec.sequence(): Sequence<T> = sequence(T::class)
+inline fun <reified T : Any> FetchSpec.sequence(): CloseableSequence<T> = sequence(T::class)
