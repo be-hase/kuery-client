@@ -5,8 +5,6 @@ import org.jetbrains.kotlin.ir.builders.irString
 import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.expressions.IrConstKind
 import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.ir.types.classFqName
-import org.jetbrains.kotlin.ir.util.superTypes
 
 internal class StringConcatenationProcessor(private val builder: IrBuilderWithScope) {
     // first: fragments, second: values
@@ -14,30 +12,36 @@ internal class StringConcatenationProcessor(private val builder: IrBuilderWithSc
         val fragments = mutableListOf<IrExpression>()
         val values = mutableListOf<IrExpression>()
 
-        val iterator = expressions.iterator()
-        var mustAddFragment = true
-
-        while (iterator.hasNext()) {
-            val current = iterator.next()
-            if (isFragment(current)) {
-                fragments.add(current)
-                mustAddFragment = false
+        // K2 constant-folds `const val` references into standalone IrConst nodes without merging
+        // them with adjacent literal fragments, so consecutive constants must be concatenated here
+        // to keep the fragments/values invariant expected by `DefaultSqlBuilder.interpolate`.
+        val pending = StringBuilder()
+        for (expression in expressions) {
+            val text = fragmentTextOrNull(expression)
+            if (text != null) {
+                pending.append(text)
             } else {
                 // The reason for adding an empty string fragment can be found in `DefaultSqlBuilder.interpolate`.
-                if (mustAddFragment) {
-                    fragments.add(builder.irString(""))
-                }
-                values.add(current)
-                mustAddFragment = true
+                fragments.add(builder.irString(pending.toString()))
+                pending.clear()
+                values.add(expression)
             }
+        }
+        if (pending.isNotEmpty()) {
+            fragments.add(builder.irString(pending.toString()))
         }
 
         return fragments to values
     }
 
-    private fun isFragment(expression: IrExpression): Boolean {
-        val isString = expression.type.classFqName?.asString() == ClassNames.STRING ||
-            expression.type.superTypes().any { it.classFqName?.asString() == ClassNames.STRING }
-        return isString && expression is IrConst && expression.kind == IrConstKind.String
+    // Compile-time String/Char constants become SQL text, while runtime values are bound as parameters.
+    private fun fragmentTextOrNull(expression: IrExpression): String? {
+        if (expression !is IrConst) {
+            return null
+        }
+        return when (expression.kind) {
+            IrConstKind.String, IrConstKind.Char -> expression.value.toString()
+            else -> null
+        }
     }
 }

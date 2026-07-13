@@ -5,6 +5,9 @@ import assertk.assertions.isEqualTo
 import io.mockk.InternalPlatformDsl.toStr
 import org.junit.jupiter.api.Test
 
+private const val TABLE = "users"
+private const val ORDER_COLUMN = "created_at"
+
 class StringInterpolationTest {
     @Test
     fun none() {
@@ -251,6 +254,98 @@ class StringInterpolationTest {
                     NamedSqlParameter("p1", "Y"),
                     NamedSqlParameter("p2", "Z"),
                 ),
+            ),
+        )
+    }
+
+    @Test
+    fun `const val string interpolation`() {
+        val id = 1
+        val sql = Sql {
+            +"SELECT * FROM $TABLE WHERE id = $id"
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "SELECT * FROM users WHERE id = :p0",
+                listOf(NamedSqlParameter("p0", 1)),
+            ),
+        )
+    }
+
+    @Test
+    fun `const val only`() {
+        val sql = Sql {
+            +"$TABLE"
+        }
+        assertThat(sql).isEqualTo(Sql("users"))
+    }
+
+    @Test
+    fun `trailing const val`() {
+        val id = 1
+        val sql = Sql {
+            +"WHERE id = $id ORDER BY $ORDER_COLUMN"
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "WHERE id = :p0 ORDER BY created_at",
+                listOf(NamedSqlParameter("p0", 1)),
+            ),
+        )
+    }
+
+    @Test
+    fun `char constant string interpolation`() {
+        val x = 1
+        val sql = Sql {
+            +"SELECT data->>'${'$'}name' FROM t WHERE id = $x"
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "SELECT data->>'\$name' FROM t WHERE id = :p0",
+                listOf(NamedSqlParameter("p0", 1)),
+            ),
+        )
+    }
+
+    @Test
+    fun `char percent constant string interpolation`() {
+        val keyword = "foo"
+        val sql = Sql {
+            +"WHERE name LIKE ${'%'}$keyword${'%'}"
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "WHERE name LIKE %:p0%",
+                listOf(NamedSqlParameter("p0", "foo")),
+            ),
+        )
+    }
+
+    @Test
+    fun `consecutive constants are merged`() {
+        val x = 1
+        val sql = Sql {
+            +"a$TABLE${'c'} $x"
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "ausersc :p0",
+                listOf(NamedSqlParameter("p0", 1)),
+            ),
+        )
+    }
+
+    @Test
+    fun `literal string interpolation mixed with runtime value`() {
+        val x = 1
+        val sql = Sql {
+            +"a ${"hoge"} b $x"
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "a hoge b :p0",
+                listOf(NamedSqlParameter("p0", 1)),
             ),
         )
     }
