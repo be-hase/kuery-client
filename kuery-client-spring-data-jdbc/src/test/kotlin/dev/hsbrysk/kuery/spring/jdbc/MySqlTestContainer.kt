@@ -8,7 +8,7 @@ import org.testcontainers.mysql.MySQLContainer
 
 class MySqlTestContainer : AutoCloseable {
     private val mysqlContainer = MySQLContainer("mysql:8.0.37").also { it.start() }
-    private val dataSource = MysqlDataSource().apply {
+    val dataSource = MysqlDataSource().apply {
         setURL(mysqlContainer.jdbcUrl)
         user = mysqlContainer.username
         password = mysqlContainer.password

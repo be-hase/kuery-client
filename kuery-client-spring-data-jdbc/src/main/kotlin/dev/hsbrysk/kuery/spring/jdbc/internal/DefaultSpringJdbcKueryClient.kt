@@ -1,5 +1,6 @@
 package dev.hsbrysk.kuery.spring.jdbc.internal
 
+import dev.hsbrysk.kuery.core.CloseableSequence
 import dev.hsbrysk.kuery.core.KueryBlockingClient
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
@@ -25,7 +26,6 @@ import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec
 import org.springframework.jdbc.support.GeneratedKeyHolder
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
-import kotlin.streams.asSequence
 
 internal class DefaultSpringJdbcKueryClient(
     private val jdbcClient: JdbcClient,
@@ -150,20 +150,20 @@ internal class DefaultSpringJdbcKueryClient(
             buildSpec().queryType(returnType).list()
         }
 
-        override fun sequenceMap(): Sequence<Map<String, Any?>> {
+        override fun sequenceMap(): CloseableSequence<Map<String, Any?>> {
             // TODO:
             // I also want to measure the observation of flow.
             // However, should it be the time until the flow terminates or the time until the first element is obtained?
             // There are many uncertainties, so I will not implement it for now.
-            return buildSpec().query(ColumnMapRowMapper()).stream().asSequence()
+            return buildSpec().query(ColumnMapRowMapper()).stream().asCloseableSequence()
         }
 
-        override fun <T : Any> sequence(returnType: KClass<T>): Sequence<T> {
+        override fun <T : Any> sequence(returnType: KClass<T>): CloseableSequence<T> {
             // TODO:
             // I also want to measure the observation of flow.
             // However, should it be the time until the flow terminates or the time until the first element is obtained?
             // There are many uncertainties, so I will not implement it for now.
-            return buildSpec().queryType(returnType).stream().asSequence()
+            return buildSpec().queryType(returnType).stream().asCloseableSequence()
         }
 
         override fun rowsUpdated(): Long = observe {
