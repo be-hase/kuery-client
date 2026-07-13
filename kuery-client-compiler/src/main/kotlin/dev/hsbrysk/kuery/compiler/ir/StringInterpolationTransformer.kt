@@ -4,11 +4,15 @@ import dev.hsbrysk.kuery.compiler.ir.misc.CallableIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassNames
 import dev.hsbrysk.kuery.compiler.ir.misc.StringConcatenationProcessor
+import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
+import org.jetbrains.kotlin.ir.builders.irBlock
 import org.jetbrains.kotlin.ir.builders.irCall
+import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.builders.irVararg
 import org.jetbrains.kotlin.ir.declarations.IrParameterKind
+import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrStringConcatenation
@@ -20,69 +24,60 @@ import org.jetbrains.kotlin.ir.types.typeWith
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.irCastIfNeeded
 import org.jetbrains.kotlin.ir.util.isVararg
-import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 
 @Suppress("OPT_IN_USAGE")
-class StringInterpolationTransformer(private val pluginContext: IrPluginContext) : IrElementTransformerVoid() {
-    private var current: IrCall? = null
+class StringInterpolationTransformer(private val pluginContext: IrPluginContext) :
+    IrElementTransformerVoidWithContext() {
+    // The SqlBuilder receiver of the enclosing add/unaryPlus call, hoisted into a temporary
+    // variable so that both the addUnsafe call and the interpolate call can reference it
+    // without sharing (and thus double-evaluating) the original receiver expression.
+    private var current: IrVariable? = null
 
     override fun visitCall(expression: IrCall): IrExpression {
-        if (expression.isAddOrUnaryPlus()) {
-            // Save/restore so that a nested add/unaryPlus inside the argument expression
-            // doesn't clear the enclosing call's context.
-            val previous = current
-            return try {
-                current = expression
-                super.visitCall(expression)
+        if (!expression.isAddOrUnaryPlus()) {
+            return super.visitCall(expression)
+        }
 
+        // Save/restore so that a nested add/unaryPlus inside the argument expression
+        // doesn't clear the enclosing call's context.
+        val previous = current
+        return try {
+            val receiver = checkNotNull(expression.dispatchReceiver).transform(this, null)
+            val temporary = checkNotNull(currentScope).scope.createTemporaryVariable(
+                receiver,
+                nameHint = "kueryClientSqlBuilder",
+            )
+            current = temporary
+
+            val sqlArgumentParameter = expression.symbol.owner.parameters.first {
                 when (expression.symbol.owner.name.asString()) {
-                    "add" -> transformAddCall(expression)
-                    "unaryPlus" -> transformUnaryPlusCall(expression)
+                    "add" -> it.kind == IrParameterKind.Regular
+                    "unaryPlus" -> it.kind == IrParameterKind.ExtensionReceiver
                     else -> error("Unexpected error") // not happened
                 }
-            } finally {
-                current = previous
             }
-        }
+            val sqlArgument = checkNotNull(expression.arguments[sqlArgumentParameter.indexInParameters])
+                .transform(this, null)
 
-        return super.visitCall(expression)
-    }
-
-    private fun transformAddCall(expression: IrCall): IrCall {
-        val builder = irBuilder(expression)
-        val sqlBuilder = checkNotNull(expression.dispatchReceiver)
-        val sqlBuilderClass = sqlBuilder.type.classOrFail
-        val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
-        return builder.irCall(addUnsafe).apply {
-            dispatchReceiver = sqlBuilder
-            val addUnsafeParam = addUnsafe.owner.parameters.first { it.kind == IrParameterKind.Regular }
-            val sqlArgument = expression.arguments[
-                expression.symbol.owner.parameters.first { it.kind == IrParameterKind.Regular }.indexInParameters,
-            ]
-            arguments[addUnsafeParam] = sqlArgument
-        }
-    }
-
-    private fun transformUnaryPlusCall(expression: IrCall): IrCall {
-        val builder = irBuilder(expression)
-        val sqlBuilder = checkNotNull(expression.dispatchReceiver)
-        val sqlBuilderClass = sqlBuilder.type.classOrFail
-        val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
-        return builder.irCall(addUnsafe).apply {
-            dispatchReceiver = sqlBuilder
-            val addUnsafeParam = addUnsafe.owner.parameters.first { it.kind == IrParameterKind.Regular }
-            val extensionReceiverValue = expression.arguments[
-                expression.symbol.owner.parameters.first {
-                    it.kind == IrParameterKind.ExtensionReceiver
-                }.indexInParameters,
-            ]
-            arguments[addUnsafeParam] = extensionReceiverValue
+            val builder = irBuilder(expression)
+            val sqlBuilderClass = temporary.type.classOrFail
+            val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
+            builder.irBlock(resultType = pluginContext.irBuiltIns.unitType) {
+                +temporary
+                +irCall(addUnsafe).apply {
+                    dispatchReceiver = irGet(temporary)
+                    val addUnsafeParam = addUnsafe.owner.parameters.first { it.kind == IrParameterKind.Regular }
+                    arguments[addUnsafeParam] = sqlArgument
+                }
+            }
+        } finally {
+            current = previous
         }
     }
 
     override fun visitStringConcatenation(expression: IrStringConcatenation): IrExpression {
         val current = current ?: return super.visitStringConcatenation(expression)
-        val builder = irBuilder(current)
+        val builder = irBuilder(expression)
 
         val (fragments, values) = StringConcatenationProcessor(builder).process(expression.arguments).let {
             Pair(
@@ -97,7 +92,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
 
         return builder.irCall(interpolate).apply {
             dispatchReceiver = builder.irCastIfNeeded(
-                checkNotNull(current.dispatchReceiver),
+                builder.irGet(current),
                 defaultSqlBuilderClass.typeWith(),
             )
             val regularParams = interpolate.owner.parameters.filter { it.kind == IrParameterKind.Regular }
@@ -106,9 +101,9 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         }
     }
 
-    private fun irBuilder(expression: IrCall): DeclarationIrBuilder = DeclarationIrBuilder(
+    private fun irBuilder(expression: IrExpression): DeclarationIrBuilder = DeclarationIrBuilder(
         pluginContext,
-        expression.symbol,
+        checkNotNull(currentScope).scope.scopeOwnerSymbol,
         expression.startOffset,
         expression.endOffset,
     )
