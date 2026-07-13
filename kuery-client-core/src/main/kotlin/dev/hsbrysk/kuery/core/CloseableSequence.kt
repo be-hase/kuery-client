@@ -14,6 +14,9 @@ package dev.hsbrysk.kuery.core
  * ```
  *
  * This sequence can be iterated only once.
+ *
+ * Like ordinary [Sequence]s (and the underlying JDBC resources), this sequence is not thread-safe;
+ * obtain and iterate it on a single thread.
  */
 interface CloseableSequence<out T> :
     Sequence<T>,
