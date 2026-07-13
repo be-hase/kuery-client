@@ -44,6 +44,18 @@ class EnumConversionTest {
         assertThat(map["text"]).isEqualTo("HOGE")
     }
 
+    @Test
+    fun testInCollection() {
+        kueryClient.sql {
+            +"INSERT INTO converter (text) VALUES (${SampleEnum.HOGE})"
+        }.rowsUpdated()
+
+        val record: Record = kueryClient.sql {
+            +"SELECT * FROM converter WHERE text IN (${listOf(SampleEnum.HOGE)})"
+        }.single()
+        assertThat(record.text).isEqualTo(SampleEnum.HOGE)
+    }
+
     companion object {
         private val mysql = MySqlTestContainer()
 

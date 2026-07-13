@@ -86,10 +86,10 @@ internal class DefaultSpringR2dbcKueryClient(
             null
         } else {
             val targetType = customConversions.getCustomWriteTarget(it::class.java)
-            if (targetType.isPresent) {
-                conversionService.convert(it, targetType.get())
-            } else {
-                it
+            when {
+                targetType.isPresent -> conversionService.convert(it, targetType.get())
+                it is Enum<*> -> it.name
+                else -> it
             }
         }
     }
@@ -99,10 +99,10 @@ internal class DefaultSpringR2dbcKueryClient(
             null
         } else {
             val targetType = customConversions.getCustomWriteTarget(it::class.java)
-            if (targetType.isPresent) {
-                conversionService.convert(it, targetType.get())
-            } else {
-                it
+            when {
+                targetType.isPresent -> conversionService.convert(it, targetType.get())
+                it is Enum<*> -> it.name
+                else -> it
             }
         }
     }.toTypedArray()
