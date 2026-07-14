@@ -2,6 +2,16 @@ package dev.hsbrysk.kuery.core
 
 import org.intellij.lang.annotations.Language
 
+/**
+ * DSL scope for building SQL.
+ *
+ * This interface is not intended to be implemented by users (e.g. as a test fake).
+ * The compiler plugin assumes the receiver is the library's internal implementation:
+ * a user implementation fails with [ClassCastException] at runtime, and if the static type
+ * of the receiver is a subtype of [SqlBuilder], the rewrite is skipped entirely and the raw
+ * interpolated string is passed to [add] — losing the parameter-binding guarantee this
+ * library exists to provide.
+ */
 @SqlBuilderMarker
 interface SqlBuilder {
     /**
