@@ -66,7 +66,14 @@ internal class DefaultSqlBuilder : SqlBuilder {
         internal const val PARAMETER_NAME_PREFIX = "p"
         internal const val PARAMETER_NAME_PREFIX_WITH_COLON = ":$PARAMETER_NAME_PREFIX"
 
-        fun <T> injectByPlugin(): T =
-            error("kuery-client-compiler plugin is not loaded or you are using an unsupported usage.")
+        fun <T> injectByPlugin(): T = error(
+            "`SqlBuilder.add`/`String.unaryPlus` must be rewritten by the kuery-client compiler plugin, " +
+                "but this call was not. " +
+                "Make sure the Gradle plugin `dev.hsbrysk.kuery-client` is applied to the module " +
+                "containing this call. " +
+                "If it is already applied, this call site is an unsupported usage that the plugin cannot rewrite " +
+                "(e.g. calling through a subtype of SqlBuilder, or via a function/reflection reference). " +
+                "See https://kuery-client.hsbrysk.dev/getting-started for setup instructions.",
+        )
     }
 }
