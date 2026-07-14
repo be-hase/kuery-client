@@ -93,13 +93,16 @@ In the future, we may add a different foundation or possibly create a new one fr
 
 #### Gradle
 
+Replace `<version>` with the latest version, which you can find in the Maven Central badge above or on
+the [Getting Started](https://kuery-client.hsbrysk.dev/getting-started) page.
+
 ```kotlin
 plugins {
-    id("dev.hsbrysk.kuery-client") version "{{version}}"
+    id("dev.hsbrysk.kuery-client") version "<version>"
 }
 
-implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-r2dbc:{{version}}")
-// or, implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-jdbc:{{version}}")
+implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-r2dbc:<version>")
+// or, implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-jdbc:<version>")
 ```
 
 ### Build KueryClient

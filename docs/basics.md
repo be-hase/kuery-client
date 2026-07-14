@@ -50,6 +50,69 @@ kueryClient
     }
 ```
 
+### Compile-time constants are expanded as text
+
+Only runtime values are bound as parameters. Compile-time `String` / `Char` constants inside a
+template — string literals like `${"users"}`, references to a `const val`, and `Char` constants
+like `${'$'}` — are expanded into the SQL text at compile time instead of being bound.
+
+```kotlin
+const val TABLE = "users"
+
+kueryClient
+    .sql {
+        +"SELECT * FROM $TABLE WHERE user_id = $userId"
+        // SQL body: SELECT * FROM users WHERE user_id = :p0
+    }
+```
+
+This also means a literal `$` comes out right. `$` cannot be written as-is in a Kotlin string
+template (and raw strings have no backslash escaping), so the idiomatic escape is the `Char`
+constant `${'$'}` — which is simply expanded back into the SQL text:
+
+```kotlin
+kueryClient
+    .sql {
+        +"SELECT data->>'${'$'}.name' FROM articles WHERE article_id = $articleId"
+        // SQL body: SELECT data->>'$.name' FROM articles WHERE article_id = :p0
+    }
+```
+
+Constants of other types (`${1}`, `${true}`, `${null}`, ...) are still bound as parameters —
+only `String` and `Char` constants are expanded as text.
+
+Note that a `String` constant intended as a *value* (e.g. `WHERE name = $NAME_CONST`) is expanded
+without quoting, so the query will most likely fail with a database error. Since it is a
+compile-time constant this cannot cause SQL injection, but if you want it bound, use a non-const
+`val`.
+
+### Collections and arrays
+
+A `Collection` is bound as a single named parameter that Spring expands into the individual
+elements — this is what you want for `IN` clauses:
+
+```kotlin
+val statuses = listOf(UserStatus.ACTIVE, UserStatus.INACTIVE)
+kueryClient
+    .sql {
+        +"SELECT * FROM users WHERE status IN ($statuses)"
+    }
+```
+
+An array is different: it is passed to the driver as a single array value with its element type
+preserved. It is *not* expanded for `IN`. Use arrays with databases that support them natively,
+such as PostgreSQL (`= ANY(...)`, array columns):
+
+```kotlin
+val usernames = arrayOf("user1", "user2")
+kueryClient
+    .sql {
+        +"SELECT * FROM users WHERE username = ANY($usernames)"
+    }
+```
+
+MySQL has no array type, so use a `Collection` for `IN` clauses there.
+
 ## Logic such as `if` and `for` ...etc
 
 Just write using Kotlin syntax. There is no need to learn special syntax.
