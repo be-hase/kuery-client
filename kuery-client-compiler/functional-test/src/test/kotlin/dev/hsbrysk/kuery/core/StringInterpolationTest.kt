@@ -190,6 +190,7 @@ class StringInterpolationTest {
         )
     }
 
+    @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
     fun `nested add`() {
         val x = "X"
@@ -210,6 +211,7 @@ class StringInterpolationTest {
         )
     }
 
+    @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
     fun `nested unaryPlus`() {
         val x = "X"
@@ -228,6 +230,7 @@ class StringInterpolationTest {
         )
     }
 
+    @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
     fun `doubly nested add`() {
         val x = "X"
@@ -276,6 +279,16 @@ class StringInterpolationTest {
     fun `const val only`() {
         val sql = Sql {
             +"$TABLE"
+        }
+        assertThat(sql).isEqualTo(Sql("users"))
+    }
+
+    @Test
+    fun `const val as whole argument`() {
+        // A const val reference is a compile-time constant, so it is accepted without
+        // a KUERY_UNSAFE_SQL_STRING warning and executed as raw SQL text.
+        val sql = Sql {
+            add(TABLE)
         }
         assertThat(sql).isEqualTo(Sql("users"))
     }

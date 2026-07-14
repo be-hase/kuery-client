@@ -196,6 +196,7 @@ class SqlTest {
         )
     }
 
+    @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
     fun mixedOrder() {
         val sql = Sql {
