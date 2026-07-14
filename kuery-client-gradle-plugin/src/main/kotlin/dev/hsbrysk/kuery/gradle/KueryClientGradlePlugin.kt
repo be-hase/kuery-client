@@ -3,6 +3,7 @@ package dev.hsbrysk.kuery.gradle
 import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
@@ -18,6 +19,12 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
         version = BuildConfig.VERSION,
     )
 
+    // kuery-client-core is a JVM-only library, so the compiler plugin is only meaningful
+    // for JVM compilations. Without this restriction, in a multiplatform project the plugin
+    // would also be injected into JS/Native/wasm compilations.
     override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean =
-        kotlinCompilation.target.project.plugins.hasPlugin(KueryClientGradlePlugin::class.java)
+        when (kotlinCompilation.target.platformType) {
+            KotlinPlatformType.jvm, KotlinPlatformType.androidJvm -> true
+            else -> false
+        }
 }
