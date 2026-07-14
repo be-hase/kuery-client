@@ -14,32 +14,7 @@ interface Sql {
      */
     val parameters: List<NamedSqlParameter>
 
-    companion object {
-        /**
-         * Create [Sql]
-         */
-        @Deprecated(
-            message = "Use `dev.hsbrysk.kuery.core.Sql` function instead.",
-            replaceWith = ReplaceWith("Sql(body, parameters)"),
-        )
-        fun of(
-            body: String,
-            parameters: List<NamedSqlParameter>,
-        ): Sql = DefaultSql(body, parameters.toList())
-
-        /**
-         * Create [Sql] using [SqlBuilder]
-         */
-        @Deprecated(
-            message = "Use `dev.hsbrysk.kuery.core.Sql` function instead.",
-            replaceWith = ReplaceWith("Sql(block)"),
-        )
-        fun create(block: SqlBuilder.() -> Unit): Sql {
-            val builder = DefaultSqlBuilder()
-            block(builder)
-            return builder.build()
-        }
-    }
+    companion object
 }
 
 /**
