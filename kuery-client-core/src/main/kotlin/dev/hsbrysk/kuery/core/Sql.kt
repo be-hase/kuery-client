@@ -25,7 +25,7 @@ interface Sql {
         fun of(
             body: String,
             parameters: List<NamedSqlParameter>,
-        ): Sql = DefaultSql(body, parameters)
+        ): Sql = DefaultSql(body, parameters.toList())
 
         /**
          * Create [Sql] using [SqlBuilder]
@@ -48,7 +48,7 @@ interface Sql {
 fun Sql(
     body: String,
     parameters: List<NamedSqlParameter> = emptyList(),
-): Sql = DefaultSql(body, parameters)
+): Sql = DefaultSql(body, parameters.toList())
 
 /**
  * Create [Sql] using [SqlBuilder]

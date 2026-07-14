@@ -97,6 +97,18 @@ class DefaultSqlBuilderTest {
     }
 
     @Test
+    fun buildIsNotAffectedByLaterBind() {
+        val builder = DefaultSqlBuilder().apply {
+            addUnsafe("SELECT * FROM some_table WHERE id = ${bind(1)}")
+        }
+        val sql = builder.build()
+
+        builder.bind(2)
+
+        assertThat(sql.parameters).isEqualTo(listOf(NamedSqlParameter("p0", 1)))
+    }
+
+    @Test
     fun interpolate() {
         assertThat(DefaultSqlBuilder().interpolate(emptyList(), emptyList())).isEqualTo("")
         assertThat(DefaultSqlBuilder().interpolate(listOf("a"), emptyList())).isEqualTo("a")
