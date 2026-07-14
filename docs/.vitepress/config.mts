@@ -42,7 +42,7 @@ export default defineConfig({
                     {text: "Transaction", link: '/transaction'},
                     {text: "Type Conversion", link: '/type-conversion'},
                     {text: "Observation", link: '/observation'},
-                    {text: "Detekt Custom Rules", link: '/detekt'},
+                    {text: "Compiler Safety Check", link: '/compiler-safety-check'},
                     {text: "Helpers", link: '/helpers'},
                     {text: "Examples", link: '/examples'},
                     {text: "Compatibility", link: '/compatibility'},
