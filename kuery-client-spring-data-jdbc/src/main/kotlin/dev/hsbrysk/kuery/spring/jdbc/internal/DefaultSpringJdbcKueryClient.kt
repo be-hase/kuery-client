@@ -26,6 +26,7 @@ import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec
 import org.springframework.jdbc.support.GeneratedKeyHolder
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
+import java.lang.reflect.Array as ReflectArray
 
 internal class DefaultSpringJdbcKueryClient(
     private val jdbcClient: JdbcClient,
@@ -75,31 +76,32 @@ internal class DefaultSpringJdbcKueryClient(
         }
     }
 
-    private fun convertCollection(collection: Collection<*>): Collection<*> = collection.map {
-        if (it == null) {
-            null
-        } else {
-            val targetType = customConversions.getCustomWriteTarget(it::class.java)
-            when {
-                targetType.isPresent -> conversionService.convert(it, targetType.get())
-                it is Enum<*> -> it.name
-                else -> it
-            }
+    private fun convertCollection(collection: Collection<*>): Collection<*> = collection.map { convertElement(it) }
+
+    // The runtime component type must be preserved (e.g. String[] stays String[]); drivers
+    // resolve the SQL array type from it, and pgjdbc rejects Object[] outright.
+    private fun convertArray(array: Array<*>): Array<*> {
+        val converted = array.map { convertElement(it) }
+        if (array.indices.all { converted[it] === array[it] }) {
+            return array
         }
+        val componentType = converted.mapNotNull { it?.javaClass }.distinct().singleOrNull() ?: Any::class.java
+        val result = ReflectArray.newInstance(componentType, array.size)
+        converted.forEachIndexed { index, value -> ReflectArray.set(result, index, value) }
+        return result as Array<*>
     }
 
-    private fun convertArray(array: Array<*>): Array<*> = array.map {
-        if (it == null) {
-            null
-        } else {
-            val targetType = customConversions.getCustomWriteTarget(it::class.java)
-            when {
-                targetType.isPresent -> conversionService.convert(it, targetType.get())
-                it is Enum<*> -> it.name
-                else -> it
-            }
+    private fun convertElement(element: Any?): Any? {
+        if (element == null) {
+            return null
         }
-    }.toTypedArray()
+        val targetType = customConversions.getCustomWriteTarget(element::class.java)
+        return when {
+            targetType.isPresent -> conversionService.convert(element, targetType.get())
+            element is Enum<*> -> element.name
+            else -> element
+        }
+    }
 
     @Suppress("TooManyFunctions")
     inner class FetchSpec(
