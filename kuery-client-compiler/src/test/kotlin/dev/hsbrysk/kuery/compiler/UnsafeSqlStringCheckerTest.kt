@@ -136,6 +136,54 @@ class UnsafeSqlStringCheckerTest {
     }
 
     @Test
+    fun `no warning for extension function helpers writing common query parts`() {
+        // Mirrors the documented helper style: common WHERE clauses etc. written as
+        // SqlBuilder extension functions using add/unaryPlus with string templates.
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+            import dev.hsbrysk.kuery.core.SqlBuilder
+
+            fun SqlBuilder.whereActiveUser(tenantId: Int, name: String?) {
+                +"WHERE tenant_id = ${'$'}tenantId"
+                +"AND status = 'ACTIVE'"
+                name?.let { +"AND name = ${'$'}it" }
+            }
+
+            fun SqlBuilder.paging(limit: Int, offset: Int) {
+                add("LIMIT ${'$'}limit OFFSET ${'$'}offset")
+            }
+
+            fun query(tenantId: Int) {
+                Sql {
+                    +"SELECT * FROM users"
+                    whereActiveUser(tenantId, null)
+                    paging(10, 0)
+                }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+        )
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `warn when an extension helper passes its parameter to unaryPlus`() {
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.SqlBuilder
+
+            fun SqlBuilder.rawFragment(fragment: String) {
+                +fragment
+            }
+            """.trimIndent(),
+        )
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
     fun `warning can be suppressed by diagnostic name`() {
         val result = compile(
             """
