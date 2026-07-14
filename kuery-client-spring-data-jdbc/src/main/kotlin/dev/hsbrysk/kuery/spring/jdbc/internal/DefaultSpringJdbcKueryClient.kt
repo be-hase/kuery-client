@@ -178,7 +178,9 @@ internal class DefaultSpringJdbcKueryClient(
             } else {
                 spec.update(keyHolder, *columns)
             }
-            checkNotNull(keyHolder.keys)
+            // Align the exception types with the R2DBC module: EmptyResultDataAccessException when no
+            // keys were generated (e.g. non-INSERT), IncorrectResultSizeDataAccessException for multi-row.
+            DataAccessUtils.requiredSingleResult(keyHolder.keyList)
         }
 
         private fun <T> observe(block: () -> T): T {
