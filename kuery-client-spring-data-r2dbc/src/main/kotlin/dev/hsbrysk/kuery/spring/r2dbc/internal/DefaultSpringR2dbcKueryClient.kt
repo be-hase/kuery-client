@@ -11,6 +11,7 @@ import dev.hsbrysk.kuery.core.observation.KueryClientObservationDocumentation
 import dev.hsbrysk.kuery.spring.r2dbc.SpringR2dbcKueryClient
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
+import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
@@ -116,29 +117,37 @@ internal class DefaultSpringR2dbcKueryClient(
         override fun fetchSize(fetchSize: Int): KueryClient.FetchSpec =
             FetchSpec(sqlId, sql, spec.filter(Function { it.fetchSize(fetchSize) }))
 
-        override suspend fun singleMap(): Map<String, Any?> = observe {
-            spec.fetch().one().sqlId(sqlId).awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
-        }
+        override suspend fun singleMap(): Map<String, Any?> = spec.fetch().one()
+            .switchIfEmpty(Mono.error { EmptyResultDataAccessException(1) })
+            .sqlId(sqlId)
+            .observe()
+            .awaitSingle()
 
-        override suspend fun singleMapOrNull(): Map<String, Any?>? = observe {
-            spec.fetch().one().sqlId(sqlId).awaitSingleOrNull()
-        }
+        override suspend fun singleMapOrNull(): Map<String, Any?>? = spec.fetch().one()
+            .sqlId(sqlId)
+            .observe()
+            .awaitSingleOrNull()
 
-        override suspend fun <T : Any> single(returnType: KClass<T>): T = observe {
-            spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull() ?: throw EmptyResultDataAccessException(1)
-        }
+        override suspend fun <T : Any> single(returnType: KClass<T>): T = spec.map(returnType).one()
+            .switchIfEmpty(Mono.error { EmptyResultDataAccessException(1) })
+            .sqlId(sqlId)
+            .observe()
+            .awaitSingle()
 
-        override suspend fun <T : Any> singleOrNull(returnType: KClass<T>): T? = observe {
-            spec.map(returnType).one().sqlId(sqlId).awaitSingleOrNull()
-        }
+        override suspend fun <T : Any> singleOrNull(returnType: KClass<T>): T? = spec.map(returnType).one()
+            .sqlId(sqlId)
+            .observe()
+            .awaitSingleOrNull()
 
-        override suspend fun listMap(): List<Map<String, Any?>> = observe {
-            spec.fetch().all().collectList().sqlId(sqlId).awaitSingle()
-        }
+        override suspend fun listMap(): List<Map<String, Any?>> = spec.fetch().all().collectList()
+            .sqlId(sqlId)
+            .observe()
+            .awaitSingle()
 
-        override suspend fun <T : Any> list(returnType: KClass<T>): List<T> = observe {
-            spec.map(returnType).all().collectList().sqlId(sqlId).awaitSingle()
-        }
+        override suspend fun <T : Any> list(returnType: KClass<T>): List<T> = spec.map(returnType).all().collectList()
+            .sqlId(sqlId)
+            .observe()
+            .awaitSingle()
 
         override fun flowMap(): Flow<Map<String, Any?>> {
             // TODO:
@@ -156,41 +165,55 @@ internal class DefaultSpringR2dbcKueryClient(
             return spec.map(returnType).all().sqlId(sqlId).asFlow()
         }
 
-        override suspend fun rowsUpdated(): Long = observe {
-            spec.fetch().rowsUpdated().sqlId(sqlId).awaitSingle()
-        }
+        override suspend fun rowsUpdated(): Long = spec.fetch().rowsUpdated()
+            .sqlId(sqlId)
+            .observe()
+            .awaitSingle()
 
-        override suspend fun generatedValues(vararg columns: String): Map<String, Any> = observe {
-            spec.filter(Function { it.returnGeneratedValues(*columns) }).fetch().one().sqlId(sqlId).awaitSingleOrNull()
-                ?: throw EmptyResultDataAccessException(1)
-        }
+        override suspend fun generatedValues(vararg columns: String): Map<String, Any> =
+            spec.filter(Function { it.returnGeneratedValues(*columns) }).fetch().one()
+                .switchIfEmpty(Mono.error { EmptyResultDataAccessException(1) })
+                .sqlId(sqlId)
+                .observe()
+                .awaitSingle()
 
-        private suspend fun <T> observe(block: suspend () -> T): T {
-            val observation = observationOrNull() ?: return block()
-
-            observation.start()
-            return observation.openScope().use {
-                try {
-                    block()
-                } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-                    observation.error(e)
-                    throw e
-                } finally {
-                    observation.stop()
-                }
+        // Do NOT open a ThreadLocal-based Observation.Scope here. The caller suspends (awaitSingle etc.),
+        // and an open scope would leak to unrelated coroutines running on the same thread while suspended.
+        // Propagate the observation via the Reactor context instead, so downstream instrumentation
+        // (r2dbc-proxy, Spring Boot's automatic context propagation) can restore it.
+        // Same pattern as Spring's DefaultWebClient.exchange().
+        //
+        // The observation is stopped via usingWhen's cleanup handlers, which run BEFORE the terminal
+        // signal propagates downstream — this guarantees the observation is already stopped when the
+        // suspending caller resumes from awaitXxx.
+        private fun <T : Any> Mono<T>.observe(): Mono<T> {
+            val registry = observationRegistry ?: return this
+            return Mono.deferContextual { contextView ->
+                Mono.usingWhen(
+                    Mono.fromSupplier {
+                        KueryClientObservationDocumentation.FETCH
+                            .observation(
+                                observationConvention,
+                                defaultObservationConvention,
+                                { KueryClientFetchContext(sqlId, sql) },
+                                registry,
+                            )
+                            .parentObservation(
+                                contextView.getOrEmpty<Observation>(ObservationThreadLocalAccessor.KEY).orElse(null),
+                            )
+                            .start()
+                    },
+                    { observation -> this.contextWrite { it.put(ObservationThreadLocalAccessor.KEY, observation) } },
+                    { observation -> Mono.fromRunnable<Unit> { observation.stop() } },
+                    { observation, e ->
+                        Mono.fromRunnable<Unit> {
+                            observation.error(e)
+                            observation.stop()
+                        }
+                    },
+                    { observation -> Mono.fromRunnable<Unit> { observation.stop() } },
+                )
             }
-        }
-
-        private fun observationOrNull(): Observation? {
-            if (observationRegistry == null) {
-                return null
-            }
-            return KueryClientObservationDocumentation.FETCH.observation(
-                observationConvention,
-                defaultObservationConvention,
-                { KueryClientFetchContext(sqlId, sql) },
-                observationRegistry,
-            )
         }
 
         private fun <T : Any> Mono<T>.sqlId(sqlId: String): Mono<T> = contextWrite {

@@ -1,14 +1,25 @@
 package dev.hsbrysk.kuery.spring.r2dbc
 
+import assertk.assertFailure
+import assertk.assertThat
+import assertk.assertions.isEmpty
+import assertk.assertions.isInstanceOf
 import com.example.spring.r2dbc.UserRepository
+import io.micrometer.observation.Observation
 import io.micrometer.observation.tck.TestObservationRegistry
 import io.micrometer.observation.tck.TestObservationRegistryAssert
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.r2dbc.core.awaitRowsUpdated
+import java.util.concurrent.Executors
 
 class ObservationTest {
     private val registry = TestObservationRegistry.create()
@@ -111,6 +122,38 @@ class ObservationTest {
             sqlId = "com.example.spring.r2dbc.UserRepository.generatedValues",
             sql = "INSERT INTO users (username, email) VALUES (:p0, :p1)",
         )
+    }
+
+    @Test
+    fun `records error when single result is missing`() = runTest {
+        assertFailure { userRepository.singleMap(999) }.isInstanceOf(EmptyResultDataAccessException::class)
+        TestObservationRegistryAssert.assertThat(registry)
+            .doesNotHaveAnyRemainingCurrentObservation()
+            .hasObservationWithNameEqualTo("kuery.client.fetches")
+            .that()
+            .hasBeenStarted()
+            .hasBeenStopped()
+            .hasError()
+    }
+
+    @Test
+    fun `does not leak observation to sibling coroutines on the same thread`() {
+        Executors.newSingleThreadExecutor().asCoroutineDispatcher().use { dispatcher ->
+            runBlocking(dispatcher) {
+                val query = launch {
+                    kueryClient.sql { +"SELECT SLEEP(1)" }.singleMap()
+                }
+                // While the query coroutine is suspended in awaitXxx (guaranteed by SLEEP(1)),
+                // sample the ThreadLocal current observation from a sibling coroutine on the same thread.
+                val leaked = mutableListOf<Observation>()
+                repeat(8) {
+                    delay(100)
+                    registry.currentObservation?.let { leaked.add(it) }
+                }
+                query.join()
+                assertThat(leaked).isEmpty()
+            }
+        }
     }
 
     private fun assertObservation(
