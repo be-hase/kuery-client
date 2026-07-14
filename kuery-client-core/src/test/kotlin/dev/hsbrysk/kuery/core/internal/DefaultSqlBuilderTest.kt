@@ -1,9 +1,13 @@
 package dev.hsbrysk.kuery.core.internal
 
+import assertk.all
 import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotNull
+import assertk.assertions.message
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
 import org.junit.jupiter.api.Test
@@ -14,6 +18,10 @@ class DefaultSqlBuilderTest {
         assertFailure {
             DefaultSqlBuilder().add("")
         }.isInstanceOf(IllegalStateException::class)
+            .message().isNotNull().all {
+                contains("dev.hsbrysk.kuery-client")
+                contains("https://kuery-client.hsbrysk.dev/")
+            }
     }
 
     @Test
@@ -23,6 +31,10 @@ class DefaultSqlBuilderTest {
                 +""
             }
         }.isInstanceOf(IllegalStateException::class)
+            .message().isNotNull().all {
+                contains("dev.hsbrysk.kuery-client")
+                contains("https://kuery-client.hsbrysk.dev/")
+            }
     }
 
     @Test

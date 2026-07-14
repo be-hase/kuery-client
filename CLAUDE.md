@@ -49,7 +49,7 @@ Integration tests (`kuery-client-spring-data-r2dbc`, `kuery-client-spring-data-j
 
 ### Compiler Plugin (the key mechanism)
 
-`SqlBuilder.add(sql)` and `+"sql"` (i.e., `String.unaryPlus`) are **intentionally broken at runtime** without the compiler plugin — they throw `error("kuery-client-compiler plugin is not loaded...")`. The plugin (`StringInterpolationTransformer`) intercepts calls to these two methods at the IR level and rewrites any `IrStringConcatenation` inside them into a call to `DefaultSqlBuilder.interpolate(fragments, values)`, which performs proper named-parameter binding.
+`SqlBuilder.add(sql)` and `+"sql"` (i.e., `String.unaryPlus`) are **intentionally broken at runtime** without the compiler plugin — they throw an `IllegalStateException` explaining that the compiler plugin must be applied. The plugin (`StringInterpolationTransformer`) intercepts calls to these two methods at the IR level and rewrites any `IrStringConcatenation` inside them into a call to `DefaultSqlBuilder.interpolate(fragments, values)`, which performs proper named-parameter binding.
 
 This means `+"SELECT * FROM users WHERE id = $userId"` becomes equivalent to a parameterized query with `:p0 = userId` — the user never writes placeholders manually.
 
