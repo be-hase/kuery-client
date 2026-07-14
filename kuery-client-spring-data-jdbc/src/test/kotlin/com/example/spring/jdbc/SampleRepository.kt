@@ -1,7 +1,9 @@
 package com.example.spring.jdbc
 
+import dev.hsbrysk.kuery.core.CloseableSequence
 import dev.hsbrysk.kuery.core.KueryBlockingClient
 import dev.hsbrysk.kuery.core.list
+import dev.hsbrysk.kuery.core.sequence
 import dev.hsbrysk.kuery.core.single
 import dev.hsbrysk.kuery.core.singleOrNull
 
@@ -28,6 +30,10 @@ class UserRepository(private val kueryClient: KueryBlockingClient) {
     fun listMap(): List<Map<String, Any?>> = kueryClient.sql { +"SELECT * FROM users" }.listMap()
 
     fun list(): List<User> = kueryClient.sql { +"SELECT * FROM users" }.list()
+
+    fun sequenceMap(): CloseableSequence<Map<String, Any?>> = kueryClient.sql { +"SELECT * FROM users" }.sequenceMap()
+
+    fun sequence(): CloseableSequence<User> = kueryClient.sql { +"SELECT * FROM users" }.sequence()
 
     fun rowUpdated(
         username: String,
