@@ -28,6 +28,11 @@ internal class DefaultSqlBuilder : SqlBuilder {
     }
 
     /**
+     * This method is effectively public ABI even though the class is internal: the compiler plugin
+     * rewrites string interpolation in user code into a direct call to this exact method, so every
+     * compiled user artifact links against it. Its name, signature, and class location must not
+     * change (guarded by `DefaultSqlBuilderAbiTest`).
+     *
      * @param fragments It refers to string parts.
      * @param values It refers to the values of string interpolation.
      * e.g.
