@@ -1,12 +1,16 @@
 package dev.hsbrysk.kuery.core.internal
 
 import dev.hsbrysk.kuery.core.SqlBuilder
-import java.util.concurrent.ConcurrentHashMap
 
 object SqlIds {
     private val NUMBER_REGEX = "^[0-9]+$".toRegex()
 
-    private val CACHE: ConcurrentHashMap<Class<*>, String> = ConcurrentHashMap()
+    // ClassValue stores the computed id on the block's Class itself instead of referencing
+    // the Class from a static map, so the Class and its ClassLoader remain garbage collectable
+    // (e.g. with hot-reload class loaders such as Spring DevTools).
+    private val CACHE = object : ClassValue<String>() {
+        override fun computeValue(type: Class<*>): String = callerId()
+    }
 
     private val SUFFIXES = listOf(
         ".invokeSuspend",
@@ -15,31 +19,36 @@ object SqlIds {
 
     /**
      * Uses StackWalker to retrieve the caller.
+     *
+     * The id is computed once per block class from the call site of the first invocation and
+     * then cached. Therefore, if the same block (e.g. one stored in a property) is passed from
+     * multiple call sites, all of them observe the id of whichever call site ran first.
+     * Define blocks inline if each call site should get its own id.
      */
-    fun (SqlBuilder.() -> Unit).id(): String {
-        return CACHE.computeIfAbsent(this.javaClass) { _ ->
-            val name = StackWalker.getInstance().walk { frames ->
-                frames
-                    .filter {
-                        "${it.className}.${it.methodName}" != "java.util.concurrent.ConcurrentHashMap.computeIfAbsent"
-                    }
-                    .filter {
-                        !it.className.startsWith("dev.hsbrysk.kuery")
-                    }
-                    .findFirst()
-                    .map { "${it.className}.${it.methodName}" }
-                    .orElse(null)
-            }
-            if (name == null) {
-                return@computeIfAbsent "UNKNOWN"
-            }
+    fun (SqlBuilder.() -> Unit).id(): String = CACHE.get(this.javaClass)
 
-            val parts = name.removeSuffixes(SUFFIXES).split("$", ".").filterNot { it.matches(NUMBER_REGEX) }
-            if (parts.isEmpty()) {
-                "UNKNOWN"
-            } else {
-                parts.joinToString(".")
-            }
+    private fun callerId(): String {
+        val name = StackWalker.getInstance().walk { frames ->
+            frames
+                .filter {
+                    !it.className.startsWith("java.lang.ClassValue")
+                }
+                .filter {
+                    !it.className.startsWith("dev.hsbrysk.kuery")
+                }
+                .findFirst()
+                .map { "${it.className}.${it.methodName}" }
+                .orElse(null)
+        }
+        if (name == null) {
+            return "UNKNOWN"
+        }
+
+        val parts = name.removeSuffixes(SUFFIXES).split("$", ".").filterNot { it.matches(NUMBER_REGEX) }
+        return if (parts.isEmpty()) {
+            "UNKNOWN"
+        } else {
+            parts.joinToString(".")
         }
     }
 
