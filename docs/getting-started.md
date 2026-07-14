@@ -4,6 +4,11 @@ description: Install via Gradle plugin and dependency, then build a KueryClient 
 
 # Getting Started
 
+## Requirements
+
+- Java 17 or later
+- See [Compatibility](/compatibility) for the recommended Kotlin / Spring versions for each release
+
 ## Install
 
 ### Gradle
