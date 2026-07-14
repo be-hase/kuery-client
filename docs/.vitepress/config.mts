@@ -6,11 +6,26 @@ import llmstxt from 'vitepress-plugin-llms'
 // Used to replace `{{version}}` placeholders in markdown files at build time.
 const version = execSync('git describe --tags --abbrev=0').toString().trim().replace(/^v/, '')
 
+const hostname = "https://kuery-client.hsbrysk.dev"
+
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     lang: "en-US",
     title: "Kuery Client",
     description: "A Kotlin/JVM database client for those who want to write SQL",
+    lastUpdated: true,
+    sitemap: {
+        hostname,
+    },
+    head: [
+        ["meta", {property: "og:type", content: "website"}],
+        ["meta", {property: "og:site_name", content: "Kuery Client"}],
+        ["meta", {property: "og:title", content: "Kuery Client"}],
+        ["meta", {property: "og:description", content: "A Kotlin/JVM database client for those who want to write SQL"}],
+        ["meta", {property: "og:url", content: hostname}],
+        ["meta", {property: "og:image", content: `${hostname}/logo.png`}],
+        ["meta", {name: "twitter:card", content: "summary"}],
+    ],
     vite: {
         plugins: [
             {
@@ -56,6 +71,11 @@ export default defineConfig({
 
         search: {
             provider: 'local'
+        },
+
+        editLink: {
+            pattern: 'https://github.com/be-hase/kuery-client/edit/main/docs/:path',
+            text: 'Edit this page on GitHub'
         }
     }
 })
