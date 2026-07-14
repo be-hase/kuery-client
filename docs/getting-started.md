@@ -56,5 +56,5 @@ val kueryClient = SpringJdbcKueryClient.builder()
 val userId = "..."
 val user: User = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = $userId" }
-    .singleOrNull()
+    .single()
 ```

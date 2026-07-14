@@ -134,12 +134,12 @@ kueryClient
 `kuery-client-spring-data-r2dbc/jdbc` both have a minimal interface. In the case of `kuery-client-spring-data-r2dbc`, it
 will be a suspend function.
 
-### (suspend) fun singleMap(): Map<String, Any?>
+### `(suspend) fun singleMap(): Map<String, Any?>`
 
 Receives the results as a map.
 
 ```kotlin
-val map: Map<String, Any?> = kueyClient
+val map: Map<String, Any?> = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
     .singleMap()
 ```
@@ -149,7 +149,7 @@ val map: Map<String, Any?> = kueyClient
 Receives the results as a map.
 
 ```kotlin
-val map: Map<String, Any?>? = kueyClient
+val map: Map<String, Any?>? = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
     .singleMapOrNull()
 ```
@@ -159,7 +159,7 @@ val map: Map<String, Any?>? = kueyClient
 Receives the results converted to the specified type.
 
 ```kotlin
-val user: User = kueyClient
+val user: User = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
     .single()
 ```
@@ -169,17 +169,17 @@ val user: User = kueyClient
 Receives the results converted to the specified type.
 
 ```kotlin
-val user: User? = kueyClient
+val user: User? = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
     .singleOrNull()
 ```
 
 ### `(suspend) fun listMap(): List<Map<String, Any?>>`
 
-Receives the results of multiple rows as a map.
+Receives the results of multiple rows as a list of maps.
 
 ```kotlin
-val result: List<Map<String, Any?>> = kueyClient
+val result: List<Map<String, Any?>> = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
     .listMap()
 ```
@@ -189,17 +189,17 @@ val result: List<Map<String, Any?>> = kueyClient
 Receives the results of multiple rows converted to the specified type.
 
 ```kotlin
-val users: List<User> = kueyClient
+val users: List<User> = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
     .list()
 ```
 
 ### [`kuery-client-spring-data-r2dbc` only] `fun flowMap(): Flow<Map<String, Any?>>`
 
-Receives the results of multiple rows as a map.
+Receives the results of multiple rows as a flow of maps.
 
 ```kotlin
-val result: Flow<Map<String, Any?>> = kueyClient
+val result: Flow<Map<String, Any?>> = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
     .flowMap()
 ```
@@ -209,41 +209,45 @@ val result: Flow<Map<String, Any?>> = kueyClient
 Receives the results of multiple rows converted to the specified type.
 
 ```kotlin
-val users: Flow<User> = kueyClient
+val users: Flow<User> = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
     .flow()
 ```
 
-### [`kuery-client-spring-data-jdbc` only] `fun sequenceMap(): Sequence<Map<String, Any?>>`
+### [`kuery-client-spring-data-jdbc` only] `fun sequenceMap(): CloseableSequence<Map<String, Any?>>`
 
 Receives the results of multiple rows as a sequence of maps.
 
 ```kotlin
-val result: Sequence<Map<String, Any?>> = kueyClient
+val result: Sequence<Map<String, Any?>> = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
     .sequenceMap()
 ```
 
-Note: backed by an open JDBC ResultSet — iterate within an active transaction. Single-pass.
+Note: backed by an open JDBC ResultSet — iterate within an active transaction. Single-pass. `CloseableSequence`
+implements `AutoCloseable`; if you stop iterating midway (e.g., with `take` or `first`), close it explicitly,
+typically via `use`.
 
-### [`kuery-client-spring-data-jdbc` only] `fun <T : Any> sequence(returnType: KClass<T>): Sequence<T>`
+### [`kuery-client-spring-data-jdbc` only] `fun <T : Any> sequence(returnType: KClass<T>): CloseableSequence<T>`
 
 Receives the results of multiple rows converted to the specified type as a sequence.
 
 ```kotlin
-val users: Sequence<User> = kueyClient
+val users: Sequence<User> = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = 1" }
     .sequence()
 ```
 
-Note: backed by an open JDBC ResultSet — iterate within an active transaction. Single-pass.
+Note: backed by an open JDBC ResultSet — iterate within an active transaction. Single-pass. `CloseableSequence`
+implements `AutoCloseable`; if you stop iterating midway (e.g., with `take` or `first`), close it explicitly,
+typically via `use`.
 
 ### `(suspend) fun rowsUpdated(): Long`
 
 Contract for fetching the number of affected rows
 
 ```kotlin
-val result: Long = kueyClient
+val result: Long = kueryClient
     .sql {+"INSERT INTO users (username, email) VALUES ('username1', 'email1')"}
     .rowsUpdated()
 ```
@@ -253,7 +257,7 @@ val result: Long = kueyClient
 Receives the values generated on the database side. For example, an auto increment value.
 
 ```kotlin
-val result: Map<String, Any> = kueyClient
+val result: Map<String, Any> = kueryClient
     .sql {+"INSERT INTO users (username, email) VALUES ('username1', 'email1')"}
     .generatedValues("user_id")
 ```
@@ -265,7 +269,7 @@ Apply the given fetch size to any subsequent query statement.
 Available for both `kuery-client-spring-data-r2dbc` and `kuery-client-spring-data-jdbc`.
 
 ```kotlin
-val users: List<User> = kueyClient
+val users: List<User> = kueryClient
     .sql { +"SELECT * FROM users" }
     .fetchSize(100)
     .list()
@@ -276,7 +280,7 @@ val users: List<User> = kueyClient
 Apply the given maximum number of rows to any subsequent query statement.
 
 ```kotlin
-val users: List<User> = kueyClient
+val users: List<User> = kueryClient
     .sql { +"SELECT * FROM users" }
     .maxRows(1000)
     .list()
@@ -287,7 +291,7 @@ val users: List<User> = kueyClient
 Set the query timeout (in seconds) for this query.
 
 ```kotlin
-val users: List<User> = kueyClient
+val users: List<User> = kueryClient
     .sql { +"SELECT * FROM users" }
     .queryTimeoutSeconds(30)
     .list()
