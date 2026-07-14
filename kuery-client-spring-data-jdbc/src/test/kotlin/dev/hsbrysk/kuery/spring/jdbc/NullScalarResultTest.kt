@@ -13,7 +13,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.dao.TypeMismatchDataAccessException
 
-class MySqlNullScalarResultTest {
+class NullScalarResultTest {
     private val kueryClient = mysql.kueryClient()
 
     @BeforeEach

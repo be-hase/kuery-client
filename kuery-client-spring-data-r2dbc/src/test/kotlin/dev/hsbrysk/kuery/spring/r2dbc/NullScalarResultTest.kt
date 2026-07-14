@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.dao.TypeMismatchDataAccessException
 import org.springframework.r2dbc.core.awaitRowsUpdated
 
-class MySqlNullScalarResultTest {
+class NullScalarResultTest {
     private val kueryClient = mysql.kueryClient()
 
     @BeforeEach
