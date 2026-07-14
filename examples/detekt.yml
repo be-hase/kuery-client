@@ -1,3 +1,0 @@
-kuery-client:
-  UseStringLiteral:
-    active: true

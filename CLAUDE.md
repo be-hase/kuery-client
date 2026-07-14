@@ -43,7 +43,6 @@ Integration tests (`kuery-client-spring-data-r2dbc`, `kuery-client-spring-data-j
 | `kuery-client-gradle-plugin` | Gradle plugin that wires the compiler plugin into user projects. |
 | `kuery-client-spring-data-r2dbc` | `KueryClient` implementation using Spring Data R2DBC (coroutines). |
 | `kuery-client-spring-data-jdbc` | `KueryBlockingClient` implementation using Spring Data JDBC (blocking). |
-| `kuery-client-detekt` | Custom detekt rules for kuery-client usage. |
 | `build-logic` | Convention Gradle plugins shared across modules. |
 
 ## Architecture
