@@ -19,6 +19,5 @@ dependencies {
 }
 
 detekt {
-    config.setFrom("${rootProject.rootDir}/detekt.yml")
-    disableDefaultRuleSets = true
+    config.setFrom("${rootProject.rootDir}/../config/detekt/detekt.yml")
 }

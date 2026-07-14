@@ -1,2 +1,0 @@
-# The kuery-client-detekt rule set was removed in favor of the compiler plugin's
-# built-in KUERY_UNSAFE_SQL_STRING warning, so no extra rules are configured here.
