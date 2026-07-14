@@ -8,7 +8,7 @@ import io.micrometer.observation.Observation
 /**
  * [Observation.Context] for [KueryClient] and [KueryBlockingClient]
  */
-class KueryClientFetchContext(
-    val sqlId: String,
-    val sql: Sql,
+public class KueryClientFetchContext(
+    public val sqlId: String,
+    public val sql: Sql,
 ) : Observation.Context()

@@ -2,6 +2,7 @@ package dev.hsbrysk.kuery.spring.jdbc.internal
 
 import dev.hsbrysk.kuery.core.CloseableSequence
 import dev.hsbrysk.kuery.core.KueryBlockingClient
+import dev.hsbrysk.kuery.core.KueryClientInternalApi
 import dev.hsbrysk.kuery.core.NamedSqlParameter
 import dev.hsbrysk.kuery.core.Sql
 import dev.hsbrysk.kuery.core.SqlBuilder
@@ -28,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import java.lang.reflect.Array as ReflectArray
 
+@OptIn(KueryClientInternalApi::class)
 internal class DefaultSpringJdbcKueryClient(
     private val jdbcClient: JdbcClient,
     private val conversionService: ConversionService,

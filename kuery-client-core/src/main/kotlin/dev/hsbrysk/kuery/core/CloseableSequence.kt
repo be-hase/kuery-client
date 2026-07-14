@@ -18,6 +18,6 @@ package dev.hsbrysk.kuery.core
  * Like ordinary [Sequence]s (and the underlying JDBC resources), this sequence is not thread-safe;
  * obtain and iterate it on a single thread.
  */
-interface CloseableSequence<out T> :
+public interface CloseableSequence<out T> :
     Sequence<T>,
     AutoCloseable

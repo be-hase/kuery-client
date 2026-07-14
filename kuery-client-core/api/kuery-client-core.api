@@ -1,0 +1,120 @@
+public abstract interface class dev/hsbrysk/kuery/core/CloseableSequence : java/lang/AutoCloseable, kotlin/sequences/Sequence {
+}
+
+public abstract interface annotation class dev/hsbrysk/kuery/core/DelicateKueryClientApi : java/lang/annotation/Annotation {
+}
+
+public abstract interface class dev/hsbrysk/kuery/core/KueryBlockingClient {
+	public abstract fun sql (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ldev/hsbrysk/kuery/core/KueryBlockingClient$FetchSpec;
+	public abstract fun sql (Lkotlin/jvm/functions/Function1;)Ldev/hsbrysk/kuery/core/KueryBlockingClient$FetchSpec;
+}
+
+public abstract interface class dev/hsbrysk/kuery/core/KueryBlockingClient$FetchSpec {
+	public abstract fun fetchSize (I)Ldev/hsbrysk/kuery/core/KueryBlockingClient$FetchSpec;
+	public abstract fun generatedValues ([Ljava/lang/String;)Ljava/util/Map;
+	public abstract fun list (Lkotlin/reflect/KClass;)Ljava/util/List;
+	public abstract fun listMap ()Ljava/util/List;
+	public abstract fun maxRows (I)Ldev/hsbrysk/kuery/core/KueryBlockingClient$FetchSpec;
+	public abstract fun queryTimeoutSeconds (I)Ldev/hsbrysk/kuery/core/KueryBlockingClient$FetchSpec;
+	public abstract fun rowsUpdated ()J
+	public abstract fun sequence (Lkotlin/reflect/KClass;)Ldev/hsbrysk/kuery/core/CloseableSequence;
+	public abstract fun sequenceMap ()Ldev/hsbrysk/kuery/core/CloseableSequence;
+	public abstract fun single (Lkotlin/reflect/KClass;)Ljava/lang/Object;
+	public abstract fun singleMap ()Ljava/util/Map;
+	public abstract fun singleMapOrNull ()Ljava/util/Map;
+	public abstract fun singleOrNull (Lkotlin/reflect/KClass;)Ljava/lang/Object;
+}
+
+public abstract interface class dev/hsbrysk/kuery/core/KueryClient {
+	public abstract fun sql (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ldev/hsbrysk/kuery/core/KueryClient$FetchSpec;
+	public abstract fun sql (Lkotlin/jvm/functions/Function1;)Ldev/hsbrysk/kuery/core/KueryClient$FetchSpec;
+}
+
+public abstract interface class dev/hsbrysk/kuery/core/KueryClient$FetchSpec {
+	public abstract fun fetchSize (I)Ldev/hsbrysk/kuery/core/KueryClient$FetchSpec;
+	public abstract fun flow (Lkotlin/reflect/KClass;)Lkotlinx/coroutines/flow/Flow;
+	public abstract fun flowMap ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun generatedValues ([Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun list (Lkotlin/reflect/KClass;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun listMap (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun rowsUpdated (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun single (Lkotlin/reflect/KClass;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun singleMap (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun singleMapOrNull (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun singleOrNull (Lkotlin/reflect/KClass;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface annotation class dev/hsbrysk/kuery/core/KueryClientInternalApi : java/lang/annotation/Annotation {
+}
+
+public abstract interface class dev/hsbrysk/kuery/core/NamedSqlParameter {
+	public static final field Companion Ldev/hsbrysk/kuery/core/NamedSqlParameter$Companion;
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun getValue ()Ljava/lang/Object;
+}
+
+public final class dev/hsbrysk/kuery/core/NamedSqlParameter$Companion {
+}
+
+public final class dev/hsbrysk/kuery/core/NamedSqlParameterKt {
+	public static final fun NamedSqlParameter (Ljava/lang/String;Ljava/lang/Object;)Ldev/hsbrysk/kuery/core/NamedSqlParameter;
+}
+
+public abstract interface class dev/hsbrysk/kuery/core/Sql {
+	public static final field Companion Ldev/hsbrysk/kuery/core/Sql$Companion;
+	public abstract fun getBody ()Ljava/lang/String;
+	public abstract fun getParameters ()Ljava/util/List;
+}
+
+public final class dev/hsbrysk/kuery/core/Sql$Companion {
+}
+
+public abstract interface class dev/hsbrysk/kuery/core/SqlBuilder {
+	public abstract fun add (Ljava/lang/String;)V
+	public abstract fun addUnsafe (Ljava/lang/String;)V
+	public abstract fun bind (Ljava/lang/Object;)Ljava/lang/String;
+	public abstract fun unaryPlus (Ljava/lang/String;)V
+}
+
+public final class dev/hsbrysk/kuery/core/SqlBuilderHelpersKt {
+	public static final fun values (Ldev/hsbrysk/kuery/core/SqlBuilder;Ljava/util/List;)V
+	public static final fun values (Ldev/hsbrysk/kuery/core/SqlBuilder;Ljava/util/List;Lkotlin/jvm/functions/Function1;)V
+}
+
+public abstract interface annotation class dev/hsbrysk/kuery/core/SqlBuilderMarker : java/lang/annotation/Annotation {
+}
+
+public final class dev/hsbrysk/kuery/core/SqlKt {
+	public static final fun Sql (Ljava/lang/String;Ljava/util/List;)Ldev/hsbrysk/kuery/core/Sql;
+	public static final fun Sql (Lkotlin/jvm/functions/Function1;)Ldev/hsbrysk/kuery/core/Sql;
+	public static synthetic fun Sql$default (Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/hsbrysk/kuery/core/Sql;
+}
+
+public final class dev/hsbrysk/kuery/core/observation/KueryClientFetchContext : io/micrometer/observation/Observation$Context {
+	public fun <init> (Ljava/lang/String;Ldev/hsbrysk/kuery/core/Sql;)V
+	public final fun getSql ()Ldev/hsbrysk/kuery/core/Sql;
+	public final fun getSqlId ()Ljava/lang/String;
+}
+
+public abstract interface class dev/hsbrysk/kuery/core/observation/KueryClientFetchObservationConvention : io/micrometer/observation/ObservationConvention {
+	public static final field Companion Ldev/hsbrysk/kuery/core/observation/KueryClientFetchObservationConvention$Companion;
+	public fun getName ()Ljava/lang/String;
+	public fun supportsContext (Lio/micrometer/observation/Observation$Context;)Z
+}
+
+public final class dev/hsbrysk/kuery/core/observation/KueryClientFetchObservationConvention$Companion {
+	public final fun default ()Ldev/hsbrysk/kuery/core/observation/KueryClientFetchObservationConvention;
+}
+
+public final class dev/hsbrysk/kuery/core/observation/KueryClientFetchObservationConvention$DefaultImpls {
+	public static fun getName (Ldev/hsbrysk/kuery/core/observation/KueryClientFetchObservationConvention;)Ljava/lang/String;
+	public static fun supportsContext (Ldev/hsbrysk/kuery/core/observation/KueryClientFetchObservationConvention;Lio/micrometer/observation/Observation$Context;)Z
+}
+
+public class dev/hsbrysk/kuery/core/observation/KueryClientObservationDocumentation : java/lang/Enum, io/micrometer/observation/docs/ObservationDocumentation {
+	public static final field FETCH Ldev/hsbrysk/kuery/core/observation/KueryClientObservationDocumentation;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/hsbrysk/kuery/core/observation/KueryClientObservationDocumentation;
+	public static fun values ()[Ldev/hsbrysk/kuery/core/observation/KueryClientObservationDocumentation;
+}
+

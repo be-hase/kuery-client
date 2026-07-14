@@ -5,26 +5,26 @@ import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import io.micrometer.observation.ObservationRegistry
 import javax.sql.DataSource
 
-interface SpringJdbcKueryClientBuilder {
+public interface SpringJdbcKueryClientBuilder {
     /**
      * Set [DataSource]
      */
-    fun dataSource(dataSource: DataSource): SpringJdbcKueryClientBuilder
+    public fun dataSource(dataSource: DataSource): SpringJdbcKueryClientBuilder
 
     /**
      * Set converters
      */
-    fun converters(converters: List<Any>): SpringJdbcKueryClientBuilder
+    public fun converters(converters: List<Any>): SpringJdbcKueryClientBuilder
 
     /**
      * Set [ObservationRegistry]
      */
-    fun observationRegistry(observationRegistry: ObservationRegistry): SpringJdbcKueryClientBuilder
+    public fun observationRegistry(observationRegistry: ObservationRegistry): SpringJdbcKueryClientBuilder
 
     /**
      * Set [KueryClientFetchObservationConvention]
      */
-    fun observationConvention(
+    public fun observationConvention(
         observationConvention: KueryClientFetchObservationConvention,
     ): SpringJdbcKueryClientBuilder
 
@@ -37,10 +37,10 @@ interface SpringJdbcKueryClientBuilder {
      * all of them observe the sqlId of whichever call site ran first.
      * Define blocks inline if each call site should get its own sqlId.
      */
-    fun enableAutoSqlIdGeneration(enableAutoSqlIdGeneration: Boolean): SpringJdbcKueryClientBuilder
+    public fun enableAutoSqlIdGeneration(enableAutoSqlIdGeneration: Boolean): SpringJdbcKueryClientBuilder
 
     /**
      * build [KueryBlockingClient]
      */
-    fun build(): KueryBlockingClient
+    public fun build(): KueryBlockingClient
 }

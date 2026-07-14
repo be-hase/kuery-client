@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNull
 import com.example.core.ClassA
+import dev.hsbrysk.kuery.core.KueryClientInternalApi
 import dev.hsbrysk.kuery.core.SqlBuilder
 import dev.hsbrysk.kuery.core.internal.SqlIds.id
 import dev.hsbrysk.kuery.core.internal.SqlIds.removeSuffixes
@@ -11,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import java.lang.ref.WeakReference
 
+@OptIn(KueryClientInternalApi::class)
 class SqlIdsTest {
     @Test
     fun id() {

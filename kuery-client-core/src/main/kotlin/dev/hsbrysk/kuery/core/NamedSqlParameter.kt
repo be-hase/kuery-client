@@ -2,24 +2,24 @@ package dev.hsbrysk.kuery.core
 
 import dev.hsbrysk.kuery.core.internal.DefaultNamedSqlParameter
 
-interface NamedSqlParameter {
+public interface NamedSqlParameter {
     /**
      * parameter name
      */
-    val name: String
+    public val name: String
 
     /**
      * value
      */
-    val value: Any?
+    public val value: Any?
 
-    companion object
+    public companion object
 }
 
 /**
  * Create [NamedSqlParameter]
  */
-fun NamedSqlParameter(
+public fun NamedSqlParameter(
     name: String,
     value: Any?,
 ): NamedSqlParameter = DefaultNamedSqlParameter(name, value)

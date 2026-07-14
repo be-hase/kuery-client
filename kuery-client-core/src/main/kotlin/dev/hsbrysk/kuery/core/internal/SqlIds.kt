@@ -1,8 +1,10 @@
 package dev.hsbrysk.kuery.core.internal
 
+import dev.hsbrysk.kuery.core.KueryClientInternalApi
 import dev.hsbrysk.kuery.core.SqlBuilder
 
-object SqlIds {
+@KueryClientInternalApi
+public object SqlIds {
     private val NUMBER_REGEX = "^[0-9]+$".toRegex()
 
     // ClassValue stores the computed id on the block's Class itself instead of referencing
@@ -25,7 +27,7 @@ object SqlIds {
      * multiple call sites, all of them observe the id of whichever call site ran first.
      * Define blocks inline if each call site should get its own id.
      */
-    fun (SqlBuilder.() -> Unit).id(): String = CACHE.get(this.javaClass)
+    public fun (SqlBuilder.() -> Unit).id(): String = CACHE.get(this.javaClass)
 
     private fun callerId(): String {
         val name = StackWalker.getInstance().walk { frames ->
