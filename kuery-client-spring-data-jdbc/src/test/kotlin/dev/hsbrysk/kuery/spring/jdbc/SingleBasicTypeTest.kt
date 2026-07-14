@@ -4,6 +4,7 @@ import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
+import dev.hsbrysk.kuery.core.DelicateKueryClientApi
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -29,6 +30,7 @@ class SingleBasicTypeTest {
         override fun convert(source: String): StringWrapper = StringWrapper(source)
     }
 
+    @OptIn(DelicateKueryClientApi::class)
     @ParameterizedTest
     @MethodSource("singleValues")
     fun testSingleValues(
@@ -37,7 +39,7 @@ class SingleBasicTypeTest {
         type: KClass<*>,
     ) {
         val result = kueryClient.sql {
-            +query
+            addUnsafe(query)
         }.single(type)
 
         assertThat(result).isEqualTo(expected)

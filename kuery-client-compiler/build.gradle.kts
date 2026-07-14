@@ -8,4 +8,5 @@ description = "Compiler plugin for the Kuery client."
 dependencies {
     implementation(kotlin("compiler-embeddable"))
     testImplementation(libs.kotlin.compile.testing)
+    testImplementation(projects.kueryClientCore)
 }
