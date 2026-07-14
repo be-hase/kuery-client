@@ -385,6 +385,32 @@ class BasicUsageTest {
     }
 
     @Test
+    fun `generatedValues no generated keys`() {
+        assertFailure {
+            kueryClient
+                .sql {
+                    +"UPDATE users SET username = 'updated' WHERE user_id = 1"
+                }
+                .generatedValues()
+        }.isInstanceOf(EmptyResultDataAccessException::class)
+    }
+
+    @Test
+    fun `generatedValues multiple generated keys`() {
+        assertFailure {
+            kueryClient
+                .sql {
+                    +"""
+                    INSERT INTO users (username, email) VALUES
+                    ('user3', 'user3@example.com'),
+                    ('user4', 'user4@example.com')
+                    """.trimIndent()
+                }
+                .generatedValues("user_id")
+        }.isInstanceOf(IncorrectResultSizeDataAccessException::class)
+    }
+
+    @Test
     fun userOrder() {
         data class UserOrder(
             val username: String,
