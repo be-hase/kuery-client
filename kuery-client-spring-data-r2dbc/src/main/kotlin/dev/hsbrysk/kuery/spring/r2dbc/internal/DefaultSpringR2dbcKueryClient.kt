@@ -28,6 +28,7 @@ import org.springframework.r2dbc.core.RowsFetchSpec
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Function
 import kotlin.reflect.KClass
 
@@ -196,9 +197,20 @@ internal class DefaultSpringR2dbcKueryClient(
                         contextView.getOrEmpty<Observation>(ObservationThreadLocalAccessor.KEY).orElse(null),
                     )
                     .start()
+                // Stop via doOnTerminate (which runs BEFORE the terminal signal reaches the awaiting
+                // caller) so the observation is guaranteed to be stopped when awaitXxx resumes.
+                // doOnCancel covers cancellation; the guard prevents a double stop when a cancel
+                // arrives after the terminal signal.
+                val stopped = AtomicBoolean()
+                val stopOnce = {
+                    if (stopped.compareAndSet(false, true)) {
+                        observation.stop()
+                    }
+                }
                 this
                     .doOnError { observation.error(it) }
-                    .doFinally { observation.stop() }
+                    .doOnTerminate { stopOnce() }
+                    .doOnCancel { stopOnce() }
                     .contextWrite { it.put(ObservationThreadLocalAccessor.KEY, observation) }
             }
         }
