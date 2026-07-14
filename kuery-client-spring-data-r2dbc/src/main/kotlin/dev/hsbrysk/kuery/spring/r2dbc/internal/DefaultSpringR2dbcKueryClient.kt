@@ -14,12 +14,14 @@ import io.micrometer.observation.ObservationRegistry
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.beans.BeanUtils
 import org.springframework.core.convert.ConversionService
 import org.springframework.dao.EmptyResultDataAccessException
+import org.springframework.dao.TypeMismatchDataAccessException
 import org.springframework.data.r2dbc.convert.R2dbcCustomConversions
 import org.springframework.r2dbc.core.DataClassRowMapper
 import org.springframework.r2dbc.core.DatabaseClient
@@ -128,26 +130,38 @@ internal class DefaultSpringR2dbcKueryClient(
             .observe()
             .awaitSingleOrNull()
 
-        override suspend fun <T : Any> single(returnType: KClass<T>): T = spec.map(returnType).one()
-            .switchIfEmpty(Mono.error { EmptyResultDataAccessException(1) })
-            .sqlId(sqlId)
-            .observe()
-            .awaitSingle()
+        override suspend fun <T : Any> single(returnType: KClass<T>): T {
+            val value = spec.map(returnType).one()
+                .switchIfEmpty(Mono.error { EmptyResultDataAccessException(1) })
+                .sqlId(sqlId)
+                .observe()
+                .awaitSingle()
+                .unwrapNullValue<T>()
+            // Same exception as the JDBC client (DataAccessUtils.requiredSingleResult)
+            return value ?: throw TypeMismatchDataAccessException("Result value is null but no null value expected")
+        }
 
         override suspend fun <T : Any> singleOrNull(returnType: KClass<T>): T? = spec.map(returnType).one()
             .sqlId(sqlId)
             .observe()
             .awaitSingleOrNull()
+            ?.unwrapNullValue()
 
         override suspend fun listMap(): List<Map<String, Any?>> = spec.fetch().all().collectList()
             .sqlId(sqlId)
             .observe()
             .awaitSingle()
 
-        override suspend fun <T : Any> list(returnType: KClass<T>): List<T> = spec.map(returnType).all().collectList()
-            .sqlId(sqlId)
-            .observe()
-            .awaitSingle()
+        override suspend fun <T : Any> list(returnType: KClass<T>): List<T> {
+            val values = spec.map(returnType).all().collectList()
+                .sqlId(sqlId)
+                .observe()
+                .awaitSingle()
+            // NULL scalar values are kept as null elements, like the JDBC client. The declared
+            // element type cannot express this, but type erasure makes it observable the same way.
+            @Suppress("UNCHECKED_CAST")
+            return values.map { it.unwrapNullValue<T>() } as List<T>
+        }
 
         override fun flowMap(): Flow<Map<String, Any?>> {
             // TODO:
@@ -162,7 +176,8 @@ internal class DefaultSpringR2dbcKueryClient(
             // I also want to measure the observation of flow.
             // However, should it be the time until the flow terminates or the time until the first element is obtained?
             // There are many uncertainties, so I will not implement it for now.
-            return spec.map(returnType).all().sqlId(sqlId).asFlow()
+            @Suppress("UNCHECKED_CAST")
+            return spec.map(returnType).all().sqlId(sqlId).asFlow().map { it.unwrapNullValue<T>() } as Flow<T>
         }
 
         override suspend fun rowsUpdated(): Long = spec.fetch().rowsUpdated()
@@ -224,38 +239,49 @@ internal class DefaultSpringR2dbcKueryClient(
             it.put(SpringR2dbcKueryClient.SQL_ID_REACTOR_CONTEXT_KEY, sqlId)
         }
 
-        private fun <T : Any> GenericExecuteSpec.map(returnType: KClass<T>): RowsFetchSpec<T> {
-            @Suppress("UNCHECKED_CAST")
+        // The returned values may contain [NullValue] sentinels; unwrap them at the terminal operators.
+        private fun GenericExecuteSpec.map(returnType: KClass<*>): RowsFetchSpec<Any> {
             val mapper = mapperCache.computeIfAbsent(returnType) {
                 if (BeanUtils.isSimpleProperty(returnType.java)) {
                     SingleColumnRowMapper(returnType.javaObjectType, conversionService)
                 } else {
                     DataClassRowMapper(returnType.java, conversionService)
                 }
-            } as Function<Readable, T>
-            return this.map(mapper)
+            }
+            @Suppress("UNCHECKED_CAST")
+            return this.map(mapper as Function<Readable, Any>)
         }
     }
 
     // ref: https://github.com/spring-projects/spring-framework/blob/bf06d74879029593b40d3825aca39dad9f229f44/spring-jdbc/src/main/java/org/springframework/jdbc/core/SingleColumnRowMapper.java
     // However, conversions such as any-to-string or string-to-number are intentionally not implemented.
+    //
+    // The R2DBC SPI forbids Result.map mapping functions from returning null, so a SQL NULL value
+    // is returned as [NullValue] instead and unwrapped at the terminal operators.
     class SingleColumnRowMapper<T : Any>(
         private val requiredType: Class<T>,
         private val conversionService: ConversionService,
-    ) : Function<Readable, T?> {
-        override fun apply(readable: Readable): T? = try {
-            readable.get(0, requiredType)
+    ) : Function<Readable, Any> {
+        override fun apply(readable: Readable): Any = try {
+            readable.get(0, requiredType) ?: NullValue
         } catch (ignored: IllegalArgumentException) {
             val result = readable.get(0)
             when {
-                conversionService.canConvert(result?.javaClass, requiredType) -> {
-                    conversionService.convert(result, requiredType)
+                result == null -> NullValue
+                conversionService.canConvert(result.javaClass, requiredType) -> {
+                    conversionService.convert(result, requiredType) ?: NullValue
                 }
                 else -> throw IllegalArgumentException(
-                    "Value [$result] is of type [${result?.javaClass?.name}] and " +
+                    "Value [$result] is of type [${result.javaClass.name}] and " +
                         "cannot be converted to required type [${requiredType.name}]",
                 )
             }
         }
     }
 }
+
+// Sentinel for a SQL NULL scalar value flowing through a Reactor pipeline, which cannot carry null.
+private object NullValue
+
+@Suppress("UNCHECKED_CAST")
+private fun <T : Any> Any.unwrapNullValue(): T? = if (this === NullValue) null else this as T
