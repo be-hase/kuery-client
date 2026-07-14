@@ -155,7 +155,12 @@ internal class DefaultSpringJdbcKueryClient(
             // I also want to measure the observation of flow.
             // However, should it be the time until the flow terminates or the time until the first element is obtained?
             // There are many uncertainties, so I will not implement it for now.
-            return buildSpec().query(ColumnMapRowMapper()).stream().asCloseableSequence()
+            //
+            // The underlying statement is executed eagerly inside stream(), so wrapping it with
+            // SqlIdInjector is enough for SpringJdbcKueryClient.sqlId() to be visible at execution time.
+            return SqlIdInjector(sqlId).use {
+                buildSpec().query(ColumnMapRowMapper()).stream().asCloseableSequence()
+            }
         }
 
         override fun <T : Any> sequence(returnType: KClass<T>): CloseableSequence<T> {
@@ -163,7 +168,12 @@ internal class DefaultSpringJdbcKueryClient(
             // I also want to measure the observation of flow.
             // However, should it be the time until the flow terminates or the time until the first element is obtained?
             // There are many uncertainties, so I will not implement it for now.
-            return buildSpec().queryType(returnType).stream().asCloseableSequence()
+            //
+            // The underlying statement is executed eagerly inside stream(), so wrapping it with
+            // SqlIdInjector is enough for SpringJdbcKueryClient.sqlId() to be visible at execution time.
+            return SqlIdInjector(sqlId).use {
+                buildSpec().queryType(returnType).stream().asCloseableSequence()
+            }
         }
 
         override fun rowsUpdated(): Long = observe {

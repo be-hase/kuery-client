@@ -1,0 +1,160 @@
+package dev.hsbrysk.kuery.spring.jdbc
+
+import assertk.assertThat
+import assertk.assertions.containsExactly
+import com.example.spring.jdbc.UserRepository
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Method
+import java.lang.reflect.Proxy
+import java.sql.Connection
+import java.sql.PreparedStatement
+import javax.sql.DataSource
+
+class SqlIdThreadLocalTest {
+    private val capturedSqlIds = mutableListOf<String?>()
+    private val kueryClient = SpringJdbcKueryClient.builder()
+        .dataSource(SqlIdCapturingDataSource(mysql.dataSource, capturedSqlIds))
+        .enableAutoSqlIdGeneration(true)
+        .build()
+    private val userRepository = UserRepository(kueryClient)
+
+    @BeforeEach
+    fun setUp() {
+        mysql.jdbcClient.sql(
+            """
+            CREATE TABLE users (
+                user_id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(50) NOT NULL,
+                email VARCHAR(100) NOT NULL
+            )
+            """.trimIndent(),
+        ).update()
+        mysql.jdbcClient.sql(
+            """
+            INSERT INTO users (username, email) VALUES
+            ('user1', 'user1@example.com'),
+            ('user2', 'user2@example.com')
+            """.trimIndent(),
+        ).update()
+        capturedSqlIds.clear()
+    }
+
+    @AfterEach
+    fun testDown() {
+        mysql.jdbcClient.sql("DROP TABLE users").update()
+    }
+
+    @Test
+    fun singleMap() {
+        userRepository.singleMap(1)
+        assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.singleMap")
+    }
+
+    @Test
+    fun singleMapOrNull() {
+        userRepository.singleMapOrNull(1)
+        assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.singleMapOrNull")
+    }
+
+    @Test
+    fun single() {
+        userRepository.single(1)
+        assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.single")
+    }
+
+    @Test
+    fun singleOrNull() {
+        userRepository.singleOrNull(1)
+        assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.singleOrNull")
+    }
+
+    @Test
+    fun listMap() {
+        userRepository.listMap()
+        assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.listMap")
+    }
+
+    @Test
+    fun list() {
+        userRepository.list()
+        assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.list")
+    }
+
+    @Test
+    fun sequenceMap() {
+        userRepository.sequenceMap().use { it.toList() }
+        assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.sequenceMap")
+    }
+
+    @Test
+    fun sequence() {
+        userRepository.sequence().use { it.toList() }
+        assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.sequence")
+    }
+
+    @Test
+    fun rowsUpdated() {
+        userRepository.rowUpdated("user3", "user3@example.com")
+        assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.rowUpdated")
+    }
+
+    @Test
+    fun generatedValues() {
+        userRepository.generatedValues("user3", "user3@example.com")
+        assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.generatedValues")
+    }
+
+    private class SqlIdCapturingDataSource(
+        private val delegate: DataSource,
+        private val captured: MutableList<String?>,
+    ) : DataSource by delegate {
+        override fun getConnection(): Connection = wrapConnection(delegate.connection)
+
+        override fun getConnection(
+            username: String?,
+            password: String?,
+        ): Connection = wrapConnection(delegate.getConnection(username, password))
+
+        private fun wrapConnection(connection: Connection): Connection = Proxy.newProxyInstance(
+            connection.javaClass.classLoader,
+            arrayOf(Connection::class.java),
+        ) { _, method, args ->
+            val result = invoke(method, connection, args)
+            if (result is PreparedStatement) wrapStatement(result) else result
+        } as Connection
+
+        private fun wrapStatement(statement: PreparedStatement): PreparedStatement = Proxy.newProxyInstance(
+            statement.javaClass.classLoader,
+            arrayOf(PreparedStatement::class.java),
+        ) { _, method, args ->
+            if (method.name.startsWith("execute")) {
+                captured.add(SpringJdbcKueryClient.sqlId())
+            }
+            invoke(method, statement, args)
+        } as PreparedStatement
+
+        private fun invoke(
+            method: Method,
+            target: Any,
+            args: Array<Any?>?,
+        ): Any? = try {
+            if (args == null) method.invoke(target) else method.invoke(target, *args)
+        } catch (e: InvocationTargetException) {
+            throw e.targetException
+        }
+    }
+
+    companion object {
+        private val mysql = MySqlTestContainer()
+
+        @AfterAll
+        @JvmStatic
+        fun afterAll() {
+            mysql.close()
+        }
+    }
+}
