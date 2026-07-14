@@ -27,6 +27,3 @@ style:
   ReturnCount:
     max: 4
 
-#kuery-client:
-#  UseStringLiteral:
-#    active: true

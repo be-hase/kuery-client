@@ -16,8 +16,6 @@ dependencies {
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("io.asyncer:r2dbc-mysql")
     implementation("tools.jackson.module:jackson-module-kotlin")
-
-    detektPlugins("dev.hsbrysk.kuery-client:kuery-client-detekt")
 }
 
 detekt {
