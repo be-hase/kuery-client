@@ -60,7 +60,7 @@ internal class DefaultSqlBuilder : SqlBuilder {
         }
     }
 
-    fun build(): Sql = DefaultSql(body.toString().trim(), parameters)
+    fun build(): Sql = DefaultSql(body.toString().trim(), parameters.toList())
 
     companion object {
         internal const val PARAMETER_NAME_PREFIX = "p"

@@ -21,4 +21,14 @@ class SqlTest {
                 ),
             )
     }
+
+    @Test
+    fun notAffectedByCallerListMutation() {
+        val parameters = mutableListOf(NamedSqlParameter("p0", 1))
+        val sql = Sql("SELECT * FROM some_table WHERE id = :p0", parameters)
+
+        parameters.add(NamedSqlParameter("p1", 2))
+
+        assertThat(sql.parameters).isEqualTo(listOf(NamedSqlParameter("p0", 1)))
+    }
 }
