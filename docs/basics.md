@@ -113,6 +113,40 @@ kueryClient
 
 MySQL has no array type, so use a `Collection` for `IN` clauses there.
 
+### Enums
+
+An enum value is bound by its name (`Enum.name`) by default. This also applies to enums inside collections and
+arrays.
+
+```kotlin
+val status = UserStatus.ACTIVE
+kueryClient
+    .sql {
+        +"SELECT * FROM users WHERE status = $status"
+        // bound as the string 'ACTIVE'
+    }
+```
+
+If you want a different representation, register a custom `@WritingConverter` — it takes precedence over the
+default. See [Type Conversion](/type-conversion).
+
+### null values
+
+A `null` value is bound as SQL `NULL`. Be careful with comparison operators: `column = NULL` never matches
+anything in SQL. If a value can be null, branch explicitly:
+
+```kotlin
+kueryClient
+    .sql {
+        +"SELECT * FROM users"
+        if (email != null) {
+            +"WHERE email = $email"
+        } else {
+            +"WHERE email IS NULL"
+        }
+    }
+```
+
 ## Logic such as `if` and `for` ...etc
 
 Just write using Kotlin syntax. There is no need to learn special syntax.
