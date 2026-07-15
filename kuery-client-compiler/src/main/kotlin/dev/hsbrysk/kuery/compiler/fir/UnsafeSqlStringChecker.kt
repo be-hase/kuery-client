@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirLiteralExpression
 import org.jetbrains.kotlin.fir.expressions.FirPropertyAccessExpression
 import org.jetbrains.kotlin.fir.expressions.FirStringConcatenationCall
+import org.jetbrains.kotlin.fir.expressions.FirWhenExpression
 import org.jetbrains.kotlin.fir.expressions.unwrapArgument
 import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
 import org.jetbrains.kotlin.name.CallableId
@@ -56,6 +57,11 @@ internal object UnsafeSqlStringChecker : FirFunctionCallChecker(MppCheckerKind.C
             expression.calleeReference.toResolvedCallableSymbol()?.callableId in ALLOWED_CHAIN_METHODS &&
                 expression.argumentList.arguments.all { it.unwrapArgument() is FirLiteralExpression } &&
                 expression.extensionReceiver?.let(::isCompileTimeSafe) == true
+        // if / when whose every branch results in a compile-time-safe expression
+        is FirWhenExpression ->
+            expression.branches.all { branch ->
+                (branch.result.statements.lastOrNull() as? FirExpression)?.let(::isCompileTimeSafe) == true
+            }
         else -> false
     }
 }
