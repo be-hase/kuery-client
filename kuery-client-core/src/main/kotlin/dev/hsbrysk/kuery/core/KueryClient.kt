@@ -57,6 +57,9 @@ public interface KueryClient {
 
         /**
          * Receives the results of multiple rows converted to the specified type.
+         *
+         * When fetching a simple scalar type from a single-column query, SQL NULL is kept as a null
+         * element even though this cannot be expressed in the `List<T>` type.
          */
         public suspend fun <T : Any> list(returnType: KClass<T>): List<T>
 
@@ -67,6 +70,9 @@ public interface KueryClient {
 
         /**
          * Receives the results of multiple rows converted to the specified type.
+         *
+         * When fetching a simple scalar type from a single-column query, SQL NULL is kept as a null
+         * element even though this cannot be expressed in the `Flow<T>` type.
          */
         public fun <T : Any> flow(returnType: KClass<T>): Flow<T>
 
