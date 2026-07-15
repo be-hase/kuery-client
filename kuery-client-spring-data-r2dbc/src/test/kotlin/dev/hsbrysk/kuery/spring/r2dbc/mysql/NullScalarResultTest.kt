@@ -1,4 +1,4 @@
-package dev.hsbrysk.kuery.spring.r2dbc
+package dev.hsbrysk.kuery.spring.r2dbc.mysql
 
 import assertk.assertFailure
 import assertk.assertThat
@@ -10,7 +10,6 @@ import dev.hsbrysk.kuery.core.single
 import dev.hsbrysk.kuery.core.singleOrNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -91,12 +90,6 @@ class NullScalarResultTest {
     }
 
     companion object {
-        private val mysql = MySqlTestContainer()
-
-        @JvmStatic
-        @AfterAll
-        fun afterAll() {
-            mysql.close()
-        }
+        private val mysql = MySqlTestContainer
     }
 }

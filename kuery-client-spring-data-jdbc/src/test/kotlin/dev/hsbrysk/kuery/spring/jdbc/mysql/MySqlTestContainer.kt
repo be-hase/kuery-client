@@ -1,12 +1,17 @@
-package dev.hsbrysk.kuery.spring.jdbc
+package dev.hsbrysk.kuery.spring.jdbc.mysql
 
 import com.mysql.cj.jdbc.MysqlDataSource
 import dev.hsbrysk.kuery.core.KueryBlockingClient
+import dev.hsbrysk.kuery.spring.jdbc.SpringJdbcKueryClient
 import io.micrometer.observation.ObservationRegistry
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.testcontainers.mysql.MySQLContainer
 
-class MySqlTestContainer : AutoCloseable {
+/**
+ * Shared across all test classes in this package. Started lazily once per test JVM; Testcontainers'
+ * Ryuk container removes it after the JVM exits.
+ */
+object MySqlTestContainer {
     private val mysqlContainer = MySQLContainer("mysql:8.0.37").also { it.start() }
     val dataSource = MysqlDataSource().apply {
         setURL(mysqlContainer.jdbcUrl)
@@ -25,27 +30,4 @@ class MySqlTestContainer : AutoCloseable {
             observationRegistry?.let { observationRegistry(it) }
         }
         .build()
-
-    fun setUpForConverterTest() {
-        jdbcClient.sql(
-            """
-            CREATE TABLE `converter`
-            (
-                `id` BIGINT AUTO_INCREMENT,
-                `text` VARCHAR(255) DEFAULT NULL,
-                PRIMARY KEY (`id`)
-            ) ENGINE = InnoDB
-              DEFAULT CHARSET = utf8mb4
-              COLLATE = utf8mb4_bin;
-            """.trimIndent(),
-        ).update()
-    }
-
-    fun tearDownForConverterTest() {
-        jdbcClient.sql("DROP TABLE converter").update()
-    }
-
-    override fun close() {
-        mysqlContainer.close()
-    }
 }

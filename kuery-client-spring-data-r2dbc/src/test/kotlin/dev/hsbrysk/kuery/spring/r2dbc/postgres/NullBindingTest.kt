@@ -1,4 +1,4 @@
-package dev.hsbrysk.kuery.spring.r2dbc
+package dev.hsbrysk.kuery.spring.r2dbc.postgres
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -6,13 +6,12 @@ import assertk.assertions.isNull
 import io.r2dbc.spi.Parameters
 import io.r2dbc.spi.R2dbcType
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.r2dbc.core.awaitRowsUpdated
 
-class PostgresNullBindingTest {
+class NullBindingTest {
     private val kueryClient = postgres.kueryClient()
 
     @BeforeEach
@@ -98,12 +97,6 @@ class PostgresNullBindingTest {
     }
 
     companion object {
-        private val postgres = PostgresTestContainer()
-
-        @JvmStatic
-        @AfterAll
-        fun afterAll() {
-            postgres.close()
-        }
+        private val postgres = PostgresTestContainer
     }
 }

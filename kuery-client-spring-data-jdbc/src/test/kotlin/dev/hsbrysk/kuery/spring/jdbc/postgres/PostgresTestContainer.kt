@@ -1,6 +1,7 @@
-package dev.hsbrysk.kuery.spring.jdbc
+package dev.hsbrysk.kuery.spring.jdbc.postgres
 
 import dev.hsbrysk.kuery.core.KueryBlockingClient
+import dev.hsbrysk.kuery.spring.jdbc.SpringJdbcKueryClient
 import io.micrometer.observation.ObservationRegistry
 import org.postgresql.ds.PGSimpleDataSource
 import org.springframework.jdbc.core.simple.JdbcClient
@@ -8,7 +9,11 @@ import org.testcontainers.postgresql.PostgreSQLContainer
 import java.io.IOException
 import java.net.Socket
 
-class PostgresTestContainer : AutoCloseable {
+/**
+ * Shared across all test classes in this package. Started lazily once per test JVM; Testcontainers'
+ * Ryuk container removes it after the JVM exits.
+ */
+object PostgresTestContainer {
     private val postgresContainer = PostgreSQLContainer("postgres:16").also {
         it.start()
         // Unlike MySQLContainer, PostgreSQLContainer's wait strategy only watches container
@@ -33,10 +38,6 @@ class PostgresTestContainer : AutoCloseable {
             observationRegistry?.let { observationRegistry(it) }
         }
         .build()
-
-    override fun close() {
-        postgresContainer.close()
-    }
 
     private fun PostgreSQLContainer.awaitMappedPortReady() {
         val deadline = System.currentTimeMillis() + 30_000
