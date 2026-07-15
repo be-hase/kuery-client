@@ -82,6 +82,7 @@ class SingleBasicTypeTest {
             Arguments.of("SELECT '1'", 1, Int::class),
             Arguments.of("SELECT '1'", 1L, Long::class),
             Arguments.of("SELECT 'hoge'", "hoge", String::class),
+            Arguments.of("SELECT 1", "1", String::class),
             Arguments.of("SELECT 'https://example.com'", URI("https://example.com"), URI::class),
             // Unlike JDBC, this test case does not pass.
             // Arguments.of("SELECT 1", true, Boolean::class),
