@@ -16,7 +16,7 @@ import java.util.concurrent.Executors
  * coroutine (`SELECT SLEEP(1)` over a network connection). r2dbc-h2 completes queries synchronously
  * on the calling thread, which would leave no suspension window to observe.
  */
-class ObservationLeakTest {
+class MySqlObservationLeakTest {
     private val registry = TestObservationRegistry.create()
     private val kueryClient = mysql.kueryClient(observationRegistry = registry)
 

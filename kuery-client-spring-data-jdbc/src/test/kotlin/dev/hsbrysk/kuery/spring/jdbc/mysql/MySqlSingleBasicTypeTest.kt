@@ -15,7 +15,7 @@ import org.springframework.jdbc.BadSqlGrammarException
 import java.net.URI
 import kotlin.reflect.KClass
 
-class SingleBasicTypeTest {
+class MySqlSingleBasicTypeTest {
     private val kueryClient = mysql.kueryClient(
         listOf(
             StringToStringWrapperConverter(),

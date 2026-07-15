@@ -16,7 +16,7 @@ import org.springframework.data.convert.ReadingConverter
 import java.net.URI
 import kotlin.reflect.KClass
 
-class SingleBasicTypeTest {
+class MySqlSingleBasicTypeTest {
     private val kueryClient = mysql.kueryClient(
         listOf(
             StringToStringWrapperConverter(),
