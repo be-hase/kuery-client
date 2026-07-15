@@ -35,6 +35,13 @@ implementation("dev.hsbrysk.kuery-client:kuery-client-spring-data-jdbc:{{version
 
 :::
 
+::: info
+Kuery Client does not bring in a Spring Boot starter or a database driver. In a Spring Boot application, also
+add the matching starter and driver — e.g. `spring-boot-starter-data-r2dbc` with an R2DBC driver, or
+`spring-boot-starter-data-jdbc` with a JDBC driver. See the [example projects](/examples) for complete build
+files.
+:::
+
 ## Build KueryClient
 
 ::: code-group
