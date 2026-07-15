@@ -1,4 +1,4 @@
-package dev.hsbrysk.kuery.spring.jdbc.mysql
+package dev.hsbrysk.kuery.spring.jdbc.postgres
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -9,15 +9,15 @@ import org.junit.jupiter.api.Test
 import org.springframework.jdbc.core.SqlParameterValue
 import java.sql.Types
 
-class NullBindingTest {
-    private val kueryClient = mysql.kueryClient()
+class PostgresNullBindingTest {
+    private val kueryClient = postgres.kueryClient()
 
     @BeforeEach
     fun setUp() {
-        mysql.jdbcClient.sql(
+        postgres.jdbcClient.sql(
             """
             CREATE TABLE users (
-                user_id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id SERIAL PRIMARY KEY,
                 username VARCHAR(50),
                 email VARCHAR(100) NOT NULL,
                 age INT
@@ -28,7 +28,7 @@ class NullBindingTest {
 
     @AfterEach
     fun tearDown() {
-        mysql.jdbcClient.sql("DROP TABLE users").update()
+        postgres.jdbcClient.sql("DROP TABLE users").update()
     }
 
     @Test
@@ -95,6 +95,6 @@ class NullBindingTest {
     }
 
     companion object {
-        private val mysql = MySqlTestContainer
+        private val postgres = PostgresTestContainer
     }
 }

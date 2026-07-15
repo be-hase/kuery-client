@@ -10,7 +10,7 @@ import org.springframework.core.convert.converter.Converter
 import org.springframework.data.convert.WritingConverter
 import org.springframework.r2dbc.core.awaitRowsUpdated
 
-class ArrayBindingTest {
+class PostgresArrayBindingTest {
     private val kueryClient = postgres.kueryClient()
 
     enum class SampleEnum {

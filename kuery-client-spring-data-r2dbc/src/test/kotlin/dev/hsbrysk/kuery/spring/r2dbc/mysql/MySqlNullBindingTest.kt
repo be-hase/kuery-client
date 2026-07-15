@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.r2dbc.core.awaitRowsUpdated
 
-class NullBindingTest {
+class MySqlNullBindingTest {
     private val kueryClient = mysql.kueryClient()
 
     @BeforeEach

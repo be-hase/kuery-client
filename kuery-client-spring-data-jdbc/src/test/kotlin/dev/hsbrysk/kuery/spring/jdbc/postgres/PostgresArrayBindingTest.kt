@@ -9,7 +9,7 @@ import org.springframework.core.convert.converter.Converter
 import org.springframework.data.convert.WritingConverter
 import java.sql.Array as SqlArray
 
-class ArrayBindingTest {
+class PostgresArrayBindingTest {
     private val kueryClient = postgres.kueryClient()
 
     enum class SampleEnum {

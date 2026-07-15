@@ -14,7 +14,7 @@ import java.math.BigInteger
  * Pins MySQL Connector/J's generated-keys behavior: the auto-increment value is reported under the
  * driver-specific "GENERATED_KEY" label (as a BigInteger), regardless of the requested column names.
  */
-class GeneratedValuesTest {
+class MySqlGeneratedValuesTest {
     private val kueryClient = mysql.kueryClient()
 
     @BeforeEach

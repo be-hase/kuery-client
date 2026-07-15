@@ -21,7 +21,7 @@ import org.springframework.r2dbc.core.awaitRowsUpdated
  * emit zero or multiple rows. r2dbc-mysql synthesizes a single lastInsertId row even for UPDATE or
  * multi-row INSERT, so neither failure path can be reproduced with MySQL.
  */
-class GeneratedValuesTest {
+class PostgresGeneratedValuesTest {
     private val kueryClient = postgres.kueryClient()
 
     @BeforeEach

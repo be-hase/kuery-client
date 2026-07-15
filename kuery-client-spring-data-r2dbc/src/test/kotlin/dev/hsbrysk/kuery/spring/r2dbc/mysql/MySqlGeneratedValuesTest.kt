@@ -13,7 +13,7 @@ import org.springframework.r2dbc.core.awaitRowsUpdated
  * (a Long) under the requested column name. The zero/multiple-rows failure paths cannot be
  * reproduced with MySQL; those are covered in the postgres package instead.
  */
-class GeneratedValuesTest {
+class MySqlGeneratedValuesTest {
     private val kueryClient = mysql.kueryClient()
 
     @BeforeEach
