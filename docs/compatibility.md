@@ -33,6 +33,10 @@ Kotlin version listed in the table below for the kuery-client version you use.
 When a new Kotlin version is released, we follow up with a kuery-client release built against it (as a minor or patch
 release, as long as there are no other breaking changes).
 
+## Java version
+
+Kuery Client is built with a Java 17 toolchain, so Java 17 or later is required at runtime.
+
 ## Compatibility matrix
 
 The following table lists the versions of Kotlin, Spring Boot, and Spring Data that each kuery-client release
