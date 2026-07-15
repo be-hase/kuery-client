@@ -146,3 +146,17 @@ class UserRepository(private val kueryClient: KueryClient) {
     }
 }
 ```
+
+## Streaming operations are not observed
+
+Observation is not recorded for the streaming terminal operations:
+
+- `flow()` / `flowMap()` (kuery-client-spring-data-r2dbc)
+- `sequence()` / `sequenceMap()` (kuery-client-spring-data-jdbc)
+
+These operations return before the query results are consumed, so there is no obvious point at which the observation
+should stop. Both "until the stream terminates" and "until the first element arrives" are reasonable but different
+semantics. Until this is settled, these operations simply do not record metrics.
+
+If you need metrics for such a query, use `list()` / `listMap()` instead, or measure the consumption of the stream
+yourself.
