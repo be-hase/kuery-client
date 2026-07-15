@@ -139,12 +139,10 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         // Identify the call by its resolved declaration, not by the receiver expression's static
         // type: the receiver may be typed as a type parameter bounded by SqlBuilder (e.g. a fluent
         // helper `fun <T : SqlBuilder> T.helper(): T`), and the rewrite must still apply.
-        private fun IrCall.isAddOrUnaryPlus(): Boolean {
-            when (symbol.owner.name.asString()) {
-                "add", "unaryPlus" -> {}
-                else -> return false
-            }
-            return symbol.owner.parentClassOrNull?.fqNameWhenAvailable?.asString() == ClassNames.SQL_BUILDER
+        private fun IrCall.isAddOrUnaryPlus(): Boolean = when (symbol.owner.name.asString()) {
+            "add", "unaryPlus" ->
+                symbol.owner.parentClassOrNull?.fqNameWhenAvailable?.asString() == ClassNames.SQL_BUILDER
+            else -> false
         }
 
         private fun IrPluginContext.listOfRef(): IrSimpleFunctionSymbol =
