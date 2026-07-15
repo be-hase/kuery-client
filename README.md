@@ -30,7 +30,7 @@ like [MyBatis](https://github.com/mybatis/mybatis-3) that allow writing SQL dire
 
 To construct SQL dynamically, custom template syntax (such as if/foreach) is often used, but we prefer to write logic
 using the syntax provided by the programming language as much as possible.
-we want to write dynamic SQL using Kotlin syntax, similar to [kotlinx.html](https://github.com/Kotlin/kotlinx.html).
+We want to write dynamic SQL using Kotlin syntax, similar to [kotlinx.html](https://github.com/Kotlin/kotlinx.html).
 
 To meet these needs, we implemented `Kuery Client`.
 
@@ -131,7 +131,7 @@ val kueryClient = SpringJdbcKueryClient.builder()
 
 ```kotlin
 val userId = "..."
-val user: User = kueryClient
+val user: User? = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = $userId" }
     .singleOrNull()
 ```

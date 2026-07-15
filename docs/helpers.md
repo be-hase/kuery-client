@@ -33,6 +33,7 @@ fun test() = runTest {
 For example, the above `values` function is implemented as follows.
 
 ```kotlin
+@OptIn(DelicateKueryClientApi::class)
 fun SqlBuilder.values(input: List<List<Any?>>) {
     require(input.isNotEmpty()) { "inputted list is empty" }
     val firstSize = input.first().size
@@ -60,3 +61,6 @@ Feel free to extend it as you wish.
 There may be cases where custom string interpolation is difficult to write. In such situations, please use `addUnsafe`
 and `bind`.
 (The `values` function above is a good example of this.)
+
+Note that `addUnsafe` and `bind` are annotated with `@DelicateKueryClientApi` and require an explicit opt-in, since
+misusing them can lead to SQL injection. See [Compiler Safety Check](/compiler-safety-check) for details.

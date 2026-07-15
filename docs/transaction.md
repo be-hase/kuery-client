@@ -111,7 +111,7 @@ class UserService(
 }
 
 @Repository
-class UserRepository(private val kueryClient: KueryClient) {
+class UserRepository(private val kueryClient: KueryBlockingClient) {
     fun insert(
         username: String,
         email: Email,
@@ -142,7 +142,7 @@ class UserService(
 }
 
 @Repository
-class UserRepository(private val kueryClient: KueryClient) {
+class UserRepository(private val kueryClient: KueryBlockingClient) {
     fun insert(
         username: String,
         email: Email,
