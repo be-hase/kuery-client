@@ -66,22 +66,30 @@ public interface KueryBlockingClient {
 
         /**
          * Receives the results of multiple rows converted to the specified type.
+         *
+         * When fetching a simple scalar type from a single-column query, SQL NULL is kept as a null
+         * element even though this cannot be expressed in the `List<T>` type.
          */
         public fun <T : Any> list(returnType: KClass<T>): List<T>
 
         /**
          * Receives the results of multiple rows as a sequence of maps.
          * The returned sequence is backed by an open JDBC ResultSet; iterate it within an active transaction.
-         * It is closed automatically when fully iterated or when an exception is thrown during the iteration.
-         * If you stop iterating midway, close it explicitly (e.g., with [use]). It can be iterated only once.
+         * It is closed automatically when fully iterated or when fetching the next element throws; exceptions
+         * thrown by your own processing code do not close it. Unless you fully iterate the sequence, close it
+         * explicitly (e.g., with [use]). It can be iterated only once. See [CloseableSequence].
          */
         public fun sequenceMap(): CloseableSequence<Map<String, Any?>>
 
         /**
          * Receives the results of multiple rows converted to the specified type as a sequence.
          * The returned sequence is backed by an open JDBC ResultSet; iterate it within an active transaction.
-         * It is closed automatically when fully iterated or when an exception is thrown during the iteration.
-         * If you stop iterating midway, close it explicitly (e.g., with [use]). It can be iterated only once.
+         * It is closed automatically when fully iterated or when fetching the next element throws; exceptions
+         * thrown by your own processing code do not close it. Unless you fully iterate the sequence, close it
+         * explicitly (e.g., with [use]). It can be iterated only once. See [CloseableSequence].
+         *
+         * When fetching a simple scalar type from a single-column query, SQL NULL is kept as a null
+         * element even though this cannot be expressed in the `CloseableSequence<T>` type.
          */
         public fun <T : Any> sequence(returnType: KClass<T>): CloseableSequence<T>
 
