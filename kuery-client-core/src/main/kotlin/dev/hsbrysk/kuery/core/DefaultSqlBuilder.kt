@@ -3,9 +3,6 @@ package dev.hsbrysk.kuery.core
 import dev.hsbrysk.kuery.core.internal.DefaultNamedSqlParameter
 import dev.hsbrysk.kuery.core.internal.DefaultSql
 
-// Lives in the same package as SqlBuilder because Kotlin requires direct subclasses of a sealed
-// interface to be declared in the same package. The fully-qualified name of this class is
-// effectively public ABI (see `interpolate`), so it must not move again.
 internal class DefaultSqlBuilder : SqlBuilder {
     private val body = StringBuilder()
     private val parameters = mutableListOf<NamedSqlParameter>()
