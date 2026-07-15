@@ -257,8 +257,13 @@ internal class DefaultSpringR2dbcKueryClient(
         }
     }
 
-    // ref: https://github.com/spring-projects/spring-framework/blob/bf06d74879029593b40d3825aca39dad9f229f44/spring-jdbc/src/main/java/org/springframework/jdbc/core/SingleColumnRowMapper.java
-    // However, conversions such as any-to-string or string-to-number are intentionally not implemented.
+    // A Readable-based counterpart of Spring JDBC's SingleColumnRowMapper:
+    // https://github.com/spring-projects/spring-framework/blob/bf06d74879029593b40d3825aca39dad9f229f44/spring-jdbc/src/main/java/org/springframework/jdbc/core/SingleColumnRowMapper.java
+    //
+    // First asks the driver for the value as [requiredType]; when the driver cannot convert it, falls back to
+    // [conversionService] (DefaultConversionService plus user-registered converters). Standard conversions such
+    // as string-to-number and any-to-string are therefore supported, aligning the observable behavior with the
+    // JDBC module. Which of the two paths handles a given conversion is driver-dependent.
     //
     // The R2DBC SPI forbids Result.map mapping functions from returning null, so a SQL NULL value
     // is returned as [NullValue] instead and unwrapped at the terminal operators.
