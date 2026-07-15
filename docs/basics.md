@@ -35,6 +35,11 @@ kueryClient
 It is an alias for `+`(unaryPlus). However, since the argument is annotated
 with `org.intellij.lang.annotations.Language`, if you are using a JetBrains IDE, you will get syntax assistance.
 
+::: info
+`sql { ... }` also has an overload that takes an explicit SQL id — `sql("my-sql-id") { ... }` — which labels
+the query for metrics. See [Observation](/observation#sql-id).
+:::
+
 ## Binding Parameters
 
 When you want to bind parameters, use string interpolation.
