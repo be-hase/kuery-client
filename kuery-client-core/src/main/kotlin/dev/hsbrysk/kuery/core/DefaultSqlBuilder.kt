@@ -63,13 +63,13 @@ internal class DefaultSqlBuilder : SqlBuilder {
         }
     }
 
-    fun build(): Sql = DefaultSql(body.toString().trim(), parameters.toList())
+    fun build(): Sql = DefaultSql(body.trim().toString(), parameters.toList())
 
     companion object {
         internal const val PARAMETER_NAME_PREFIX = "p"
         internal const val PARAMETER_NAME_PREFIX_WITH_COLON = ":$PARAMETER_NAME_PREFIX"
 
-        fun <T> injectByPlugin(): T = error(
+        fun injectByPlugin(): Nothing = error(
             "`SqlBuilder.add`/`String.unaryPlus` must be rewritten by the kuery-client compiler plugin, " +
                 "but this call was not. " +
                 "Make sure the Gradle plugin `dev.hsbrysk.kuery-client` is applied to the module " +

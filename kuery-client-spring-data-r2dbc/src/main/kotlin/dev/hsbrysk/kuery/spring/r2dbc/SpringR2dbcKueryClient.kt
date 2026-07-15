@@ -9,8 +9,7 @@ public object SpringR2dbcKueryClient {
     /**
      * Retrieve the current sqlId from reactor context.
      */
-    public fun sqlId(context: ContextView): String? =
-        context.getOrEmpty<String>(SQL_ID_REACTOR_CONTEXT_KEY).orElse(null)
+    public fun sqlId(context: ContextView): String? = context.getOrDefault(SQL_ID_REACTOR_CONTEXT_KEY, null)
 
     /**
      * Create [SpringR2dbcKueryClientBuilder]
