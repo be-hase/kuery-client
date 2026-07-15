@@ -76,7 +76,19 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
     }
 
     override fun visitStringConcatenation(expression: IrStringConcatenation): IrExpression {
-        val current = current ?: return super.visitStringConcatenation(expression)
+        val enclosing = current ?: return super.visitStringConcatenation(expression)
+
+        // The template's values are bound as parameters, not SQL text, so transform them outside
+        // the enclosing add/unaryPlus context: a nested add/unaryPlus inside a value must still be
+        // rewritten (it sets up its own receiver), while a string template inside a value stays a
+        // plain concatenation whose evaluated result is bound as a single value.
+        current = null
+        try {
+            expression.transformChildren(this, null)
+        } finally {
+            current = enclosing
+        }
+
         val builder = irBuilder(expression)
 
         val (fragments, values) = StringConcatenationProcessor(builder).process(expression.arguments).let {
@@ -92,7 +104,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
 
         return builder.irCall(interpolate).apply {
             dispatchReceiver = builder.irCastIfNeeded(
-                builder.irGet(current),
+                builder.irGet(enclosing),
                 defaultSqlBuilderClass.typeWith(),
             )
             val regularParams = interpolate.owner.parameters.filter { it.kind == IrParameterKind.Regular }

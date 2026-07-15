@@ -1,6 +1,6 @@
 <div align="center">
 <h1>
-<a href="https://kuery-client.hsbrysk.dev/"><img src="/docs/logo.png" alt="kuery-client-logo" width="400" /></a>
+<a href="https://kuery-client.hsbrysk.dev/"><img src="docs/logo.png" alt="kuery-client-logo" width="400" /></a>
 </h1>
 <a href="https://central.sonatype.com/search?q=kuery-client"><img alt="Maven Central Version" src="https://img.shields.io/maven-central/v/dev.hsbrysk.kuery-client/kuery-client-core"></a>
 <br />
@@ -91,6 +91,8 @@ In the future, we may add a different foundation or possibly create a new one fr
 
 ### Install
 
+Kuery Client requires Java 17 or later.
+
 #### Gradle
 
 Replace `<version>` with the latest version, which you can find in the Maven Central badge above or on
@@ -135,3 +137,15 @@ val user: User? = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = $userId" }
     .singleOrNull()
 ```
+
+## Documentation
+
+More details — transactions, type conversion, observation, the compiler safety check, helpers, and the
+compatibility matrix — are on the [document site](https://kuery-client.hsbrysk.dev/).
+
+## Examples
+
+Runnable example projects live in [examples/](examples):
+
+- [examples/spring-data-r2dbc](examples/spring-data-r2dbc)
+- [examples/spring-data-jdbc](examples/spring-data-jdbc)

@@ -262,6 +262,65 @@ class StringInterpolationTest {
     }
 
     @Test
+    fun `nested add inside an interpolation value`() {
+        val x = "X"
+        val y = "Y"
+        val sql = Sql {
+            +"A ${run {
+                add("B $x")
+                "v"
+            }} C $y"
+        }
+        // The inner add runs first while the outer template's values are being evaluated,
+        // then the outer template binds the run block's result ("v") as a single value.
+        assertThat(sql).isEqualTo(
+            Sql(
+                "B :p0\nA :p1 C :p2",
+                listOf(
+                    NamedSqlParameter("p0", "X"),
+                    NamedSqlParameter("p1", "v"),
+                    NamedSqlParameter("p2", "Y"),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `nested unaryPlus inside an interpolation value`() {
+        val x = "X"
+        val sql = Sql {
+            +"A ${run {
+                +"B $x"
+                "v"
+            }}"
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "B :p0\nA :p1",
+                listOf(
+                    NamedSqlParameter("p0", "X"),
+                    NamedSqlParameter("p1", "v"),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `string template inside an interpolation value stays a plain concatenation`() {
+        val sql = Sql {
+            +"A ${listOf(1, 2).joinToString(", ") { "n $it" }}"
+        }
+        // The template inside the lambda belongs to the value, not to the SQL text,
+        // so the whole evaluated result is bound as a single parameter.
+        assertThat(sql).isEqualTo(
+            Sql(
+                "A :p0",
+                listOf(NamedSqlParameter("p0", "n 1, n 2")),
+            ),
+        )
+    }
+
+    @Test
     fun `if expression as the whole argument`() {
         // The IR transformation keeps its context across the whole argument expression,
         // so templates inside if branches are converted into bind parameters.
