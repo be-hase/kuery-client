@@ -50,12 +50,10 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
             )
             current = temporary
 
+            // The SQL argument is the single non-dispatch parameter: `add`'s regular parameter
+            // or `unaryPlus`'s extension receiver.
             val sqlArgumentParameter = expression.symbol.owner.parameters.first {
-                when (expression.symbol.owner.name.asString()) {
-                    "add" -> it.kind == IrParameterKind.Regular
-                    "unaryPlus" -> it.kind == IrParameterKind.ExtensionReceiver
-                    else -> error("Unexpected error") // not happened
-                }
+                it.kind != IrParameterKind.DispatchReceiver
             }
             val sqlArgument = checkNotNull(expression.arguments[sqlArgumentParameter.indexInParameters])
                 .transform(this, null)

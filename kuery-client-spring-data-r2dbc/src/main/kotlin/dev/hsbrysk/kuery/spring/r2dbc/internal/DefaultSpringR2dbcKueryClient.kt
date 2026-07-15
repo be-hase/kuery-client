@@ -197,7 +197,7 @@ internal class DefaultSpringR2dbcKueryClient(
             // NULL scalar values are kept as null elements, like the JDBC client. The declared
             // element type cannot express this, but type erasure makes it observable the same way.
             @Suppress("UNCHECKED_CAST")
-            return if (mapper is SingleColumnRowMapper<*>) {
+            return if (mapper is SingleColumnRowMapper) {
                 values.map { it.unwrapNullValue<T>() } as List<T>
             } else {
                 values as List<T>
@@ -220,7 +220,7 @@ internal class DefaultSpringR2dbcKueryClient(
             val mapper = mapper(returnType)
             val flow = spec.map(mapper).all().sqlId(sqlId).asFlow()
             @Suppress("UNCHECKED_CAST")
-            return if (mapper is SingleColumnRowMapper<*>) {
+            return if (mapper is SingleColumnRowMapper) {
                 flow.map { it.unwrapNullValue<T>() } as Flow<T>
             } else {
                 flow as Flow<T>
@@ -261,7 +261,7 @@ internal class DefaultSpringR2dbcKueryClient(
                                 registry,
                             )
                             .parentObservation(
-                                contextView.getOrEmpty<Observation>(ObservationThreadLocalAccessor.KEY).orElse(null),
+                                contextView.getOrDefault<Observation>(ObservationThreadLocalAccessor.KEY, null),
                             )
                             .start()
                     },
@@ -311,8 +311,8 @@ internal class DefaultSpringR2dbcKueryClient(
     //
     // The R2DBC SPI forbids Result.map mapping functions from returning null, so a SQL NULL value
     // is returned as [NullValue] instead and unwrapped at the terminal operators.
-    class SingleColumnRowMapper<T : Any>(
-        private val requiredType: Class<T>,
+    class SingleColumnRowMapper(
+        private val requiredType: Class<*>,
         private val conversionService: ConversionService,
     ) : Function<Readable, Any> {
         override fun apply(readable: Readable): Any = try {
