@@ -20,19 +20,30 @@ private class StreamCloseableSequence<T>(private val stream: Stream<T>) : Closea
         check(!closed) { "This sequence is already closed." }
         iterated = true
         val iterator = stream.iterator()
-        // The underlying stream iterator throws NoSuchElementException when exhausted.
-        @Suppress("IteratorNotThrowingNoSuchElementException")
         return object : Iterator<T> {
-            override fun hasNext(): Boolean = closeOnFailure {
-                val hasNext = iterator.hasNext()
-                if (!hasNext) {
-                    close()
+            // Once closed (exhaustion or an explicit close()), never touch the underlying
+            // iterator again: the JDK stream-iterator adapter does not cache exhaustion and
+            // would re-access the already-released resource (e.g. a closed ResultSet).
+            override fun hasNext(): Boolean {
+                if (closed) {
+                    return false
                 }
-                hasNext
+                return closeOnFailure {
+                    val hasNext = iterator.hasNext()
+                    if (!hasNext) {
+                        close()
+                    }
+                    hasNext
+                }
             }
 
-            override fun next(): T = closeOnFailure {
-                iterator.next()
+            override fun next(): T {
+                if (closed) {
+                    throw NoSuchElementException("This sequence has no more elements (already closed).")
+                }
+                return closeOnFailure {
+                    iterator.next()
+                }
             }
         }
     }
