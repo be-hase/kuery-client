@@ -1,9 +1,8 @@
-package dev.hsbrysk.kuery.spring.jdbc
+package dev.hsbrysk.kuery.spring.jdbc.postgres
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNull
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -96,12 +95,6 @@ class PostgresNullBindingTest {
     }
 
     companion object {
-        private val postgres = PostgresTestContainer()
-
-        @JvmStatic
-        @AfterAll
-        fun afterAll() {
-            postgres.close()
-        }
+        private val postgres = PostgresTestContainer
     }
 }

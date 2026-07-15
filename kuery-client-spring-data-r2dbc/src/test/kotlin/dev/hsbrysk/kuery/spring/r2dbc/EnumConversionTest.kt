@@ -4,13 +4,12 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import dev.hsbrysk.kuery.core.single
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class EnumConversionTest {
-    private val kueryClient = mysql.kueryClient()
+    private val kueryClient = h2.kueryClient()
 
     enum class SampleEnum {
         HOGE,
@@ -20,12 +19,12 @@ class EnumConversionTest {
 
     @BeforeEach
     fun beforeEach() = runTest {
-        mysql.setUpForConverterTest()
+        h2.setUpForConverterTest()
     }
 
     @AfterEach
     fun afterEach() = runTest {
-        mysql.tearDownForConverterTest()
+        h2.tearDownForConverterTest()
     }
 
     @Test
@@ -58,12 +57,6 @@ class EnumConversionTest {
     }
 
     companion object {
-        private val mysql = MySqlTestContainer()
-
-        @AfterAll
-        @JvmStatic
-        fun afterAll() {
-            mysql.close()
-        }
+        private val h2 = H2TestDatabase()
     }
 }

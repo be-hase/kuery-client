@@ -1,9 +1,8 @@
-package dev.hsbrysk.kuery.spring.jdbc
+package dev.hsbrysk.kuery.spring.jdbc.mysql
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNull
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -96,12 +95,6 @@ class MySqlNullBindingTest {
     }
 
     companion object {
-        private val mysql = MySqlTestContainer()
-
-        @JvmStatic
-        @AfterAll
-        fun afterAll() {
-            mysql.close()
-        }
+        private val mysql = MySqlTestContainer
     }
 }

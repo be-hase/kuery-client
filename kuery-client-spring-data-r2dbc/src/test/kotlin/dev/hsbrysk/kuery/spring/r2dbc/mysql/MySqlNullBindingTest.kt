@@ -1,4 +1,4 @@
-package dev.hsbrysk.kuery.spring.r2dbc
+package dev.hsbrysk.kuery.spring.r2dbc.mysql
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -6,7 +6,6 @@ import assertk.assertions.isNull
 import io.r2dbc.spi.Parameters
 import io.r2dbc.spi.R2dbcType
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -98,12 +97,6 @@ class MySqlNullBindingTest {
     }
 
     companion object {
-        private val mysql = MySqlTestContainer()
-
-        @JvmStatic
-        @AfterAll
-        fun afterAll() {
-            mysql.close()
-        }
+        private val mysql = MySqlTestContainer
     }
 }

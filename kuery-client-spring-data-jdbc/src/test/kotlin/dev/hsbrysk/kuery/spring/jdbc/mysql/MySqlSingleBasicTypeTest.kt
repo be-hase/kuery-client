@@ -1,11 +1,10 @@
-package dev.hsbrysk.kuery.spring.jdbc
+package dev.hsbrysk.kuery.spring.jdbc.mysql
 
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import dev.hsbrysk.kuery.core.DelicateKueryClientApi
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -16,7 +15,7 @@ import org.springframework.jdbc.BadSqlGrammarException
 import java.net.URI
 import kotlin.reflect.KClass
 
-class SingleBasicTypeTest {
+class MySqlSingleBasicTypeTest {
     private val kueryClient = mysql.kueryClient(
         listOf(
             StringToStringWrapperConverter(),
@@ -64,13 +63,7 @@ class SingleBasicTypeTest {
     }
 
     companion object {
-        private val mysql = MySqlTestContainer()
-
-        @AfterAll
-        @JvmStatic
-        fun afterAll() {
-            mysql.close()
-        }
+        private val mysql = MySqlTestContainer
 
         @JvmStatic
         fun singleValues(): List<Any> = listOf(

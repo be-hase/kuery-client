@@ -1,11 +1,10 @@
-package dev.hsbrysk.kuery.spring.r2dbc
+package dev.hsbrysk.kuery.spring.r2dbc.postgres
 
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -76,12 +75,6 @@ class PostgresGeneratedValuesTest {
     }
 
     companion object {
-        private val postgres = PostgresTestContainer()
-
-        @JvmStatic
-        @AfterAll
-        fun afterAll() {
-            postgres.close()
-        }
+        private val postgres = PostgresTestContainer
     }
 }

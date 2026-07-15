@@ -12,6 +12,7 @@ dependencies {
     api(libs.spring.data.jdbc)
 
     testImplementation(platform(libs.spring.boot.bom))
+    testImplementation("com.h2database:h2")
     testImplementation("com.mysql:mysql-connector-j")
     testImplementation("org.postgresql:postgresql")
     testImplementation("org.testcontainers:testcontainers-mysql")

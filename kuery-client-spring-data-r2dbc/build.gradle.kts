@@ -21,6 +21,7 @@ dependencies {
     testImplementation(platform(libs.spring.boot.bom))
     testImplementation("com.mysql:mysql-connector-j")
     testImplementation("io.asyncer:r2dbc-mysql")
+    testImplementation("io.r2dbc:r2dbc-h2")
     testImplementation("org.postgresql:r2dbc-postgresql")
     testImplementation("org.testcontainers:testcontainers-mysql")
     testImplementation("org.testcontainers:testcontainers-postgresql")

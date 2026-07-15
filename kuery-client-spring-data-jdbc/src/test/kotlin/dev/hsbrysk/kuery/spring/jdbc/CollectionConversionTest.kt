@@ -2,7 +2,6 @@ package dev.hsbrysk.kuery.spring.jdbc
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -11,7 +10,7 @@ import org.springframework.data.convert.ReadingConverter
 import org.springframework.data.convert.WritingConverter
 
 class CollectionConversionTest {
-    private val kueryClient = mysql.kueryClient(
+    private val kueryClient = h2.kueryClient(
         listOf(
             StringWrapperToStringConverter(),
             StringToStringWrapperConverter(),
@@ -32,12 +31,12 @@ class CollectionConversionTest {
 
     @BeforeEach
     fun beforeEach() {
-        mysql.setUpForConverterTest()
+        h2.setUpForConverterTest()
     }
 
     @AfterEach
     fun afterEach() {
-        mysql.tearDownForConverterTest()
+        h2.tearDownForConverterTest()
     }
 
     @Test
@@ -59,12 +58,6 @@ class CollectionConversionTest {
     }
 
     companion object {
-        private val mysql = MySqlTestContainer()
-
-        @AfterAll
-        @JvmStatic
-        fun afterAll() {
-            mysql.close()
-        }
+        private val h2 = H2TestDatabase()
     }
 }
