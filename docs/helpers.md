@@ -11,21 +11,16 @@ description: Built-in values helper for multi-row inserts and guidance on writin
 This is a helpful function for performing multi-row inserts.
 
 ```kotlin
-@Test
-fun test() = runTest {
-        data class UserParam(val username: String, val email: String?, val age: Int)
+data class UserParam(val username: String, val email: String?, val age: Int)
 
-        val input = listOf(
-            UserParam("user1", "user1@example.com", 1),
-            UserParam("user2", null, 2),
-            UserParam("user3", "user3@example.com", 3),
-        )
-
-        kueryClient.sql {
-            +"INSERT INTO users (username, email, age)"
-            values(input) { listOf(it.username, it.email, it.age) }
-        }.rowsUpdated()
+suspend fun insertMany(params: List<UserParam>): Long = kueryClient
+    .sql {
+        +"INSERT INTO users (username, email, age)"
+        values(params) { listOf(it.username, it.email, it.age) }
     }
+    .rowsUpdated()
+
+// INSERT INTO users (username, email, age) VALUES (:p0, :p1, :p2), (:p3, :p4, :p5), ...
 ```
 
 ## You can also write your own helper
