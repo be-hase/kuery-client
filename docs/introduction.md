@@ -7,7 +7,7 @@ description: Overview of Kuery Client's features, motivation, and the SQL builde
 ## Features
 
 - **Love SQL ♥**
-    - While ORM libraries in the world are convenient, they often require learning their own DSL, which We believe has a
+    - While ORM libraries in the world are convenient, they often require learning their own DSL, which we believe has a
       high learning cost. Kuery Client emphasizes writing SQL as it is.
 - **Based on spring-data-r2dbc and spring-data-jdbc**
     - Kuery Client is implemented based on spring-data-r2dbc and spring-data-jdbc. Use whichever you prefer. You can use
