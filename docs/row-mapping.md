@@ -10,10 +10,11 @@ based on the return type.
 
 ## Data classes
 
-Typically, you will map rows to a data class. Each row is mapped with Spring's
-[`DataClassRowMapper`](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/jdbc/core/DataClassRowMapper.html):
-the constructor of the target class is invoked, and each constructor parameter is populated from the column with
-the matching name. A `snake_case` column name matches a `camelCase` parameter name.
+Typically, you will map rows to a data class. Each row is mapped with Spring's `DataClassRowMapper`
+([spring-r2dbc](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/r2dbc/core/DataClassRowMapper.html)
+/ [spring-jdbc](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/jdbc/core/DataClassRowMapper.html),
+respectively): the constructor of the target class is invoked, and each constructor parameter is populated from
+the column with the matching name. A `snake_case` column name matches a `camelCase` parameter name.
 
 ```kotlin
 data class User(
