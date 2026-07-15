@@ -1,4 +1,4 @@
-package dev.hsbrysk.kuery.core.internal
+package dev.hsbrysk.kuery.core
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -23,7 +23,9 @@ class DefaultSqlBuilderAbiTest {
     fun `interpolate signature is frozen`() {
         // Intentionally string literals (not ::class / type references) so that IDE refactorings
         // cannot silently update this test along with the production code.
-        val clazz = Class.forName("dev.hsbrysk.kuery.core.internal.DefaultSqlBuilder")
+        // Moved from `dev.hsbrysk.kuery.core.internal` before v1.0.0 (sealing SqlBuilder requires
+        // the implementation to be in the same package). Frozen at this location from 1.0 onward.
+        val clazz = Class.forName("dev.hsbrysk.kuery.core.DefaultSqlBuilder")
         // Throws NoSuchMethodException if the name or parameter types change.
         val method = clazz.getMethod("interpolate", List::class.java, List::class.java)
 

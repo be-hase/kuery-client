@@ -18,12 +18,13 @@ import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrStringConcatenation
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.IrType
-import org.jetbrains.kotlin.ir.types.classFqName
-import org.jetbrains.kotlin.ir.types.classOrFail
 import org.jetbrains.kotlin.ir.types.typeWith
+import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.irCastIfNeeded
 import org.jetbrains.kotlin.ir.util.isVararg
+import org.jetbrains.kotlin.ir.util.parentAsClass
+import org.jetbrains.kotlin.ir.util.parentClassOrNull
 
 @Suppress("OPT_IN_USAGE")
 class StringInterpolationTransformer(private val pluginContext: IrPluginContext) :
@@ -60,7 +61,9 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
                 .transform(this, null)
 
             val builder = irBuilder(expression)
-            val sqlBuilderClass = temporary.type.classOrFail
+            // Resolve addUnsafe from the called declaration's class (SqlBuilder), because the
+            // receiver's static type may be a type parameter, which has no class.
+            val sqlBuilderClass = expression.symbol.owner.parentAsClass.symbol
             val addUnsafe = sqlBuilderClass.functions.first { it.owner.name.asString() == "addUnsafe" }
             builder.irBlock(resultType = pluginContext.irBuiltIns.unitType) {
                 +temporary
@@ -133,14 +136,13 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
     }
 
     companion object {
-        private fun IrCall.isAddOrUnaryPlus(): Boolean {
-            if (dispatchReceiver?.type?.classFqName?.asString() != ClassNames.SQL_BUILDER) {
-                return false
-            }
-            when (symbol.owner.name.asString()) {
-                "add", "unaryPlus" -> return true
-            }
-            return false
+        // Identify the call by its resolved declaration, not by the receiver expression's static
+        // type: the receiver may be typed as a type parameter bounded by SqlBuilder (e.g. a fluent
+        // helper `fun <T : SqlBuilder> T.helper(): T`), and the rewrite must still apply.
+        private fun IrCall.isAddOrUnaryPlus(): Boolean = when (symbol.owner.name.asString()) {
+            "add", "unaryPlus" ->
+                symbol.owner.parentClassOrNull?.fqNameWhenAvailable?.asString() == ClassNames.SQL_BUILDER
+            else -> false
         }
 
         private fun IrPluginContext.listOfRef(): IrSimpleFunctionSymbol =
