@@ -84,13 +84,26 @@ internal class DefaultSpringJdbcKueryClient(
     // resolve the SQL array type from it, and pgjdbc rejects Object[] outright.
     private fun convertArray(array: Array<*>): Array<*> {
         val converted = array.map { convertElement(it) }
-        if (array.indices.all { converted[it] === array[it] }) {
+        val targetType = componentWriteTarget(array.javaClass.componentType)
+        if (targetType == null && array.indices.all { converted[it] === array[it] }) {
             return array
         }
-        val componentType = converted.mapNotNull { it?.javaClass }.distinct().singleOrNull() ?: Any::class.java
+        val inferredType = converted.mapNotNull { it?.javaClass }.distinct().singleOrNull() ?: Any::class.java
+        val componentType = targetType ?: inferredType
         val result = ReflectArray.newInstance(componentType, array.size)
         converted.forEachIndexed { index, value -> ReflectArray.set(result, index, value) }
         return result as Array<*>
+    }
+
+    // The component type itself carries the conversion intent even when the elements don't
+    // (all-null or empty arrays), e.g. SampleEnum[] must become String[] regardless of contents.
+    private fun componentWriteTarget(componentType: Class<*>): Class<*>? {
+        val targetType = customConversions.getCustomWriteTarget(componentType)
+        return when {
+            targetType.isPresent -> targetType.get()
+            Enum::class.java.isAssignableFrom(componentType) -> String::class.java
+            else -> null
+        }
     }
 
     private fun convertElement(element: Any?): Any? {

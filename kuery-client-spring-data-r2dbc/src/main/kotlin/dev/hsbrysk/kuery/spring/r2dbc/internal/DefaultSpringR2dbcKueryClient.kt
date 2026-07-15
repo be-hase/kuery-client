@@ -82,6 +82,15 @@ internal class DefaultSpringR2dbcKueryClient(
         return when (value) {
             is Collection<*> -> bind(parameter.name, convertCollection(value))
             is Array<*> -> bind(parameter.name, convertArray(value))
+            // R2DBC drivers' array codecs accept only object arrays, so box primitive arrays.
+            // ByteArray is excluded: drivers encode byte[] as a single binary value, not an array.
+            is IntArray -> bind(parameter.name, value.toTypedArray())
+            is LongArray -> bind(parameter.name, value.toTypedArray())
+            is ShortArray -> bind(parameter.name, value.toTypedArray())
+            is DoubleArray -> bind(parameter.name, value.toTypedArray())
+            is FloatArray -> bind(parameter.name, value.toTypedArray())
+            is BooleanArray -> bind(parameter.name, value.toTypedArray())
+            is CharArray -> bind(parameter.name, value.toTypedArray())
             is Enum<*> -> bind(parameter.name, value.name)
             else -> bind(parameter.name, value)
         }
@@ -93,13 +102,26 @@ internal class DefaultSpringR2dbcKueryClient(
     // resolve the SQL array type from it, and pgjdbc rejects Object[] outright.
     private fun convertArray(array: Array<*>): Array<*> {
         val converted = array.map { convertElement(it) }
-        if (array.indices.all { converted[it] === array[it] }) {
+        val targetType = componentWriteTarget(array.javaClass.componentType)
+        if (targetType == null && array.indices.all { converted[it] === array[it] }) {
             return array
         }
-        val componentType = converted.mapNotNull { it?.javaClass }.distinct().singleOrNull() ?: Any::class.java
+        val inferredType = converted.mapNotNull { it?.javaClass }.distinct().singleOrNull() ?: Any::class.java
+        val componentType = targetType ?: inferredType
         val result = ReflectArray.newInstance(componentType, array.size)
         converted.forEachIndexed { index, value -> ReflectArray.set(result, index, value) }
         return result as Array<*>
+    }
+
+    // The component type itself carries the conversion intent even when the elements don't
+    // (all-null or empty arrays), e.g. SampleEnum[] must become String[] regardless of contents.
+    private fun componentWriteTarget(componentType: Class<*>): Class<*>? {
+        val targetType = customConversions.getCustomWriteTarget(componentType)
+        return when {
+            targetType.isPresent -> targetType.get()
+            Enum::class.java.isAssignableFrom(componentType) -> String::class.java
+            else -> null
+        }
     }
 
     private fun convertElement(element: Any?): Any? {
