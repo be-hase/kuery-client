@@ -219,18 +219,9 @@ internal class DefaultSpringJdbcKueryClient(
         private fun <T> observe(block: () -> T): T {
             return SqlIdInjector(sqlId).use {
                 val observation = observationOrNull() ?: return block()
-
-                observation.start()
-                observation.openScope().use {
-                    try {
-                        block()
-                    } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-                        observation.error(e)
-                        throw e
-                    } finally {
-                        observation.stop()
-                    }
-                }
+                // Runs start/openScope/error/stop in the documented Micrometer lifecycle order
+                // (the scope is closed before the observation is stopped).
+                observation.observeChecked<T, Throwable>(block)
             }
         }
 

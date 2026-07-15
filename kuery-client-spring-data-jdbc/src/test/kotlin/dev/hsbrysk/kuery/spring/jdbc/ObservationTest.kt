@@ -1,6 +1,10 @@
 package dev.hsbrysk.kuery.spring.jdbc
 
+import assertk.assertThat
+import assertk.assertions.isEqualTo
 import com.example.spring.jdbc.UserRepository
+import io.micrometer.observation.Observation
+import io.micrometer.observation.ObservationHandler
 import io.micrometer.observation.tck.TestObservationRegistry
 import io.micrometer.observation.tck.TestObservationRegistryAssert
 import org.junit.jupiter.api.AfterEach
@@ -111,6 +115,30 @@ class ObservationTest {
             sqlId = "com.example.spring.jdbc.UserRepository.generatedValues",
             sql = "INSERT INTO users (username, email) VALUES (:p0, :p1)",
         )
+    }
+
+    @Test
+    fun `scope is closed before the observation is stopped`() {
+        // The documented Micrometer lifecycle order: close the scope, then stop the observation.
+        val events = mutableListOf<String>()
+        val recordingRegistry = TestObservationRegistry.create().apply {
+            observationConfig().observationHandler(object : ObservationHandler<Observation.Context> {
+                override fun supportsContext(context: Observation.Context): Boolean = true
+
+                override fun onScopeClosed(context: Observation.Context) {
+                    events.add("scopeClosed")
+                }
+
+                override fun onStop(context: Observation.Context) {
+                    events.add("stop")
+                }
+            })
+        }
+        val client = h2.kueryClient(observationRegistry = recordingRegistry)
+
+        UserRepository(client).singleMap(1)
+
+        assertThat(events).isEqualTo(listOf("scopeClosed", "stop"))
     }
 
     private fun assertObservation(
