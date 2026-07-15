@@ -45,6 +45,18 @@ class EnumConversionTest {
     }
 
     @Test
+    fun testScalar() = runTest {
+        kueryClient.sql {
+            +"INSERT INTO converter (text) VALUES (${SampleEnum.HOGE})"
+        }.rowsUpdated()
+
+        val result: SampleEnum = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(result).isEqualTo(SampleEnum.HOGE)
+    }
+
+    @Test
     fun testInCollection() = runTest {
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES (${SampleEnum.HOGE})"
