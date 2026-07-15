@@ -15,6 +15,7 @@ class KueryClientFirExtensionRegistrar : FirExtensionRegistrar() {
 
 internal class KueryClientFirCheckersExtension(session: FirSession) : FirAdditionalCheckersExtension(session) {
     override val expressionCheckers: ExpressionCheckers = object : ExpressionCheckers() {
-        override val functionCallCheckers: Set<FirFunctionCallChecker> = setOf(UnsafeSqlStringChecker)
+        override val functionCallCheckers: Set<FirFunctionCallChecker> =
+            setOf(UnsafeSqlStringChecker, BindCallInSqlTemplateChecker)
     }
 }
