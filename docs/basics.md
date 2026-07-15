@@ -170,6 +170,42 @@ kueryClient
     }
 ```
 
+## Reusable query parts
+
+Query parts shared across queries can be extracted into plain extension functions on `SqlBuilder`. String
+interpolation inside them is converted into bind parameters as usual, and Kotlin control flow works as usual —
+no special API is needed:
+
+```kotlin
+fun SqlBuilder.whereActiveUsers(tenantId: Int, username: String? = null) {
+    +"WHERE tenant_id = $tenantId"
+    +"AND status = 'ACTIVE'"
+    if (username != null) {
+        +"AND username = $username"
+    }
+}
+
+class UserRepository(private val kueryClient: KueryClient) {
+    suspend fun search(tenantId: Int, username: String?): List<User> = kueryClient
+        .sql {
+            +"SELECT * FROM users"
+            whereActiveUsers(tenantId, username)
+            +"ORDER BY username"
+        }
+        .list()
+
+    suspend fun count(tenantId: Int): Long = kueryClient
+        .sql {
+            +"SELECT COUNT(*) FROM users"
+            whereActiveUsers(tenantId)
+        }
+        .single()
+}
+```
+
+For fragments that must be assembled as a string dynamically (e.g. a variable number of placeholders), see
+[Helpers](/helpers).
+
 ## Fetch Result
 
 Terminal operations execute the query and return the result. In `kuery-client-spring-data-r2dbc` they are
