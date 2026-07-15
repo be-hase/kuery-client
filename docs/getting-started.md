@@ -44,6 +44,10 @@ files.
 
 ## Build KueryClient
 
+`kuery-client-spring-data-r2dbc` provides `KueryClient`, whose fetch operations are `suspend` functions;
+`kuery-client-spring-data-jdbc` provides `KueryBlockingClient`, the blocking equivalent. Apart from that, the
+two APIs are the same.
+
 ::: code-group
 
 ```kotlin [kuery-client-spring-data-r2dbc]
