@@ -104,6 +104,54 @@ class UnsafeSqlStringCheckerTest {
     }
 
     @Test
+    fun `no warning when a when expression has an error branch`() {
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(sort: String, id: Int) {
+                Sql {
+                    add(
+                        when (sort) {
+                            "name" -> "ORDER BY name"
+                            "created" -> "ORDER BY created_at, id = ${'$'}id"
+                            else -> error("unsupported sort: ${'$'}sort")
+                        },
+                    )
+                }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+        )
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `no warning when an if expression has a throw branch`() {
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int) {
+                Sql {
+                    +(
+                        if (id > 0) {
+                            "SELECT * FROM users WHERE id = ${'$'}id"
+                        } else {
+                            throw IllegalArgumentException("id must be positive")
+                        }
+                    )
+                }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+        )
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
     fun `warn when an if expression has an unsafe branch`() {
         val result = compile(
             """
