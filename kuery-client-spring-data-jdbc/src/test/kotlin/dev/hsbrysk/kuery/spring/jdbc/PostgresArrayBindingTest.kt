@@ -87,6 +87,45 @@ class PostgresArrayBindingTest {
         assertThat(stored.toList()).isEqualTo(listOf("a", "b"))
     }
 
+    @Test
+    fun `bind all-null enum array to a native array column`() {
+        val tags = arrayOf<SampleEnum?>(null, null)
+        val count = kueryClient
+            .sql { +"INSERT INTO users (username, tags) VALUES ('tagged', $tags)" }
+            .rowsUpdated()
+        assertThat(count).isEqualTo(1L)
+
+        val record = kueryClient
+            .sql { +"SELECT tags FROM users WHERE username = 'tagged'" }
+            .singleMap()
+        val stored = (record["tags"] as SqlArray).array as Array<*>
+        assertThat(stored.toList()).isEqualTo(listOf(null, null))
+    }
+
+    @Test
+    fun `bind empty enum array to a native array column`() {
+        val tags = arrayOf<SampleEnum>()
+        val count = kueryClient
+            .sql { +"INSERT INTO users (username, tags) VALUES ('tagged', $tags)" }
+            .rowsUpdated()
+        assertThat(count).isEqualTo(1L)
+
+        val record = kueryClient
+            .sql { +"SELECT tags FROM users WHERE username = 'tagged'" }
+            .singleMap()
+        val stored = (record["tags"] as SqlArray).array as Array<*>
+        assertThat(stored.toList()).isEqualTo(emptyList<String>())
+    }
+
+    @Test
+    fun `bind primitive int array to ANY predicate`() {
+        val userIds = intArrayOf(1, 2)
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($userIds) ORDER BY user_id" }
+            .listMap()
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
     companion object {
         private val postgres = PostgresTestContainer()
 
