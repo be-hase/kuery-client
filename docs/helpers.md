@@ -53,9 +53,8 @@ fun <T> SqlBuilder.values(
 
 Feel free to extend it as you wish.
 
-There may be cases where custom string interpolation is difficult to write. In such situations, please use `addUnsafe`
-and `bind`.
-(The `values` function above is a good example of this.)
+Some SQL fragments cannot be expressed with plain string interpolation — for example, a dynamically sized list
+of placeholders. In such cases, use `addUnsafe` and `bind` (the `values` function above is a good example).
 
 Note that `addUnsafe` and `bind` are annotated with `@DelicateKueryClientApi` and require an explicit opt-in, since
 misusing them can lead to SQL injection. See [Compiler Safety Check](/compiler-safety-check) for details.

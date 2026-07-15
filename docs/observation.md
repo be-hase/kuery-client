@@ -99,7 +99,8 @@ kuery_client_fetches_seconds_sum{error="none",sql_id="com.example.spring.data.r2
 kuery_client_fetches_seconds_max{error="none",sql_id="com.example.spring.data.r2dbc.UserRepository.selectByUserId"} 0.026267833
 ```
 
-Metrics are recorded along with the controller/method where the repository implementing sql_id is used.
+As shown above, the `sql_id` label is automatically derived from the repository class and method that call
+`kueryClient.sql { ... }`.
 
 ## Constraints on `sql_id`
 
