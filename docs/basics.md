@@ -53,8 +53,16 @@ kueryClient
 ### Compile-time constants are expanded as text
 
 Only runtime values are bound as parameters. Compile-time `String` / `Char` constants inside a
-template — string literals like `${"users"}`, references to a `const val`, and `Char` constants
-like `${'$'}` — are expanded into the SQL text at compile time instead of being bound.
+template are expanded into the SQL text at compile time instead of being bound:
+
+| Interpolated expression | Examples | Behavior |
+|---|---|---|
+| Runtime value | `$userId`, `${user.id}`, `${find()}` | Bound as a parameter (`:p0`) |
+| `String` / `Char` constant (literal or `const val`) | `${"users"}`, `$TABLE`, `${'$'}` | Expanded into the SQL text |
+| Constant of any other type (literal or `const val`) | `${1}`, `${true}`, `${null}` | Bound as a parameter |
+
+For example, you can share a table name as a `const val`: it is expanded into the SQL text, while
+the runtime value `userId` in the same template is still bound as a parameter:
 
 ```kotlin
 const val TABLE = "users"
@@ -66,9 +74,10 @@ kueryClient
     }
 ```
 
-This also means a literal `$` comes out right. `$` cannot be written as-is in a Kotlin string
-template (and raw strings have no backslash escaping), so the idiomatic escape is the `Char`
-constant `${'$'}` — which is simply expanded back into the SQL text:
+Sometimes the SQL itself needs a literal `$` — JSON path syntax, for example. `$` cannot be
+written as-is in a Kotlin string template (and raw strings have no backslash escaping), so the
+idiomatic escape is the `Char` constant `${'$'}`. Since `Char` constants are expanded as text,
+the `$` simply comes out in the SQL:
 
 ```kotlin
 kueryClient
@@ -78,13 +87,11 @@ kueryClient
     }
 ```
 
-Constants of other types (`${1}`, `${true}`, `${null}`, ...) are still bound as parameters —
-only `String` and `Char` constants are expanded as text.
-
-Note that a `String` constant intended as a *value* (e.g. `WHERE name = $NAME_CONST`) is expanded
-without quoting, so the query will most likely fail with a database error. Since it is a
-compile-time constant this cannot cause SQL injection, but if you want it bound, use a non-const
-`val`.
+::: warning
+A `String` constant intended as a *value* (e.g. `WHERE name = $NAME_CONST`) is expanded without
+quoting, so the query will most likely fail with a database error. Since it is a compile-time
+constant this cannot cause SQL injection, but if you want it bound, use a non-const `val`.
+:::
 
 ### Collections and arrays
 
