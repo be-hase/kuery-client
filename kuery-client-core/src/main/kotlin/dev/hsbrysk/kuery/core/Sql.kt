@@ -1,7 +1,6 @@
 package dev.hsbrysk.kuery.core
 
 import dev.hsbrysk.kuery.core.internal.DefaultSql
-import dev.hsbrysk.kuery.core.internal.DefaultSqlBuilder
 
 public interface Sql {
     /**

@@ -1,4 +1,4 @@
-package dev.hsbrysk.kuery.core.internal
+package dev.hsbrysk.kuery.core
 
 import assertk.all
 import assertk.assertFailure
@@ -8,8 +8,6 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.message
-import dev.hsbrysk.kuery.core.NamedSqlParameter
-import dev.hsbrysk.kuery.core.Sql
 import org.junit.jupiter.api.Test
 
 class DefaultSqlBuilderTest {

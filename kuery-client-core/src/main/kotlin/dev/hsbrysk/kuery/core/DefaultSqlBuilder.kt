@@ -1,10 +1,11 @@
-package dev.hsbrysk.kuery.core.internal
+package dev.hsbrysk.kuery.core
 
-import dev.hsbrysk.kuery.core.DelicateKueryClientApi
-import dev.hsbrysk.kuery.core.NamedSqlParameter
-import dev.hsbrysk.kuery.core.Sql
-import dev.hsbrysk.kuery.core.SqlBuilder
+import dev.hsbrysk.kuery.core.internal.DefaultNamedSqlParameter
+import dev.hsbrysk.kuery.core.internal.DefaultSql
 
+// Lives in the same package as SqlBuilder because Kotlin requires direct subclasses of a sealed
+// interface to be declared in the same package. The fully-qualified name of this class is
+// effectively public ABI (see `interpolate`), so it must not move again.
 internal class DefaultSqlBuilder : SqlBuilder {
     private val body = StringBuilder()
     private val parameters = mutableListOf<NamedSqlParameter>()
@@ -77,7 +78,7 @@ internal class DefaultSqlBuilder : SqlBuilder {
                 "Make sure the Gradle plugin `dev.hsbrysk.kuery-client` is applied to the module " +
                 "containing this call. " +
                 "If it is already applied, this call site is an unsupported usage that the plugin cannot rewrite " +
-                "(e.g. calling through a subtype of SqlBuilder, or via a function/reflection reference). " +
+                "(e.g. calling via a function/reflection reference). " +
                 "See https://kuery-client.hsbrysk.dev/getting-started for setup instructions.",
         )
     }
