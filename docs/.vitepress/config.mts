@@ -54,6 +54,7 @@ export default defineConfig({
                     {text: "Introduction", link: '/introduction'},
                     {text: "Getting Started", link: '/getting-started'},
                     {text: "Basics", link: '/basics'},
+                    {text: "Row Mapping", link: '/row-mapping'},
                     {text: "Transaction", link: '/transaction'},
                     {text: "Type Conversion", link: '/type-conversion'},
                     {text: "Observation", link: '/observation'},
