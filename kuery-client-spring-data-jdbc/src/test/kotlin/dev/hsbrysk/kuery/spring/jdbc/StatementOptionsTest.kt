@@ -65,6 +65,44 @@ class StatementOptionsTest {
     }
 
     @Test
+    fun `fetchSize does not break sequence results`() {
+        val result = kueryClient.sql { +"SELECT * FROM users" }
+            .fetchSize(3)
+            .sequenceMap()
+            .use { it.toList() }
+        assertThat(result).hasSize(10)
+    }
+
+    @Test
+    fun `maxRows limits sequence result size`() {
+        val result = kueryClient.sql { +"SELECT * FROM users" }
+            .maxRows(5)
+            .sequenceMap()
+            .use { it.toList() }
+        assertThat(result).hasSize(5)
+    }
+
+    @Test
+    fun `queryTimeoutSeconds does not break sequence`() {
+        val result = kueryClient.sql { +"SELECT * FROM users" }
+            .queryTimeoutSeconds(10)
+            .sequenceMap()
+            .use { it.toList() }
+        assertThat(result).hasSize(10)
+    }
+
+    @Test
+    fun `chain of options works correctly for sequence`() {
+        val result = kueryClient.sql { +"SELECT * FROM users" }
+            .fetchSize(3)
+            .maxRows(4)
+            .queryTimeoutSeconds(10)
+            .sequenceMap()
+            .use { it.toList() }
+        assertThat(result).hasSize(4)
+    }
+
+    @Test
     fun `options are applied immutably`() {
         val base = kueryClient.sql { +"SELECT * FROM users" }
         val limited = base.maxRows(3)
