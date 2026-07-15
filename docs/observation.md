@@ -1,5 +1,5 @@
 ---
-description: Wire Micrometer ObservationRegistry and ObservationConvention; example with Prometheus/Actuator and the sql_id constraint.
+description: "Wire Micrometer ObservationRegistry and ObservationConvention; recorded tags, sql_id generation and its constraints, with a Prometheus/Actuator example."
 ---
 
 # Observation
@@ -27,6 +27,18 @@ val kueryClient = SpringR2dbcKueryClient.builder()
     .observationConvention(...)
     .build()
 ```
+
+## Recorded data
+
+Each fetch is recorded as an observation named `kuery.client.fetches` with the following tags:
+
+| Tag | Cardinality | Description |
+|---|---|---|
+| `sql.id` | low | Identifies the query; derived from the calling class/method by default (see [below](#sql-id)) |
+| `sql` | high | The SQL body with placeholders (e.g. `:p0`) — bound values are not included, so sensitive data does not leak. High-cardinality tags are attached to spans, not to metrics |
+
+To change the name or the tags, implement `KueryClientFetchObservationConvention` and pass it to
+`observationConvention(...)`.
 
 ## Example: spring-boot-starter-actuator & Prometheus
 
@@ -102,9 +114,17 @@ kuery_client_fetches_seconds_max{error="none",sql_id="com.example.spring.data.r2
 As shown above, the `sql_id` label is automatically derived from the repository class and method that call
 `kueryClient.sql { ... }`.
 
-## Constraints on `sql_id`
+## `sql_id`
 
-There is a constraint that if you have multiple `kueryClient.sql {...}` calls within the same method, the same `sql_id`
+Auto-generation of the `sql_id` is controlled by the builder's `enableAutoSqlIdGeneration(...)` flag. It
+defaults to `true` when an `ObservationRegistry` is specified, and `false` otherwise — in which case the fixed
+id `NONE` is used.
+
+You can also set the id explicitly per query: `sql("my-sql-id") { ... }`.
+
+### Same method, same id
+
+If you have multiple `kueryClient.sql {...}` calls within the same method, the same `sql_id`
 will be used. Therefore, it is recommended to implement one SQL per method in the repository.
 
 ```kotlin
