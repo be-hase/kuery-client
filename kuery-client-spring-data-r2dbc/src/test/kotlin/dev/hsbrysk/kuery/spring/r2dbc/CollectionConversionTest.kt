@@ -58,6 +58,23 @@ class CollectionConversionTest {
         assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 2L, "text" to "text2")))
     }
 
+    @Test
+    fun testCompositeIn() = runTest {
+        kueryClient.sql {
+            +"""
+            INSERT INTO converter (text) VALUES
+            ('text1'),
+            ('text2');
+            """.trimIndent()
+        }.rowsUpdated()
+
+        val result = kueryClient.sql {
+            val pairs = listOf(arrayOf<Any>(1L, StringWrapper("text1")))
+            +"SELECT * FROM converter WHERE (id, text) IN ($pairs)"
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1")))
+    }
+
     companion object {
         private val h2 = H2TestDatabase()
     }

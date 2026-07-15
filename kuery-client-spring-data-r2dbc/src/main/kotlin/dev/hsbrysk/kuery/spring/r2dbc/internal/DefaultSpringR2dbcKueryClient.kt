@@ -96,6 +96,9 @@ internal class DefaultSpringR2dbcKueryClient(
         }
     }
 
+    // NOTE: The conversion helpers below (convertCollection / convertArray / componentWriteTarget /
+    // convertElement) are intentionally duplicated in DefaultSpringJdbcKueryClient; there is no
+    // shared Spring-dependent module to host them. Keep both copies in sync.
     private fun convertCollection(collection: Collection<*>): Collection<*> = collection.map { convertElement(it) }
 
     // The runtime component type must be preserved (e.g. String[] stays String[]); drivers
@@ -131,6 +134,8 @@ internal class DefaultSpringR2dbcKueryClient(
         val targetType = customConversions.getCustomWriteTarget(element::class.java)
         return when {
             targetType.isPresent -> conversionService.convert(element, targetType.get())
+            // composite IN `(a, b) IN ($pairs)` passes each row as an Object[] entry in a Collection
+            element is Array<*> -> convertArray(element)
             element is Enum<*> -> element.name
             else -> element
         }

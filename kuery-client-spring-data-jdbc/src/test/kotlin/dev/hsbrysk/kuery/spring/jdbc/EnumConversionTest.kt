@@ -67,6 +67,19 @@ class EnumConversionTest {
         assertThat(record.text).isEqualTo(SampleEnum.HOGE)
     }
 
+    @Test
+    fun testCompositeIn() {
+        kueryClient.sql {
+            +"INSERT INTO converter (text) VALUES (${SampleEnum.HOGE})"
+        }.rowsUpdated()
+
+        val record: Record = kueryClient.sql {
+            val pairs = listOf(arrayOf<Any>(1L, SampleEnum.HOGE))
+            +"SELECT * FROM converter WHERE (id, text) IN ($pairs)"
+        }.single()
+        assertThat(record.text).isEqualTo(SampleEnum.HOGE)
+    }
+
     companion object {
         private val h2 = H2TestDatabase()
     }
