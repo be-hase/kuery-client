@@ -76,7 +76,13 @@ internal class DefaultSpringR2dbcKueryClient(
 
         val targetType = customConversions.getCustomWriteTarget(value::class.java)
         if (targetType.isPresent) {
-            return bind(parameter.name, checkNotNull(conversionService.convert(value, targetType.get())))
+            // The Converter contract allows a null result; bind it as SQL NULL of the target type.
+            val converted = conversionService.convert(value, targetType.get())
+            return if (converted != null) {
+                bind(parameter.name, converted)
+            } else {
+                bindNull(parameter.name, targetType.get())
+            }
         }
 
         return when (value) {
