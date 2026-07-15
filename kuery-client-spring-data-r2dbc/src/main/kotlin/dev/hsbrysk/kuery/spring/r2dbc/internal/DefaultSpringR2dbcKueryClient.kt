@@ -27,7 +27,6 @@ import org.springframework.data.r2dbc.convert.R2dbcCustomConversions
 import org.springframework.r2dbc.core.DataClassRowMapper
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec
-import org.springframework.r2dbc.core.RowsFetchSpec
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.concurrent.ConcurrentHashMap
@@ -168,7 +167,7 @@ internal class DefaultSpringR2dbcKueryClient(
             .awaitSingleOrNull()
 
         override suspend fun <T : Any> single(returnType: KClass<T>): T {
-            val value = spec.map(returnType).one()
+            val value = spec.map(mapper(returnType)).one()
                 .switchIfEmpty(Mono.error { EmptyResultDataAccessException(1) })
                 .sqlId(sqlId)
                 .observe()
@@ -178,7 +177,7 @@ internal class DefaultSpringR2dbcKueryClient(
             return value ?: throw TypeMismatchDataAccessException("Result value is null but no null value expected")
         }
 
-        override suspend fun <T : Any> singleOrNull(returnType: KClass<T>): T? = spec.map(returnType).one()
+        override suspend fun <T : Any> singleOrNull(returnType: KClass<T>): T? = spec.map(mapper(returnType)).one()
             .sqlId(sqlId)
             .observe()
             .awaitSingleOrNull()
@@ -190,14 +189,19 @@ internal class DefaultSpringR2dbcKueryClient(
             .awaitSingle()
 
         override suspend fun <T : Any> list(returnType: KClass<T>): List<T> {
-            val values = spec.map(returnType).all().collectList()
+            val mapper = mapper(returnType)
+            val values = spec.map(mapper).all().collectList()
                 .sqlId(sqlId)
                 .observe()
                 .awaitSingle()
             // NULL scalar values are kept as null elements, like the JDBC client. The declared
             // element type cannot express this, but type erasure makes it observable the same way.
             @Suppress("UNCHECKED_CAST")
-            return values.map { it.unwrapNullValue<T>() } as List<T>
+            return if (mapper is SingleColumnRowMapper<*>) {
+                values.map { it.unwrapNullValue<T>() } as List<T>
+            } else {
+                values as List<T>
+            }
         }
 
         override fun flowMap(): Flow<Map<String, Any?>> {
@@ -213,8 +217,14 @@ internal class DefaultSpringR2dbcKueryClient(
             // I also want to measure the observation of flow.
             // However, should it be the time until the flow terminates or the time until the first element is obtained?
             // There are many uncertainties, so I will not implement it for now.
+            val mapper = mapper(returnType)
+            val flow = spec.map(mapper).all().sqlId(sqlId).asFlow()
             @Suppress("UNCHECKED_CAST")
-            return spec.map(returnType).all().sqlId(sqlId).asFlow().map { it.unwrapNullValue<T>() } as Flow<T>
+            return if (mapper is SingleColumnRowMapper<*>) {
+                flow.map { it.unwrapNullValue<T>() } as Flow<T>
+            } else {
+                flow as Flow<T>
+            }
         }
 
         override suspend fun rowsUpdated(): Long = spec.fetch().rowsUpdated()
@@ -276,8 +286,9 @@ internal class DefaultSpringR2dbcKueryClient(
             it.put(SpringR2dbcKueryClient.SQL_ID_REACTOR_CONTEXT_KEY, sqlId)
         }
 
-        // The returned values may contain [NullValue] sentinels; unwrap them at the terminal operators.
-        private fun GenericExecuteSpec.map(returnType: KClass<*>): RowsFetchSpec<Any> {
+        // Only the [SingleColumnRowMapper] (simple scalar) path can emit [NullValue] sentinels,
+        // which the terminal operators must unwrap; the DataClassRowMapper path never does.
+        private fun mapper(returnType: KClass<*>): Function<Readable, Any> {
             val mapper = mapperCache.computeIfAbsent(returnType) {
                 if (BeanUtils.isSimpleProperty(returnType.java)) {
                     SingleColumnRowMapper(returnType.javaObjectType, conversionService)
@@ -286,7 +297,7 @@ internal class DefaultSpringR2dbcKueryClient(
                 }
             }
             @Suppress("UNCHECKED_CAST")
-            return this.map(mapper as Function<Readable, Any>)
+            return mapper as Function<Readable, Any>
         }
     }
 
