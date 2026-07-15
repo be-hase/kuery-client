@@ -43,26 +43,15 @@ time, so any interpolation in it is rewritten into bind parameters:
   recursively): `if (asc) "ORDER BY id" else "ORDER BY id DESC"`. A branch that only throws —
   e.g. `else -> error("unsupported sort")` — is also fine, since it never produces a SQL string.
 
-## When you really need dynamic SQL
+## Responding to the warning
 
-Use `addUnsafe()` together with `bind()`. These APIs require opting in to
-`@DelicateKueryClientApi` and make the intent explicit. See [Helpers](/helpers)
-for a complete example.
+In order of preference:
 
-```kotlin
-@OptIn(DelicateKueryClientApi::class)
-fun SqlBuilder.userIdIn(userIds: List<Int>) {
-    addUnsafe("user_id IN (${userIds.joinToString(",") { bind(it) }})")
-}
-```
-
-Alternatively, suppress the warning per declaration when you know the
-string is safe:
-
-```kotlin
-@Suppress("KUERY_UNSAFE_SQL_STRING")
-fun query(sql: String) = kueryClient.sql { add(sql) }
-```
+1. **Restructure into safe forms.** Most dynamic SQL can be expressed with Kotlin control flow
+   inside the `sql { }` block — `if` / `when` / loops around `+"..."` — which the plugin handles
+   safely. See [Basics](/basics#logic-such-as-if-and-for-etc).
+2. **Suppress the warning** with `@Suppress("KUERY_UNSAFE_SQL_STRING")` on the declaration, when
+   you know the string is safe but the checker cannot see it.
 
 ## Configuring the severity
 
