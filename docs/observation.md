@@ -13,7 +13,7 @@ If you want to use this feature, please specify the `ObservationRegistry` when c
 val kueryClient = SpringR2dbcKueryClient.builder()
     .connectionFactory(connectionFactory)
     .observationRegistry(...)
-.build()
+    .build()
 ```
 
 If you want to customize the metrics name or other settings, please implement and specify the `ObservationConvention`
@@ -25,7 +25,7 @@ val kueryClient = SpringR2dbcKueryClient.builder()
     .connectionFactory(connectionFactory)
     .observationRegistry(...)
     .observationConvention(...)
-.build()
+    .build()
 ```
 
 ## Example: spring-boot-starter-actuator & Prometheus
