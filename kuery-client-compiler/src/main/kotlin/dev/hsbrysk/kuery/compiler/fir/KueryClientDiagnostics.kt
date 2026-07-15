@@ -20,10 +20,10 @@ internal object KueryClientDiagnosticRenderers : BaseDiagnosticRendererFactory()
         map.put(
             KueryClientDiagnostics.KUERY_UNSAFE_SQL_STRING,
             "This expression is not a string literal/template, so the kuery-client compiler plugin cannot " +
-                "convert its string interpolation into bind parameters; it will be executed as raw SQL " +
-                "(SQL injection risk). Pass a string literal/template directly, or use addUnsafe() with bind() " +
-                "for dynamically built SQL. If this is intentional, annotate the enclosing declaration with " +
-                "@Suppress(\"KUERY_UNSAFE_SQL_STRING\").",
+                "guarantee that its string interpolation is converted into bind parameters; it may be executed " +
+                "as raw SQL (SQL injection risk). Pass a string literal/template directly, or use addUnsafe() " +
+                "with bind() for dynamically built SQL. If this is intentional, annotate the enclosing " +
+                "declaration with @Suppress(\"KUERY_UNSAFE_SQL_STRING\").",
         )
     }
 }

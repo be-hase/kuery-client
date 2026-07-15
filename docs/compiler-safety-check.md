@@ -20,6 +20,7 @@ To prevent this from happening silently, the compiler plugin reports a
 | A string literal / string template (`"... $id"`) | Interpolation is converted into bind parameters |
 | `trimIndent()` / `trimMargin()` called on the above (with literal-only arguments) | Pure formatting of a compile-time string |
 | A reference to a `const val` | Compile-time constant; cannot contain runtime values |
+| An `if` / `when` expression whose every branch is one of the above (`if (asc) "ORDER BY id" else "ORDER BY id DESC"`) | Each branch is checked recursively |
 
 ```kotlin
 val sql = "SELECT * FROM users WHERE user_id = $userId"

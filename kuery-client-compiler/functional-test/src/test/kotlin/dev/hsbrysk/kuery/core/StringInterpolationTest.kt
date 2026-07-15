@@ -321,6 +321,44 @@ class StringInterpolationTest {
     }
 
     @Test
+    fun `if expression as the whole argument`() {
+        // The IR transformation keeps its context across the whole argument expression,
+        // so templates inside if branches are converted into bind parameters.
+        // This is the premise for KUERY_UNSAFE_SQL_STRING accepting if/when expressions
+        // with safe branches (allWarningsAsErrors guards that no warning is reported).
+        val x = "X"
+
+        fun build(flag: Boolean) = Sql {
+            +(if (flag) "id = $x" else "TRUE")
+        }
+        assertThat(build(true)).isEqualTo(
+            Sql("id = :p0", listOf(NamedSqlParameter("p0", "X"))),
+        )
+        assertThat(build(false)).isEqualTo(Sql("TRUE"))
+    }
+
+    @Test
+    fun `when expression as the whole argument`() {
+        val x = "X"
+
+        fun build(sort: String?) = Sql {
+            add(
+                when (sort) {
+                    "name" -> "ORDER BY name"
+                    "id" -> "ORDER BY id, $x"
+                    else -> ORDER_COLUMN
+                },
+            )
+        }
+        assertThat(build("name")).isEqualTo(Sql("ORDER BY name"))
+        assertThat(build("id")).isEqualTo(
+            Sql("ORDER BY id, :p0", listOf(NamedSqlParameter("p0", "X"))),
+        )
+        // A const val branch is a compile-time constant, expanded as raw SQL text.
+        assertThat(build(null)).isEqualTo(Sql("created_at"))
+    }
+
+    @Test
     fun `const val string interpolation`() {
         val id = 1
         val sql = Sql {

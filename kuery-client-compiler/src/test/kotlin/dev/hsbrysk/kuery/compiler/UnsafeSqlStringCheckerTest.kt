@@ -60,13 +60,57 @@ class UnsafeSqlStringCheckerTest {
     }
 
     @Test
-    fun `warn when an if expression is passed to add`() {
+    fun `no warning when an if expression with safe branches is passed to add`() {
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
 
             fun query(id: Int) {
                 Sql { add(if (id > 0) "SELECT 1" else "SELECT 2") }
+                Sql { add(if (id > 0) "SELECT * FROM users WHERE id = ${'$'}id" else "SELECT 2") }
+                Sql { +(if (id > 0) "id = ${'$'}id" else "TRUE") }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+        )
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `no warning when a when expression with safe branches is passed to add`() {
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            const val DEFAULT_ORDER = "ORDER BY id"
+
+            fun query(sort: String?, id: Int) {
+                Sql {
+                    add(
+                        when (sort) {
+                            "name" -> "ORDER BY name"
+                            "created" -> "ORDER BY created_at ${'$'}id".trimIndent()
+                            else -> DEFAULT_ORDER
+                        },
+                    )
+                }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+        )
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `warn when an if expression has an unsafe branch`() {
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int, fragment: String) {
+                Sql { add(if (id > 0) "SELECT 1" else fragment) }
             }
             """.trimIndent(),
         )
