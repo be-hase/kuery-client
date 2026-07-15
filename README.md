@@ -77,9 +77,9 @@ val kueryClient = SpringR2dbcKueryClient.builder()
     .connectionFactory(connectionFactory)
     .build()
 
-val user: User = kueryClient
+val user: User? = kueryClient
     .sql { +"SELECT * FROM users WHERE user_id = $userId" }
-    .single()
+    .singleOrNull()
 ```
 
 ## Documentation
