@@ -49,17 +49,27 @@ export default defineConfig({
 
         sidebar: [
             {
-                text: "Docs",
+                text: "Guide",
                 items: [
                     {text: "Introduction", link: '/introduction'},
                     {text: "Getting Started", link: '/getting-started'},
                     {text: "Basics", link: '/basics'},
                     {text: "Row Mapping", link: '/row-mapping'},
                     {text: "Transaction", link: '/transaction'},
+                ]
+            },
+            {
+                text: "Advanced",
+                items: [
                     {text: "Type Conversion", link: '/type-conversion'},
                     {text: "Observation", link: '/observation'},
                     {text: "Compiler Safety Check", link: '/compiler-safety-check'},
                     {text: "Helpers", link: '/helpers'},
+                ]
+            },
+            {
+                text: "Reference",
+                items: [
                     {text: "Examples", link: '/examples'},
                     {text: "Compatibility", link: '/compatibility'},
                 ]

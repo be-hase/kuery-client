@@ -7,8 +7,14 @@ hero:
   tagline: A Kotlin/JVM database client for those who want to write SQL
   actions:
     - theme: brand
+      text: Get Started
+      link: /getting-started
+    - theme: alt
       text: Introduction
       link: /introduction
+    - theme: alt
+      text: GitHub
+      link: https://github.com/be-hase/kuery-client
 
 features:
   - title: Love SQL
