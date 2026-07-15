@@ -109,6 +109,24 @@ class CodeEnumConversionTest {
         assertThat(record.stringEnum).isEqualTo(SampleStringCodeEnum.BAR)
     }
 
+    @Test
+    fun testScalar() = runTest {
+        kueryClient.sql {
+            +"INSERT INTO code_enum (int_enum, string_enum)"
+            +"VALUES (${SampleIntCodeEnum.HOGE}, ${SampleStringCodeEnum.BAR})"
+        }.rowsUpdated()
+
+        val intEnum: SampleIntCodeEnum = kueryClient.sql {
+            +"SELECT int_enum FROM code_enum"
+        }.single()
+        assertThat(intEnum).isEqualTo(SampleIntCodeEnum.HOGE)
+
+        val stringEnum: SampleStringCodeEnum = kueryClient.sql {
+            +"SELECT string_enum FROM code_enum"
+        }.single()
+        assertThat(stringEnum).isEqualTo(SampleStringCodeEnum.BAR)
+    }
+
     companion object {
         private val h2 = H2TestDatabase()
     }
