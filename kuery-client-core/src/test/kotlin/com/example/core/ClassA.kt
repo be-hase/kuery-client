@@ -19,6 +19,17 @@ internal class ClassA {
         }
     }
 
+    fun sql5(block: SqlBuilder.() -> Unit): String = execute { block.id() }
+
+    // Simulates a class-compiled lambda (e.g. -Xlambdas=class), which has an `invoke` method.
+    fun sql6(block: SqlBuilder.() -> Unit): String = execute(
+        object : () -> String {
+            override fun invoke(): String = block.id()
+        },
+    )
+
+    private fun <T> execute(action: () -> T): T = action()
+
     internal class ClassB {
         fun sql3(block: SqlBuilder.() -> Unit): String = block.id()
 
