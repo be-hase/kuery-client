@@ -17,7 +17,13 @@ public object SqlIds {
     private val SUFFIXES = listOf(
         ".invokeSuspend",
         "${'$'}suspendImpl",
+        // for lambdas compiled as classes (e.g. -Xlambdas=class)
+        ".invoke",
     )
+
+    // Lambdas are compiled via invokedynamic into synthetic methods named `foo$lambda$0`
+    // (nested lambdas repeat the pattern).
+    private val LAMBDA_METHOD_SUFFIX_REGEX = "(\\\$lambda\\\$[0-9]+)+$".toRegex()
 
     /**
      * Uses StackWalker to retrieve the caller.
@@ -46,7 +52,11 @@ public object SqlIds {
             return "UNKNOWN"
         }
 
-        val parts = name.removeSuffixes(SUFFIXES).split("$", ".").filterNot { it.matches(NUMBER_REGEX) }
+        val parts = name
+            .replace(LAMBDA_METHOD_SUFFIX_REGEX, "")
+            .removeSuffixes(SUFFIXES)
+            .split("$", ".")
+            .filterNot { it.matches(NUMBER_REGEX) }
         return if (parts.isEmpty()) {
             "UNKNOWN"
         } else {

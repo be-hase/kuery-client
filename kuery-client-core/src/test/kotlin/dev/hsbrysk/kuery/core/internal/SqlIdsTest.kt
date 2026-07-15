@@ -22,6 +22,8 @@ class SqlIdsTest {
         assertThat(
             ClassA.ClassB.ClassC().sql4 {},
         ).isEqualTo("com.example.core.ClassA.ClassB.ClassC.sql4")
+        assertThat(ClassA().sql5 {}).isEqualTo("com.example.core.ClassA.sql5")
+        assertThat(ClassA().sql6 {}).isEqualTo("com.example.core.ClassA.sql6")
     }
 
     @Test
