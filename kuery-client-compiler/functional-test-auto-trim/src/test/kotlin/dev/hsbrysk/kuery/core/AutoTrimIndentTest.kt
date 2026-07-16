@@ -118,7 +118,7 @@ class AutoTrimIndentTest {
                 } else {
                     "  TRUE"
                 }
-            )
+                )
         }
         assertThat(build(true)).isEqualTo(
             Sql("id = :p0\nAND y", listOf(NamedSqlParameter("p0", x))),
