@@ -4,11 +4,11 @@ import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 
-class KueryClientIrGenerationExtension : IrGenerationExtension {
+class KueryClientIrGenerationExtension(private val autoTrimIndent: Boolean = false) : IrGenerationExtension {
     override fun generate(
         moduleFragment: IrModuleFragment,
         pluginContext: IrPluginContext,
     ) {
-        moduleFragment.transformChildren(StringInterpolationTransformer(pluginContext), null)
+        moduleFragment.transformChildren(StringInterpolationTransformer(pluginContext, autoTrimIndent), null)
     }
 }

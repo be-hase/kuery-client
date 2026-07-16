@@ -1,5 +1,6 @@
 package dev.hsbrysk.kuery.compiler
 
+import dev.hsbrysk.kuery.compiler.KueryClientCompilerCommandLineProcessor.Companion.AUTO_TRIM_INDENT_KEY
 import dev.hsbrysk.kuery.compiler.fir.KueryClientFirExtensionRegistrar
 import dev.hsbrysk.kuery.compiler.ir.KueryClientIrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
@@ -17,6 +18,10 @@ class KueryClientCompilerPluginRegistrar : CompilerPluginRegistrar() {
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
         FirExtensionRegistrarAdapter.registerExtension(KueryClientFirExtensionRegistrar())
-        IrGenerationExtension.registerExtension(KueryClientIrGenerationExtension())
+        IrGenerationExtension.registerExtension(
+            KueryClientIrGenerationExtension(
+                autoTrimIndent = configuration.get(AUTO_TRIM_INDENT_KEY, false),
+            ),
+        )
     }
 }

@@ -4,6 +4,7 @@ import dev.hsbrysk.kuery.compiler.ir.misc.CallableIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassNames
 import dev.hsbrysk.kuery.compiler.ir.misc.StringConcatenationProcessor
+import dev.hsbrysk.kuery.compiler.ir.misc.TrimFolding
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
@@ -15,6 +16,8 @@ import org.jetbrains.kotlin.ir.builders.irVararg
 import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrConst
+import org.jetbrains.kotlin.ir.expressions.IrConstKind
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrStringConcatenation
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
@@ -28,8 +31,10 @@ import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.ir.util.parentClassOrNull
 
 @Suppress("OPT_IN_USAGE")
-class StringInterpolationTransformer(private val pluginContext: IrPluginContext) :
-    IrElementTransformerVoidWithContext() {
+class StringInterpolationTransformer(
+    private val pluginContext: IrPluginContext,
+    private val autoTrimIndent: Boolean = false,
+) : IrElementTransformerVoidWithContext() {
     // The SqlBuilder receiver of the enclosing add/unaryPlus call, hoisted into a temporary
     // variable so that both the addUnsafe call and the interpolate call can reference it
     // without sharing (and thus double-evaluating) the original receiver expression.
@@ -56,8 +61,12 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
             val sqlArgumentParameter = expression.symbol.owner.parameters.first {
                 it.kind != IrParameterKind.DispatchReceiver
             }
-            val sqlArgument = checkNotNull(expression.arguments[sqlArgumentParameter.indexInParameters])
-                .transform(this, null)
+            val rawArgument = checkNotNull(expression.arguments[sqlArgumentParameter.indexInParameters])
+            val sqlArgument = if (autoTrimIndent) {
+                autoTrimmedArgument(rawArgument, temporary)
+            } else {
+                rawArgument.transform(this, null)
+            }
 
             val builder = irBuilder(expression)
             // Resolve addUnsafe from the called declaration's class (SqlBuilder), because the
@@ -90,6 +99,52 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
 
         val (fragments, values) = StringConcatenationProcessor.process(expression.arguments)
         return irInterpolateCall(irBuilder(expression), enclosing, fragments, values)
+    }
+
+    /**
+     * Applies the auto-trimIndent semantics to the whole add/unaryPlus argument, exactly once:
+     * - a string template is trim-indented at compile time via [TrimFolding] (zero runtime cost);
+     *   templates *nested* inside the argument (e.g. in if/when branches) are deliberately not
+     *   folded — the runtime wrap below covers them, and folding them too would apply trimIndent
+     *   twice, which is not idempotent when blank leading/trailing lines remain
+     * - a constant string is trim-indented directly
+     * - anything else keeps its normal rewrite and is wrapped in a runtime `trimIndent()` call,
+     *   which is safe on placeholder-interpolated strings because `:pN` contains no whitespace
+     */
+    private fun autoTrimmedArgument(
+        argument: IrExpression,
+        enclosing: IrVariable,
+    ): IrExpression = when {
+        argument is IrStringConcatenation ->
+            foldedTemplateOrNull(argument, enclosing)
+                // The sentinel-collision fallback (a NUL character inside the SQL text)
+                ?: irRuntimeTrimIndent(argument.transform(this, null))
+        argument is IrConst && argument.kind == IrConstKind.String ->
+            irBuilder(argument).irString((argument.value as String).trimIndent())
+        else -> irRuntimeTrimIndent(argument.transform(this, null))
+    }
+
+    private fun foldedTemplateOrNull(
+        template: IrStringConcatenation,
+        enclosing: IrVariable,
+    ): IrExpression? {
+        // Check foldability on the arguments *before* transforming them, so that on fallback the
+        // IR is left completely untouched. The IrConst-or-not classification that `process`
+        // relies on is invariant under the transformation.
+        val (fragments, rawValues) = StringConcatenationProcessor.process(template.arguments)
+        val folded = TrimFolding.foldOrNull(fragments, rawValues.size) ?: return null
+        // Same reasoning as in visitStringConcatenation: values are bound as parameters, so
+        // transform them outside the enclosing add/unaryPlus context.
+        val values = withoutCurrent { rawValues.map { it.transform(this, null) } }
+        return irInterpolateCall(irBuilder(template), enclosing, folded, values)
+    }
+
+    private fun irRuntimeTrimIndent(argument: IrExpression): IrExpression {
+        val trimIndent = pluginContext.trimIndentRef()
+        return irBuilder(argument).irCall(trimIndent).apply {
+            val receiverParam = trimIndent.owner.parameters.first { it.kind == IrParameterKind.ExtensionReceiver }
+            arguments[receiverParam] = argument
+        }
     }
 
     // Transform an expression outside the enclosing add/unaryPlus context (see
@@ -160,5 +215,8 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
                 .first {
                     it.owner.parameters.firstOrNull { p -> p.kind == IrParameterKind.Regular }?.isVararg ?: false
                 }
+
+        private fun IrPluginContext.trimIndentRef(): IrSimpleFunctionSymbol =
+            finderForBuiltins().findFunctions(CallableIds.TRIM_INDENT).single()
     }
 }
