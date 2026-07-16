@@ -127,6 +127,64 @@ class SqlTest {
     }
 
     @Test
+    fun `select in empty collection`() {
+        // An empty collection is NOT expanded at the core level. It is bound as a single
+        // parameter whose value is the empty collection; what happens next is up to the
+        // executing layer (e.g. Spring's named parameter expansion).
+        val emptyIds = emptyList<Int>()
+        val sql = Sql {
+            +"SELECT *"
+            +"FROM user"
+            +"WHERE id IN ($emptyIds)"
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                """
+                SELECT *
+                FROM user
+                WHERE id IN (:p0)
+                """.trimIndent(),
+                listOf(
+                    NamedSqlParameter("p0", emptyIds),
+                ),
+            ),
+        )
+
+        val emptyIdSet = emptySet<Int>()
+        val sql2 = Sql {
+            +"SELECT * FROM user WHERE id IN ($emptyIdSet)"
+        }
+        assertThat(sql2).isEqualTo(
+            Sql(
+                "SELECT * FROM user WHERE id IN (:p0)",
+                listOf(
+                    NamedSqlParameter("p0", emptyIdSet),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `placeholder immediately followed by a cast suffix`() {
+        // PostgreSQL style casts like `$value::jsonb` must keep the cast suffix verbatim
+        // right after the generated placeholder.
+        val json = """{"theme":"dark"}"""
+        val id = "id"
+        val sql = Sql {
+            +"UPDATE user SET settings = $json::jsonb WHERE id = $id::uuid"
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "UPDATE user SET settings = :p0::jsonb WHERE id = :p1::uuid",
+                listOf(
+                    NamedSqlParameter("p0", json),
+                    NamedSqlParameter("p1", id),
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun `insert multi`() {
         data class User(
             val name: String,
@@ -191,6 +249,36 @@ class SqlTest {
                 listOf(
                     NamedSqlParameter("p0", filter.id),
                     NamedSqlParameter("p1", filter.age),
+                ),
+            ),
+        )
+    }
+
+    @Suppress("KUERY_UNSAFE_SQL_STRING")
+    @Test
+    fun `mixing interpolation and manual bind`() {
+        // Interpolation and manual bind() share a single parameter counter, so numbering
+        // never collides. Binding the same value twice yields two distinct parameters.
+        val userId = "user1"
+        val mask = 0b0100
+        val age = 18
+        val sql = Sql {
+            +"SELECT * FROM user WHERE id = $userId"
+            addUnsafe("AND permission & ${bind(mask)} = ${bind(mask)}")
+            +"AND age = $age"
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                """
+                SELECT * FROM user WHERE id = :p0
+                AND permission & :p1 = :p2
+                AND age = :p3
+                """.trimIndent(),
+                listOf(
+                    NamedSqlParameter("p0", userId),
+                    NamedSqlParameter("p1", mask),
+                    NamedSqlParameter("p2", mask),
+                    NamedSqlParameter("p3", age),
                 ),
             ),
         )
