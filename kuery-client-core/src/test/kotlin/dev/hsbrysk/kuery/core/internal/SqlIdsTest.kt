@@ -27,6 +27,16 @@ class SqlIdsTest {
     }
 
     @Test
+    fun `id resolved through a delegating wrapper points at the wrapper`() {
+        // A decorator forwarding to the client (KueryBlockingClient by delegate, guard wrappers,
+        // ...) contributes the first non-kuery frame, so the auto-resolved sqlId identifies the
+        // wrapper method, NOT the repository call site. Wrapped clients should pass an explicit
+        // sqlId via sql(sqlId, block) if per-call-site ids are needed.
+        assertThat(com.example.core.RepositoryBehindDelegation().find())
+            .isEqualTo("com.example.core.DelegatingClient.sql")
+    }
+
+    @Test
     fun removeSuffixes() {
         assertThat("a.b.c".removeSuffixes(listOf(".b", ".c"))).isEqualTo("a.b")
         assertThat("a.b.c".removeSuffixes(listOf(".a", ".d"))).isEqualTo("a.b.c")
