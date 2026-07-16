@@ -24,6 +24,8 @@ plugins {
 }
 
 include("kuery-client-compiler")
+include("kuery-client-compiler:benchmark")
+include("kuery-client-compiler:benchmark-auto-trim")
 include("kuery-client-compiler:functional-test")
 include("kuery-client-compiler:functional-test-auto-trim")
 include("kuery-client-core")
