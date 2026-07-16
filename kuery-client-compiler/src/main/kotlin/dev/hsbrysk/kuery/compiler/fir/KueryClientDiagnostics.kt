@@ -11,6 +11,7 @@ internal object KueryClientDiagnostics : KtDiagnosticsContainer() {
     // The property name is the diagnostic name, i.e. the key for @Suppress and -Xwarning-level.
     val KUERY_UNSAFE_SQL_STRING by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
     val KUERY_BIND_CALL_IN_SQL_TEMPLATE by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
+    val KUERY_REDUNDANT_TRIM_INDENT by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
 
     override fun getRendererFactory(): BaseDiagnosticRendererFactory = KueryClientDiagnosticRenderers
 }
@@ -25,6 +26,14 @@ internal object KueryClientDiagnosticRenderers : BaseDiagnosticRendererFactory()
                 "as raw SQL (SQL injection risk). Pass a string literal/template directly, or use addUnsafe() " +
                 "with bind() for dynamically built SQL. If this is intentional, annotate the enclosing " +
                 "declaration with @Suppress(\"KUERY_UNSAFE_SQL_STRING\").",
+        )
+        map.put(
+            KueryClientDiagnostics.KUERY_REDUNDANT_TRIM_INDENT,
+            "This trimIndent() is redundant: autoTrimIndent is enabled, so the kuery-client compiler plugin " +
+                "already applies trimIndent to every string passed to add()/unaryPlus. Worse, the explicit " +
+                "call prevents compile-time trimming — the string is trimmed twice at runtime instead. " +
+                "Remove the trimIndent() call. If this is intentional, annotate the enclosing declaration " +
+                "with @Suppress(\"KUERY_REDUNDANT_TRIM_INDENT\").",
         )
         map.put(
             KueryClientDiagnostics.KUERY_BIND_CALL_IN_SQL_TEMPLATE,

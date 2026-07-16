@@ -17,11 +17,8 @@ class KueryClientCompilerPluginRegistrar : CompilerPluginRegistrar() {
     override val supportsK2: Boolean = true
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
-        FirExtensionRegistrarAdapter.registerExtension(KueryClientFirExtensionRegistrar())
-        IrGenerationExtension.registerExtension(
-            KueryClientIrGenerationExtension(
-                autoTrimIndent = configuration.get(AUTO_TRIM_INDENT_KEY, false),
-            ),
-        )
+        val autoTrimIndent = configuration.get(AUTO_TRIM_INDENT_KEY, false)
+        FirExtensionRegistrarAdapter.registerExtension(KueryClientFirExtensionRegistrar(autoTrimIndent))
+        IrGenerationExtension.registerExtension(KueryClientIrGenerationExtension(autoTrimIndent))
     }
 }

@@ -126,6 +126,7 @@ class AutoTrimIndentTest {
         assertThat(build(false)).isEqualTo(Sql("TRUE"))
     }
 
+    @Suppress("KUERY_REDUNDANT_TRIM_INDENT")
     @Test
     fun `explicit trimIndent still works`() {
         val a = "A"
@@ -174,6 +175,7 @@ class AutoTrimIndentTest {
         assertThat(sql).isEqualTo(Sql("SELECT *\nFROM user"))
     }
 
+    @Suppress("KUERY_REDUNDANT_TRIM_INDENT")
     @Test
     fun `blank edge line kept by an explicit trimIndent is also dropped`() {
         // Without the option the body would keep the blank line the explicit trimIndent
