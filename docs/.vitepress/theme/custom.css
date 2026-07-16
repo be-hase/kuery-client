@@ -1,0 +1,5 @@
+/* Home hero name in the logo's gradient (indigo -> sky blue) */
+:root {
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #4149ca 20%, #41b3ee);
+}

@@ -12,15 +12,19 @@ example a variable — the plugin cannot see the interpolation, and the
 string would be executed as raw SQL.
 
 To prevent this from happening silently, the compiler plugin reports a
-`KUERY_UNSAFE_SQL_STRING` **warning** when the argument of `add()` /
-`+` is not one of the following:
+`KUERY_UNSAFE_SQL_STRING` **warning** when the argument of `add()` / `+` cannot be fully analyzed
+at compile time. Typical flagged arguments:
 
-| Argument form | Why it is safe |
+| Flagged argument | Problem |
 |---|---|
-| A string literal / string template (`"... $id"`) | Interpolation is converted into bind parameters |
-| `trimIndent()` / `trimMargin()` called on the above (with literal-only arguments) | Pure formatting of a compile-time string |
-| A reference to a `const val` | Compile-time constant; cannot contain runtime values |
-| An `if` / `when` expression whose every branch is one of the above (`if (asc) "ORDER BY id" else "ORDER BY id DESC"`) | Each branch is checked recursively |
+| `add(sql)` — a `String` variable or parameter | The string may already contain concatenated runtime values |
+| `add("... WHERE " + cond)` — `+` concatenation | Not a string template; the plugin cannot rewrite it into bind parameters |
+| `add(buildWhere())` — a function call | The plugin cannot see what the function returns |
+| `add("WHERE aaa".replace("aaa", input))` — a chained call on a literal | Same as above — and a runtime argument like `input` ends up in the SQL text without being bound |
+| `add(run { "SELECT 1" })` — a lambda / scope function | The plugin does not look inside lambdas, even when the body is just a literal |
+| `add(if (id > 0) "SELECT 1" else fragment)` — an `if` with an unsafe branch | Every branch must be safe on its own; `fragment` is a variable |
+
+For example, the most common case — passing a variable — is reported like this:
 
 ```kotlin
 val sql = "SELECT * FROM users WHERE user_id = $userId"
@@ -29,26 +33,25 @@ kueryClient.sql {
 }
 ```
 
-## When you really need dynamic SQL
+In contrast, the following forms are accepted. The SQL string is fully determined at compile
+time, so any interpolation in it is rewritten into bind parameters:
 
-Use `addUnsafe()` together with `bind()`. These APIs require opting in to
-`@DelicateKueryClientApi` and make the intent explicit. See [Helpers](/helpers)
-for a complete example.
+- A string literal / string template: `"SELECT ... $id"`
+- `trimIndent()` / `trimMargin()` called on one (with literal-only arguments)
+- A reference to a `const val`
+- An `if` / `when` expression whose every branch is one of the above (each branch is checked
+  recursively): `if (asc) "ORDER BY id" else "ORDER BY id DESC"`. A branch that only throws —
+  e.g. `else -> error("unsupported sort")` — is also fine, since it never produces a SQL string.
 
-```kotlin
-@OptIn(DelicateKueryClientApi::class)
-fun SqlBuilder.userIdIn(userIds: List<Int>) {
-    addUnsafe("user_id IN (${userIds.joinToString(",") { bind(it) }})")
-}
-```
+## Responding to the warning
 
-Alternatively, suppress the warning per declaration when you know the
-string is safe:
+In order of preference:
 
-```kotlin
-@Suppress("KUERY_UNSAFE_SQL_STRING")
-fun query(sql: String) = kueryClient.sql { add(sql) }
-```
+1. **Restructure into safe forms.** Most dynamic SQL can be expressed with Kotlin control flow
+   inside the `sql { }` block — `if` / `when` / loops around `+"..."` — which the plugin handles
+   safely. See [Basics](/basics#logic-such-as-if-and-for-etc).
+2. **Suppress the warning** with `@Suppress("KUERY_UNSAFE_SQL_STRING")` on the declaration, when
+   you know the string is safe but the checker cannot see it.
 
 ## Configuring the severity
 

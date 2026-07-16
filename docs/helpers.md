@@ -11,21 +11,16 @@ description: Built-in values helper for multi-row inserts and guidance on writin
 This is a helpful function for performing multi-row inserts.
 
 ```kotlin
-@Test
-fun test() = runTest {
-        data class UserParam(val username: String, val email: String?, val age: Int)
+data class UserParam(val username: String, val email: String?, val age: Int)
 
-        val input = listOf(
-            UserParam("user1", "user1@example.com", 1),
-            UserParam("user2", null, 2),
-            UserParam("user3", "user3@example.com", 3),
-        )
-
-        kueryClient.sql {
-            +"INSERT INTO users (username, email, age)"
-            values(input) { listOf(it.username, it.email, it.age) }
-        }.rowsUpdated()
+suspend fun insertMany(params: List<UserParam>): Long = kueryClient
+    .sql {
+        +"INSERT INTO users (username, email, age)"
+        values(params) { listOf(it.username, it.email, it.age) }
     }
+    .rowsUpdated()
+
+// INSERT INTO users (username, email, age) VALUES (:p0, :p1, :p2), (:p3, :p4, :p5), ...
 ```
 
 ## You can also write your own helper
@@ -58,9 +53,8 @@ fun <T> SqlBuilder.values(
 
 Feel free to extend it as you wish.
 
-There may be cases where custom string interpolation is difficult to write. In such situations, please use `addUnsafe`
-and `bind`.
-(The `values` function above is a good example of this.)
+Some SQL fragments cannot be expressed with plain string interpolation — for example, a dynamically sized list
+of placeholders. In such cases, use `addUnsafe` and `bind` (the `values` function above is a good example).
 
 Note that `addUnsafe` and `bind` are annotated with `@DelicateKueryClientApi` and require an explicit opt-in, since
 misusing them can lead to SQL injection. See [Compiler Safety Check](/compiler-safety-check) for details.

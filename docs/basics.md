@@ -35,6 +35,11 @@ kueryClient
 It is an alias for `+`(unaryPlus). However, since the argument is annotated
 with `org.intellij.lang.annotations.Language`, if you are using a JetBrains IDE, you will get syntax assistance.
 
+::: info
+`sql { ... }` also has an overload that takes an explicit SQL id — `sql("my-sql-id") { ... }` — which labels
+the query for metrics. See [Observation](/observation#sql-id).
+:::
+
 ## Binding Parameters
 
 When you want to bind parameters, use string interpolation.
@@ -53,8 +58,16 @@ kueryClient
 ### Compile-time constants are expanded as text
 
 Only runtime values are bound as parameters. Compile-time `String` / `Char` constants inside a
-template — string literals like `${"users"}`, references to a `const val`, and `Char` constants
-like `${'$'}` — are expanded into the SQL text at compile time instead of being bound.
+template are expanded into the SQL text at compile time instead of being bound:
+
+| Interpolated expression | Examples | Behavior |
+|---|---|---|
+| Runtime value | `$userId`, `${user.id}`, `${find()}` | Bound as a parameter (`:p0`) |
+| `String` / `Char` constant (literal or `const val`) | `${"users"}`, `$TABLE`, `${'$'}` | Expanded into the SQL text |
+| Constant of any other type (literal or `const val`) | `${1}`, `${true}`, `${null}` | Bound as a parameter |
+
+For example, you can share a table name as a `const val`: it is expanded into the SQL text, while
+the runtime value `userId` in the same template is still bound as a parameter:
 
 ```kotlin
 const val TABLE = "users"
@@ -66,9 +79,10 @@ kueryClient
     }
 ```
 
-This also means a literal `$` comes out right. `$` cannot be written as-is in a Kotlin string
-template (and raw strings have no backslash escaping), so the idiomatic escape is the `Char`
-constant `${'$'}` — which is simply expanded back into the SQL text:
+Sometimes the SQL itself needs a literal `$` — JSON path syntax, for example. `$` cannot be
+written as-is in a Kotlin string template (and raw strings have no backslash escaping), so the
+idiomatic escape is the `Char` constant `${'$'}`. Since `Char` constants are expanded as text,
+the `$` simply comes out in the SQL:
 
 ```kotlin
 kueryClient
@@ -78,13 +92,11 @@ kueryClient
     }
 ```
 
-Constants of other types (`${1}`, `${true}`, `${null}`, ...) are still bound as parameters —
-only `String` and `Char` constants are expanded as text.
-
-Note that a `String` constant intended as a *value* (e.g. `WHERE name = $NAME_CONST`) is expanded
-without quoting, so the query will most likely fail with a database error. Since it is a
-compile-time constant this cannot cause SQL injection, but if you want it bound, use a non-const
-`val`.
+::: warning
+A `String` constant intended as a *value* (e.g. `WHERE name = $NAME_CONST`) is expanded without
+quoting, so the query will most likely fail with a database error. Since it is a compile-time
+constant this cannot cause SQL injection, but if you want it bound, use a non-const `val`.
+:::
 
 ### Collections and arrays
 
@@ -113,6 +125,40 @@ kueryClient
 
 MySQL has no array type, so use a `Collection` for `IN` clauses there.
 
+### Enums
+
+An enum value is bound by its name (`Enum.name`) by default. This also applies to enums inside collections and
+arrays.
+
+```kotlin
+val status = UserStatus.ACTIVE
+kueryClient
+    .sql {
+        +"SELECT * FROM users WHERE status = $status"
+        // bound as the string 'ACTIVE'
+    }
+```
+
+If you want a different representation, register a custom `@WritingConverter` — it takes precedence over the
+default. See [Type Conversion](/type-conversion).
+
+### null values
+
+A `null` value is bound as SQL `NULL`. Be careful with comparison operators: `column = NULL` never matches
+anything in SQL. If a value can be null, branch explicitly:
+
+```kotlin
+kueryClient
+    .sql {
+        +"SELECT * FROM users"
+        if (email != null) {
+            +"WHERE email = $email"
+        } else {
+            +"WHERE email IS NULL"
+        }
+    }
+```
+
 ## Logic such as `if` and `for` ...etc
 
 Just write using Kotlin syntax. There is no need to learn special syntax.
@@ -129,170 +175,144 @@ kueryClient
     }
 ```
 
+## Reusable query parts
+
+Query parts shared across queries can be extracted into plain extension functions on `SqlBuilder`. String
+interpolation inside them is converted into bind parameters as usual, and Kotlin control flow works as usual —
+no special API is needed:
+
+```kotlin
+fun SqlBuilder.whereActiveUsers(tenantId: Int, username: String? = null) {
+    +"WHERE tenant_id = $tenantId"
+    +"AND status = 'ACTIVE'"
+    if (username != null) {
+        +"AND username = $username"
+    }
+}
+
+class UserRepository(private val kueryClient: KueryClient) {
+    suspend fun search(tenantId: Int, username: String?): List<User> = kueryClient
+        .sql {
+            +"SELECT * FROM users"
+            whereActiveUsers(tenantId, username)
+            +"ORDER BY username"
+        }
+        .list()
+
+    suspend fun count(tenantId: Int): Long = kueryClient
+        .sql {
+            +"SELECT COUNT(*) FROM users"
+            whereActiveUsers(tenantId)
+        }
+        .single()
+}
+```
+
+For fragments that must be assembled as a string dynamically (e.g. a variable number of placeholders), see
+[Helpers](/helpers).
+
 ## Fetch Result
 
-`kuery-client-spring-data-r2dbc/jdbc` both have a minimal interface. In the case of `kuery-client-spring-data-r2dbc`, it
-will be a suspend function.
+Terminal operations execute the query and return the result. In `kuery-client-spring-data-r2dbc` they are
+`suspend` functions; in `kuery-client-spring-data-jdbc` they are blocking.
 
-### `(suspend) fun singleMap(): Map<String, Any?>`
+| Method | Description | Availability |
+|---|---|---|
+| `single()` / `singleMap()` | Exactly one row | both |
+| `singleOrNull()` / `singleMapOrNull()` | One row, or `null` when there is no row | both |
+| `list()` / `listMap()` | All rows as a `List` | both |
+| `flow()` / `flowMap()` | Rows as a Kotlin coroutines `Flow` | r2dbc only |
+| `sequence()` / `sequenceMap()` | Rows as a `CloseableSequence` | jdbc only |
+| `rowsUpdated()` | The number of affected rows | both |
+| `generatedValues(vararg columns)` | Values generated by the database (e.g. auto increment) | both |
 
-Receives the results as a map.
+How rows are converted to the specified type is described in [Row Mapping](/row-mapping). The `*Map`
+variants return each row as a `Map<String, Any?>` keyed by column name instead of a converted type.
 
-```kotlin
-val map: Map<String, Any?> = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = 1" }
-    .singleMap()
-```
+### `single()` / `singleOrNull()`
 
-### `(suspend) fun singleMapOrNull(): Map<String, Any?>?`
-
-Receives the results as a map.
-
-```kotlin
-val map: Map<String, Any?>? = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = 1" }
-    .singleMapOrNull()
-```
-
-### `(suspend) fun <T : Any> single(returnType: KClass<T>): T`
-
-Receives the results converted to the specified type.
+`single()` expects exactly one row: it throws an exception when the query returns no rows. `singleOrNull()`
+returns `null` in that case. Both throw an exception when the query returns more than one row.
 
 ```kotlin
 val user: User = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = 1" }
+    .sql { +"SELECT * FROM users WHERE user_id = $userId" }
     .single()
-```
 
-### `(suspend) fun <T : Any> singleOrNull(returnType: KClass<T>): T?`
-
-Receives the results converted to the specified type.
-
-```kotlin
-val user: User? = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = 1" }
+val userOrNull: User? = kueryClient
+    .sql { +"SELECT * FROM users WHERE user_id = $userId" }
     .singleOrNull()
 ```
 
-### `(suspend) fun listMap(): List<Map<String, Any?>>`
+### `list()`
 
-Receives the results of multiple rows as a list of maps.
-
-```kotlin
-val result: List<Map<String, Any?>> = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = 1" }
-    .listMap()
-```
-
-### `(suspend) fun <T : Any> list(returnType: KClass<T>): List<T>`
-
-Receives the results of multiple rows converted to the specified type.
+Fetches all rows into a `List`.
 
 ```kotlin
 val users: List<User> = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = 1" }
+    .sql { +"SELECT * FROM users WHERE status = $status" }
     .list()
 ```
 
-### [`kuery-client-spring-data-r2dbc` only] `fun flowMap(): Flow<Map<String, Any?>>`
+### `flow()` <Badge type="info" text="r2dbc only" />
 
-Receives the results of multiple rows as a flow of maps.
-
-```kotlin
-val result: Flow<Map<String, Any?>> = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = 1" }
-    .flowMap()
-```
-
-### [`kuery-client-spring-data-r2dbc` only] `fun <T : Any> flow(returnType: KClass<T>): Flow<T>`
-
-Receives the results of multiple rows converted to the specified type.
+Streams rows as a Kotlin coroutines `Flow`.
 
 ```kotlin
 val users: Flow<User> = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = 1" }
+    .sql { +"SELECT * FROM users WHERE status = $status" }
     .flow()
 ```
 
-### [`kuery-client-spring-data-jdbc` only] `fun sequenceMap(): CloseableSequence<Map<String, Any?>>`
+### `sequence()` <Badge type="info" text="jdbc only" />
 
-Receives the results of multiple rows as a sequence of maps.
-
-```kotlin
-val result: Sequence<Map<String, Any?>> = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = 1" }
-    .sequenceMap()
-```
-
-Note: backed by an open JDBC ResultSet — iterate within an active transaction. Single-pass. `CloseableSequence`
-implements `AutoCloseable`; if you stop iterating midway (e.g., with `take` or `first`), close it explicitly,
-typically via `use`.
-
-### [`kuery-client-spring-data-jdbc` only] `fun <T : Any> sequence(returnType: KClass<T>): CloseableSequence<T>`
-
-Receives the results of multiple rows converted to the specified type as a sequence.
+Streams rows as a `CloseableSequence`.
 
 ```kotlin
-val users: Sequence<User> = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = 1" }
+val users: CloseableSequence<User> = kueryClient
+    .sql { +"SELECT * FROM users WHERE status = $status" }
     .sequence()
 ```
 
-Note: backed by an open JDBC ResultSet — iterate within an active transaction. Single-pass. `CloseableSequence`
-implements `AutoCloseable`; if you stop iterating midway (e.g., with `take` or `first`), close it explicitly,
-typically via `use`.
+::: warning
+The sequence is backed by an open JDBC ResultSet — iterate within an active transaction. It is single-pass.
+`CloseableSequence` implements `AutoCloseable`; if you stop iterating midway (e.g., with `take` or `first`),
+close it explicitly, typically via `use`.
+:::
 
-### `(suspend) fun rowsUpdated(): Long`
+### `rowsUpdated()`
 
-Contract for fetching the number of affected rows
+Returns the number of affected rows.
 
 ```kotlin
-val result: Long = kueryClient
-    .sql {+"INSERT INTO users (username, email) VALUES ('username1', 'email1')"}
+val count: Long = kueryClient
+    .sql { +"INSERT INTO users (username, email) VALUES ($username, $email)" }
     .rowsUpdated()
 ```
 
-### `(suspend) fun generatedValues(vararg columns: String): Map<String, Any>`
+### `generatedValues(vararg columns)`
 
-Receives the values generated on the database side. For example, an auto increment value.
+Returns the values generated on the database side. For example, an auto increment value.
 
 ```kotlin
-val result: Map<String, Any> = kueryClient
-    .sql {+"INSERT INTO users (username, email) VALUES ('username1', 'email1')"}
+val generated: Map<String, Any> = kueryClient
+    .sql { +"INSERT INTO users (username, email) VALUES ($username, $email)" }
     .generatedValues("user_id")
 ```
 
-### `fun fetchSize(fetchSize: Int): FetchSpec`
+## Tuning Queries
 
-Apply the given fetch size to any subsequent query statement.
+`FetchSpec` also exposes a few knobs that apply to the subsequent terminal operation:
 
-Available for both `kuery-client-spring-data-r2dbc` and `kuery-client-spring-data-jdbc`.
+| Method | Description | Availability |
+|---|---|---|
+| `fetchSize(Int)` | Fetch size hint for the driver | both |
+| `maxRows(Int)` | Maximum number of rows to fetch | jdbc only |
+| `queryTimeoutSeconds(Int)` | Query timeout in seconds | jdbc only |
 
 ```kotlin
 val users: List<User> = kueryClient
     .sql { +"SELECT * FROM users" }
     .fetchSize(100)
-    .list()
-```
-
-### [`kuery-client-spring-data-jdbc` only] `fun maxRows(maxRows: Int): FetchSpec`
-
-Apply the given maximum number of rows to any subsequent query statement.
-
-```kotlin
-val users: List<User> = kueryClient
-    .sql { +"SELECT * FROM users" }
-    .maxRows(1000)
-    .list()
-```
-
-### [`kuery-client-spring-data-jdbc` only] `fun queryTimeoutSeconds(queryTimeout: Int): FetchSpec`
-
-Set the query timeout (in seconds) for this query.
-
-```kotlin
-val users: List<User> = kueryClient
-    .sql { +"SELECT * FROM users" }
-    .queryTimeoutSeconds(30)
     .list()
 ```

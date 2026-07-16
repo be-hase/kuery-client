@@ -4,8 +4,19 @@ description: Register Spring's @WritingConverter / @ReadingConverter via the bui
 
 # Type Conversion
 
-By using Spring Type Conversion, you can support your own custom types.
-https://docs.spring.io/spring-framework/reference/core/validation/convert.html
+By using
+[Spring Type Conversion](https://docs.spring.io/spring-framework/reference/core/validation/convert.html),
+you can support your own custom types.
+
+## Default Behavior
+
+Without any configuration:
+
+- Types the driver supports natively (numbers, strings, date/time types, ...) are passed through as is.
+- Enums are written by their name (`Enum.name`) and read back by name.
+
+Custom converters registered via `converters(...)` take precedence over these defaults. For example, registering
+a `@WritingConverter` from your enum to `Int` overrides the write-by-name default for that enum.
 
 ## Example
 

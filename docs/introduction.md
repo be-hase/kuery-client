@@ -4,19 +4,23 @@ description: Overview of Kuery Client's features, motivation, and the SQL builde
 
 # Introduction
 
+::: info Prerequisites
+This documentation assumes you are already familiar with Spring / Spring Boot and does not explain them.
+:::
+
 ## Features
 
 - **Love SQL ♥**
-    - While ORM libraries in the world are convenient, they often require learning their own DSL, which we believe has a
-      high learning cost. Kuery Client emphasizes writing SQL as it is.
+    - ORM libraries are convenient, but they each require learning their own DSL, which we believe is a steep
+      cost. Kuery Client emphasizes writing SQL as it is.
 - **Based on spring-data-r2dbc and spring-data-jdbc**
-    - Kuery Client is implemented based on spring-data-r2dbc and spring-data-jdbc. Use whichever you prefer. You can use
-      Spring's ecosystem as it is, such as `@Transactional`.
+    - Kuery Client is implemented on top of spring-data-r2dbc and spring-data-jdbc. Use whichever you prefer.
+      You can keep using Spring's ecosystem as is, such as `@Transactional`.
 - **Observability**
-    - It supports Micrometer Observation, so Metrics/Tracing/Logging can also be customized.
+    - It supports Micrometer Observation, so you can collect and customize metrics, tracing, and logging.
 - **Extensible**
-    - When dealing with complex data schemas, there are often cases where you want to write common query logic. Thanks
-      to Kotlin's extension functions, this becomes easier.
+    - When dealing with complex data schemas, you often want to share common query logic. Kotlin's extension
+      functions make this easy.
 
 ## Motivation
 
@@ -34,7 +38,7 @@ To meet these needs, we implemented `Kuery Client`.
 By using the following SQL builder, you can easily build and execute SQL. Whether using R2DBC or JDBC, the way of
 writing is almost the same.
 
-By providing a Kotlin compiler plugin, we achieve binding parameters using string interpolation.
+A Kotlin compiler plugin converts string interpolation into parameter binding.
 
 ::: code-group
 
@@ -106,18 +110,14 @@ This SQL builder is very simple. There are only two things you need to remember:
 
 - You can concatenate SQL strings using `+`(unaryPlus).
     - You can also directly express logic such as if statements in Kotlin.
-- By using string interpolation, it is possible to bind parameters.
+- You can bind parameters using string interpolation.
 
 ## Based on spring-data-r2dbc and spring-data-jdbc
 
-Currently, it is implemented based on the well-established `spring-data-r2dbc` and `spring-data-jdbc` in the Java
-community. Kuery Client simply provides the aforementioned SQL builder on this foundation.
+Currently, it is implemented on top of the well-established `spring-data-r2dbc` and `spring-data-jdbc`.
+Kuery Client simply provides the SQL builder shown above on this foundation.
 
-It is designed to be used alongside both `spring-data-r2dbc` and `spring-data-jdbc`, allowing you to start small.
+It is designed to be usable alongside plain `spring-data-r2dbc` / `spring-data-jdbc` code, so you can start
+small.
 
 In the future, we may add a different foundation or possibly create a new one from scratch.
-
-## Preface
-
-This document does not explain Spring or Spring Boot. It is written assuming you are already familiar with them. For
-those without this knowledge, the document may be difficult to understand.
