@@ -15,14 +15,13 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
     }
 
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
-        val project = kotlinCompilation.target.project
-        val extension = project.extensions.getByType(KueryClientExtension::class.java)
-        return project.provider {
+        val extension = kotlinCompilation.target.project.extensions.getByType(KueryClientExtension::class.java)
+        return extension.autoTrimIndent.map { enabled ->
             // Only emit the option when it deviates from the compiler plugin's default, so a
             // build whose compiler-plugin artifact resolves to an older kuery-client-compiler
             // (which would reject the unknown option) keeps working as long as the feature is
             // not enabled.
-            if (extension.autoTrimIndent.get()) {
+            if (enabled) {
                 listOf(SubpluginOption("autoTrimIndent", "true"))
             } else {
                 emptyList()
