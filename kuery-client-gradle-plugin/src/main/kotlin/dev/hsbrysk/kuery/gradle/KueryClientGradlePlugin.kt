@@ -1,5 +1,6 @@
 package dev.hsbrysk.kuery.gradle
 
+import org.gradle.api.Project
 import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
@@ -8,8 +9,18 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
 class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
-    override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> =
-        kotlinCompilation.target.project.provider { emptyList() }
+    override fun apply(target: Project) {
+        target.extensions.create(EXTENSION_NAME, KueryClientExtension::class.java)
+            .autoTrimIndent.convention(false)
+    }
+
+    override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
+        val project = kotlinCompilation.target.project
+        val extension = project.extensions.getByType(KueryClientExtension::class.java)
+        return project.provider {
+            listOf(SubpluginOption("autoTrimIndent", extension.autoTrimIndent.get().toString()))
+        }
+    }
 
     override fun getCompilerPluginId(): String = "dev.hsbrysk.kuery-client"
 
@@ -27,4 +38,8 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
             KotlinPlatformType.jvm, KotlinPlatformType.androidJvm -> true
             else -> false
         }
+
+    companion object {
+        private const val EXTENSION_NAME = "kueryClient"
+    }
 }
