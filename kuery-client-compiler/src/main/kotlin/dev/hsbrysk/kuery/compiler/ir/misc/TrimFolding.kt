@@ -35,17 +35,8 @@ internal object TrimFolding {
         valueCount: Int,
         operation: TrimOperation,
     ): List<String>? {
-        if (fragments.any { SENTINEL in it }) {
+        if (!isFoldable(fragments, operation)) {
             return null
-        }
-        if (operation is TrimOperation.TrimMargin) {
-            // A blank prefix throws IllegalArgumentException at runtime, which must be preserved.
-            // A prefix containing ':' can match into the runtime `:pN` placeholder text, in which
-            // case the sentinel stand-in would diverge from the runtime result.
-            val prefix = operation.marginPrefix
-            if (prefix.isBlank() || ':' in prefix || SENTINEL in prefix) {
-                return null
-            }
         }
 
         // Join in the same shape as DefaultSqlBuilder.interpolate: fragment, value, fragment, ...
@@ -57,14 +48,28 @@ internal object TrimFolding {
             fragments.drop(valueCount).forEach { append(it) }
         }
 
-        val trimmed = runCatching { operation.apply(joined) }.getOrElse { return null }
-
         // The trim functions only remove whitespace, the margin prefix, and blank first/last
-        // lines, none of which can contain the sentinel — but re-check defensively.
-        val folded = trimmed.split(SENTINEL)
-        if (folded.size != valueCount + 1) {
-            return null
+        // lines, none of which can contain the sentinel — but re-check the count defensively.
+        return runCatching { operation.apply(joined) }
+            .getOrNull()
+            ?.split(SENTINEL)
+            ?.takeIf { it.size == valueCount + 1 }
+    }
+
+    private fun isFoldable(
+        fragments: List<String>,
+        operation: TrimOperation,
+    ): Boolean {
+        if (fragments.any { SENTINEL in it }) {
+            return false
         }
-        return folded
+        // A blank prefix throws IllegalArgumentException at runtime, which must be preserved.
+        // A prefix containing ':' can match into the runtime `:pN` placeholder text, in which
+        // case the sentinel stand-in would diverge from the runtime result.
+        if (operation is TrimOperation.TrimMargin) {
+            val prefix = operation.marginPrefix
+            return prefix.isNotBlank() && ':' !in prefix && SENTINEL !in prefix
+        }
+        return true
     }
 }

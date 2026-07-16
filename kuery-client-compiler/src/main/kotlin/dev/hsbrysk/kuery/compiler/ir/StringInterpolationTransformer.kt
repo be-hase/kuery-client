@@ -111,28 +111,42 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
             it.kind == IrParameterKind.ExtensionReceiver
         } ?: return null
         return when (val receiver = expression.arguments[receiverParameter.indexInParameters]) {
-            is IrConst -> {
-                if (receiver.kind != IrConstKind.String) {
-                    return null
-                }
-                // A constant receiver has no values to bind; apply the trim directly. A failing
-                // trim (blank trimMargin prefix) must keep throwing at runtime, so fall back.
-                val folded = runCatching { operation.apply(receiver.value as String) }.getOrElse { return null }
-                irBuilder(expression).irString(folded)
-            }
-            is IrStringConcatenation -> {
-                // Check foldability on the arguments *before* transforming them, so that on
-                // fallback the IR is left completely untouched. The IrConst-or-not classification
-                // that `process` relies on is invariant under the transformation.
-                val (fragments, rawValues) = StringConcatenationProcessor.process(receiver.arguments)
-                val folded = TrimFolding.foldOrNull(fragments, rawValues.size, operation) ?: return null
-                // Same reasoning as in visitStringConcatenation: values are bound as parameters,
-                // so transform them outside the enclosing add/unaryPlus context.
-                val values = withoutCurrent { rawValues.map { it.transform(this, null) } }
-                irInterpolateCall(irBuilder(expression), enclosing, folded, values)
-            }
+            is IrConst -> foldConstReceiverOrNull(expression, receiver, operation)
+            is IrStringConcatenation -> foldTemplateReceiverOrNull(expression, receiver, operation, enclosing)
             else -> null
         }
+    }
+
+    private fun foldConstReceiverOrNull(
+        expression: IrCall,
+        receiver: IrConst,
+        operation: TrimOperation,
+    ): IrExpression? {
+        if (receiver.kind != IrConstKind.String) {
+            return null
+        }
+        // A constant receiver has no values to bind; apply the trim directly. A failing trim
+        // (blank trimMargin prefix) must keep throwing at runtime, so fall back.
+        return runCatching { operation.apply(receiver.value as String) }
+            .getOrNull()
+            ?.let { irBuilder(expression).irString(it) }
+    }
+
+    private fun foldTemplateReceiverOrNull(
+        expression: IrCall,
+        receiver: IrStringConcatenation,
+        operation: TrimOperation,
+        enclosing: IrVariable,
+    ): IrExpression? {
+        // Check foldability on the arguments *before* transforming them, so that on fallback the
+        // IR is left completely untouched. The IrConst-or-not classification that `process`
+        // relies on is invariant under the transformation.
+        val (fragments, rawValues) = StringConcatenationProcessor.process(receiver.arguments)
+        val folded = TrimFolding.foldOrNull(fragments, rawValues.size, operation) ?: return null
+        // Same reasoning as in visitStringConcatenation: values are bound as parameters, so
+        // transform them outside the enclosing add/unaryPlus context.
+        val values = withoutCurrent { rawValues.map { it.transform(this, null) } }
+        return irInterpolateCall(irBuilder(expression), enclosing, folded, values)
     }
 
     private fun IrCall.trimOperationOrNull(): TrimOperation? = when (symbol.owner.fqNameWhenAvailable) {
