@@ -1,7 +1,9 @@
 package dev.hsbrysk.kuery.spring.jdbc
 
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
 import com.example.spring.jdbc.UserRepository
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationHandler
@@ -10,6 +12,8 @@ import io.micrometer.observation.tck.TestObservationRegistryAssert
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.dao.DataAccessException
+import org.springframework.dao.EmptyResultDataAccessException
 
 class ObservationTest {
     private val registry = TestObservationRegistry.create()
@@ -115,6 +119,41 @@ class ObservationTest {
             sqlId = "com.example.spring.jdbc.UserRepository.generatedValues",
             sql = "INSERT INTO users (username, email) VALUES (:p0, :p1)",
         )
+    }
+
+    @Test
+    fun `explicit sqlId overload propagates to the observation`() {
+        kueryClient.sql("my.explicit.sql.id") { +"SELECT * FROM users" }.listMap()
+        assertObservation(
+            sqlId = "my.explicit.sql.id",
+            sql = "SELECT * FROM users",
+        )
+    }
+
+    @Test
+    fun `records error when single result is missing`() {
+        assertFailure { userRepository.singleMap(999) }.isInstanceOf(EmptyResultDataAccessException::class)
+        TestObservationRegistryAssert.assertThat(registry)
+            .doesNotHaveAnyRemainingCurrentObservation()
+            .hasObservationWithNameEqualTo("kuery.client.fetches")
+            .that()
+            .hasBeenStarted()
+            .hasBeenStopped()
+            .hasError()
+    }
+
+    @Test
+    fun `records error when the sql execution fails`() {
+        assertFailure {
+            kueryClient.sql { +"SELECT * FROM missing_table" }.listMap()
+        }.isInstanceOf(DataAccessException::class)
+        TestObservationRegistryAssert.assertThat(registry)
+            .doesNotHaveAnyRemainingCurrentObservation()
+            .hasObservationWithNameEqualTo("kuery.client.fetches")
+            .that()
+            .hasBeenStarted()
+            .hasBeenStopped()
+            .hasError()
     }
 
     @Test

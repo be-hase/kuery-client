@@ -125,6 +125,15 @@ class ObservationTest {
     }
 
     @Test
+    fun `explicit sqlId overload propagates to the observation`() = runTest {
+        kueryClient.sql("my.explicit.sql.id") { +"SELECT * FROM users" }.listMap()
+        assertObservation(
+            sqlId = "my.explicit.sql.id",
+            sql = "SELECT * FROM users",
+        )
+    }
+
+    @Test
     fun `records error when single result is missing`() = runTest {
         assertFailure { userRepository.singleMap(999) }.isInstanceOf(EmptyResultDataAccessException::class)
         TestObservationRegistryAssert.assertThat(registry)
