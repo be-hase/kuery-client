@@ -127,6 +127,60 @@ class PostgresArrayBindingTest {
         assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
     }
 
+    @Test
+    fun `bind primitive long array to ANY predicate`() = runTest {
+        val userIds = longArrayOf(1, 2)
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($userIds) ORDER BY user_id" }
+            .listMap()
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind primitive short array to ANY predicate`() = runTest {
+        val userIds = shortArrayOf(1, 2)
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($userIds) ORDER BY user_id" }
+            .listMap()
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind primitive double array to ANY predicate`() = runTest {
+        val userIds = doubleArrayOf(1.0, 2.0)
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($userIds) ORDER BY user_id" }
+            .listMap()
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind primitive float array to ANY predicate`() = runTest {
+        val userIds = floatArrayOf(1.0f, 2.0f)
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($userIds) ORDER BY user_id" }
+            .listMap()
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind primitive boolean array round-trips through select`() = runTest {
+        val flags = booleanArrayOf(true, false)
+        val record = kueryClient
+            .sql { +"SELECT $flags AS flags" }
+            .singleMap()
+        assertThat((record["flags"] as Array<*>).toList()).isEqualTo(listOf(true, false))
+    }
+
+    @Test
+    fun `bind primitive char array round-trips through select`() = runTest {
+        val chars = charArrayOf('a', 'b')
+        val record = kueryClient
+            .sql { +"SELECT $chars AS chars" }
+            .singleMap()
+        assertThat((record["chars"] as Array<*>).toList()).isEqualTo(listOf("a", "b"))
+    }
+
     companion object {
         private val postgres = PostgresTestContainer
     }

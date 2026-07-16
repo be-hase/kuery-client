@@ -2,6 +2,7 @@ package dev.hsbrysk.kuery.spring.jdbc
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import dev.hsbrysk.kuery.core.DelicateKueryClientApi
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -72,6 +73,62 @@ class CollectionConversionTest {
             +"SELECT * FROM converter WHERE (id, text) IN ($pairs)"
         }.listMap()
         assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1")))
+    }
+
+    @Test
+    fun testEmptyCollection() {
+        // An empty collection is bound as-is; Spring's named parameter expansion then renders
+        // it as `IN ()`. Whether that is valid SQL depends on the database: H2 accepts it and
+        // returns no rows, while MySQL/PostgreSQL reject it (see the mysql/postgres packages).
+        // Callers targeting those databases must guard against empty collections themselves.
+        kueryClient.sql {
+            +"INSERT INTO converter (text) VALUES ('text1')"
+        }.rowsUpdated()
+
+        val result = kueryClient.sql {
+            val emptyIds = emptyList<Long>()
+            +"SELECT * FROM converter WHERE id IN ($emptyIds)"
+        }.listMap()
+        assertThat(result).isEqualTo(emptyList())
+    }
+
+    @OptIn(DelicateKueryClientApi::class)
+    @Test
+    fun testHandBuiltTupleIn() {
+        kueryClient.sql {
+            +"""
+            INSERT INTO converter (text) VALUES
+            ('text1'),
+            ('text2'),
+            ('text3');
+            """.trimIndent()
+        }.rowsUpdated()
+
+        val pairs = listOf(1L to "text1", 3L to "text3")
+        val result = kueryClient.sql {
+            +"SELECT * FROM converter"
+            addUnsafe("WHERE (id, text) IN (${pairs.joinToString(", ") { "(${bind(it.first)}, ${bind(it.second)})" }})")
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 3L, "text" to "text3")))
+    }
+
+    @OptIn(DelicateKueryClientApi::class)
+    @Test
+    fun testBindCollectionViaAddUnsafe() {
+        kueryClient.sql {
+            +"""
+            INSERT INTO converter (text) VALUES
+            ('text1'),
+            ('text2'),
+            ('text3');
+            """.trimIndent()
+        }.rowsUpdated()
+
+        val result = kueryClient.sql {
+            val texts = listOf("text1", "text2")
+            addUnsafe("SELECT * FROM converter WHERE text IN (${bind(texts)})")
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 2L, "text" to "text2")))
     }
 
     companion object {
