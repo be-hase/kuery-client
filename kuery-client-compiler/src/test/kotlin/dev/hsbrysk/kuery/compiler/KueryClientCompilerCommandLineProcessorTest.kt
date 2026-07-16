@@ -6,7 +6,6 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isNotEqualTo
 import com.tschuchort.compiletesting.JvmCompilationResult
 import com.tschuchort.compiletesting.KotlinCompilation
-import com.tschuchort.compiletesting.PluginOption
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -30,12 +29,6 @@ class KueryClientCompilerCommandLineProcessorTest {
 
     private fun compileWithOptionValue(value: String): JvmCompilationResult = compile(
         source = "fun unused() {}",
-        pluginOptions = listOf(
-            PluginOption(
-                KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
-                KueryClientCompilerCommandLineProcessor.AUTO_TRIM_INDENT_OPTION_NAME,
-                value,
-            ),
-        ),
+        pluginOptions = listOf(autoTrimIndentOption(value)),
     )
 }

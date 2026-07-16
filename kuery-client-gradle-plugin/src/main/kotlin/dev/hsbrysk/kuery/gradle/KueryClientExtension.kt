@@ -6,8 +6,10 @@ interface KueryClientExtension {
     /**
      * When true, the compiler plugin automatically applies `trimIndent()` to every string passed
      * to `SqlBuilder.add` / `String.unaryPlus`, so multi-line SQL no longer needs an explicit
-     * `.trimIndent()`. For string literals and templates this is computed at compile time and
-     * adds no runtime cost. `addUnsafe` is not affected. Default: false.
+     * `.trimIndent()`. Default: false.
+     *
+     * See https://kuery-client.hsbrysk.dev/basics#automatic-trimindent-opt-in for the exact
+     * semantics (compile-time folding, interaction with explicit trim calls, `addUnsafe`).
      */
     val autoTrimIndent: Property<Boolean>
 }

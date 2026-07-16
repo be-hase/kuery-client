@@ -1,15 +1,11 @@
 package dev.hsbrysk.kuery.compiler
 
 import assertk.assertThat
-import assertk.assertions.contains
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
-import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
 import com.tschuchort.compiletesting.JvmCompilationResult
 import com.tschuchort.compiletesting.KotlinCompilation
-import com.tschuchort.compiletesting.PluginOption
-import com.tschuchort.compiletesting.SourceFile
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.junit.jupiter.api.Test
 
@@ -73,13 +69,7 @@ class AutoTrimIndentBytecodeTest {
         source: String,
     ): JvmCompilationResult = compile(
         source = source,
-        pluginOptions = listOf(
-            PluginOption(
-                KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
-                KueryClientCompilerCommandLineProcessor.AUTO_TRIM_INDENT_OPTION_NAME,
-                autoTrimIndent.toString(),
-            ),
-        ),
+        pluginOptions = listOf(autoTrimIndentOption(autoTrimIndent.toString())),
     )
 
     // The constant pool stores referenced method names as plain modified-UTF-8 entries, so a
