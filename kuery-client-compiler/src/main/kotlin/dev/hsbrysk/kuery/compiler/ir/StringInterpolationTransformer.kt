@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.ir.builders.irBlock
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irGet
+import org.jetbrains.kotlin.ir.builders.irString
 import org.jetbrains.kotlin.ir.builders.irVararg
 import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrVariable
@@ -83,22 +84,32 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
         // the enclosing add/unaryPlus context: a nested add/unaryPlus inside a value must still be
         // rewritten (it sets up its own receiver), while a string template inside a value stays a
         // plain concatenation whose evaluated result is bound as a single value.
-        current = null
-        try {
+        withoutCurrent {
             expression.transformChildren(this, null)
+        }
+
+        val (fragments, values) = StringConcatenationProcessor.process(expression.arguments)
+        return irInterpolateCall(irBuilder(expression), enclosing, fragments, values)
+    }
+
+    // Transform an expression outside the enclosing add/unaryPlus context (see
+    // visitStringConcatenation for why values must be transformed without it).
+    private inline fun <T> withoutCurrent(block: () -> T): T {
+        val previous = current
+        current = null
+        return try {
+            block()
         } finally {
-            current = enclosing
+            current = previous
         }
+    }
 
-        val builder = irBuilder(expression)
-
-        val (fragments, values) = StringConcatenationProcessor(builder).process(expression.arguments).let {
-            Pair(
-                builder.irListOf(pluginContext.irBuiltIns.stringType, it.first),
-                builder.irListOf(pluginContext.irBuiltIns.anyType, it.second),
-            )
-        }
-
+    private fun irInterpolateCall(
+        builder: DeclarationIrBuilder,
+        enclosing: IrVariable,
+        fragments: List<String>,
+        values: List<IrExpression>,
+    ): IrExpression {
         val defaultSqlBuilderClass =
             checkNotNull(pluginContext.finderForBuiltins().findClass(ClassIds.DEFAULT_SQL_BUILDER))
         val interpolate = defaultSqlBuilderClass.functions.first { it.owner.name.asString() == "interpolate" }
@@ -109,8 +120,9 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
                 defaultSqlBuilderClass.typeWith(),
             )
             val regularParams = interpolate.owner.parameters.filter { it.kind == IrParameterKind.Regular }
-            arguments[regularParams[0]] = fragments
-            arguments[regularParams[1]] = values
+            arguments[regularParams[0]] =
+                builder.irListOf(pluginContext.irBuiltIns.stringType, fragments.map { builder.irString(it) })
+            arguments[regularParams[1]] = builder.irListOf(pluginContext.irBuiltIns.anyType, values)
         }
     }
 
