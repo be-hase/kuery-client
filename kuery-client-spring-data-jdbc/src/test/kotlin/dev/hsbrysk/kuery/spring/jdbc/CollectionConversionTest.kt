@@ -131,6 +131,67 @@ class CollectionConversionTest {
         assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 2L, "text" to "text2")))
     }
 
+    @Test
+    fun testSet() {
+        insertThreeRows()
+
+        val result = kueryClient.sql {
+            val inSet = setOf(StringWrapper("text1"), StringWrapper("text2"))
+            +"SELECT * FROM converter WHERE text IN ($inSet)"
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 2L, "text" to "text2")))
+    }
+
+    @Test
+    fun testMapKeysView() {
+        insertThreeRows()
+
+        val map = mapOf(StringWrapper("text1") to 1, StringWrapper("text3") to 3)
+        val result = kueryClient.sql {
+            +"SELECT * FROM converter WHERE text IN (${map.keys})"
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 3L, "text" to "text3")))
+    }
+
+    @Test
+    fun testCustomCollectionSubtype() {
+        // Non-standard Collection implementations (e.g. NonEmptyList of functional libraries)
+        // must expand like any other Collection.
+        class NonEmptyList<T>(private val delegate: List<T>) : Collection<T> by delegate
+
+        insertThreeRows()
+
+        val result = kueryClient.sql {
+            val inList = NonEmptyList(listOf(StringWrapper("text1"), StringWrapper("text2")))
+            +"SELECT * FROM converter WHERE text IN ($inList)"
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 2L, "text" to "text2")))
+    }
+
+    @Test
+    fun testNullElement() {
+        // A null element binds as SQL NULL, which never matches in an IN list; the non-null
+        // elements still do.
+        insertThreeRows()
+
+        val result = kueryClient.sql {
+            val inList = listOf(StringWrapper("text1"), null)
+            +"SELECT * FROM converter WHERE text IN ($inList)"
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1")))
+    }
+
+    private fun insertThreeRows() {
+        kueryClient.sql {
+            +"""
+            INSERT INTO converter (text) VALUES
+            ('text1'),
+            ('text2'),
+            ('text3');
+            """.trimIndent()
+        }.rowsUpdated()
+    }
+
     companion object {
         private val h2 = H2TestDatabase()
     }

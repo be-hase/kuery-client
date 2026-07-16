@@ -2,7 +2,9 @@ package dev.hsbrysk.kuery.spring.r2dbc.mysql
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNull
 import dev.hsbrysk.kuery.core.single
+import dev.hsbrysk.kuery.core.singleOrNull
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -62,6 +64,15 @@ class MySqlByteArrayBindingTest {
             .sql { +"SELECT COUNT(*) FROM binaries WHERE id = $id AND data = $data AND data = $data" }
             .single<Long>()
         assertThat(count).isEqualTo(1L)
+    }
+
+    @Test
+    fun `singleOrNull ByteArray returns null when no row matches`() = runTest {
+        val id = ByteArray(16) { it.toByte() }
+        val stored = kueryClient
+            .sql { +"SELECT data FROM binaries WHERE id = $id" }
+            .singleOrNull<ByteArray>()
+        assertThat(stored).isNull()
     }
 
     companion object {
