@@ -40,6 +40,30 @@ with `org.intellij.lang.annotations.Language`, if you are using a JetBrains IDE,
 the query for metrics. See [Observation](/observation#sql-id).
 :::
 
+### Automatic `trimIndent` (opt-in)
+
+With a multi-line string, the source indentation stays in the SQL body. That is harmless to the
+database, but it makes logged SQL noisy, so `.trimIndent()` is commonly appended. If you would
+rather not write it every time, enable `autoTrimIndent` in the Gradle plugin:
+
+```kotlin
+kueryClient {
+    autoTrimIndent = true
+}
+```
+
+Every string passed to `+` / `add()` then gets `trimIndent()` applied automatically. For string
+literals and templates the trimming is computed **at compile time** by the compiler plugin, so it
+adds no runtime cost. Arguments the plugin cannot see through (e.g. a variable) are trimmed at
+runtime instead.
+
+Notes:
+
+- `addUnsafe()` is not affected — use it when you need to keep indentation as-is.
+- An explicit `.trimIndent()` on a literal still works; it simply becomes redundant (it runs at
+  runtime before the automatic trim, which is then effectively a no-op).
+- The option defaults to `false`, so existing builds are unaffected.
+
 ## Binding Parameters
 
 When you want to bind parameters, use string interpolation.
