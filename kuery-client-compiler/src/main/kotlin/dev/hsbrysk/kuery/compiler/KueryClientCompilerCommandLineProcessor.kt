@@ -2,6 +2,7 @@ package dev.hsbrysk.kuery.compiler
 
 import org.jetbrains.kotlin.compiler.plugin.AbstractCliOption
 import org.jetbrains.kotlin.compiler.plugin.CliOption
+import org.jetbrains.kotlin.compiler.plugin.CliOptionProcessingException
 import org.jetbrains.kotlin.compiler.plugin.CommandLineProcessor
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.jetbrains.kotlin.config.CompilerConfiguration
@@ -18,8 +19,15 @@ class KueryClientCompilerCommandLineProcessor : CommandLineProcessor {
         configuration: CompilerConfiguration,
     ) {
         when (option.optionName) {
-            AUTO_TRIM_INDENT_OPTION.optionName ->
-                configuration.put(AUTO_TRIM_INDENT_KEY, value.toBooleanStrict())
+            AUTO_TRIM_INDENT_OPTION.optionName -> {
+                val parsed = value.toBooleanStrictOrNull()
+                if (parsed == null) {
+                    throw CliOptionProcessingException(
+                        "$AUTO_TRIM_INDENT_OPTION_NAME must be 'true' or 'false', but was '$value'",
+                    )
+                }
+                configuration.put(AUTO_TRIM_INDENT_KEY, parsed)
+            }
             else -> error("Unexpected plugin option: ${option.optionName}")
         }
     }

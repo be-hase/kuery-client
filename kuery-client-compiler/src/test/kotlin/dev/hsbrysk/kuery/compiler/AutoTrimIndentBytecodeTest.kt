@@ -1,8 +1,10 @@
 package dev.hsbrysk.kuery.compiler
 
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
 import com.tschuchort.compiletesting.JvmCompilationResult
 import com.tschuchort.compiletesting.KotlinCompilation
@@ -66,23 +68,35 @@ class AutoTrimIndentBytecodeTest {
         assertThat(result.classesReference("trimIndent")).isFalse()
     }
 
+    @Test
+    fun `an invalid option value fails with an error naming the option`() {
+        val result = compile(
+            source = "fun unused() {}",
+            pluginOptions = listOf(
+                PluginOption(
+                    KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
+                    KueryClientCompilerCommandLineProcessor.AUTO_TRIM_INDENT_OPTION_NAME,
+                    "True",
+                ),
+            ),
+        )
+        assertThat(result.exitCode).isNotEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains("autoTrimIndent must be 'true' or 'false', but was 'True'")
+    }
+
     private fun compile(
         autoTrimIndent: Boolean,
         source: String,
-    ): JvmCompilationResult = KotlinCompilation().apply {
-        sources = listOf(SourceFile.kotlin("Sample.kt", source))
-        commandLineProcessors = listOf(KueryClientCompilerCommandLineProcessor())
-        compilerPluginRegistrars = listOf(KueryClientCompilerPluginRegistrar())
+    ): JvmCompilationResult = compile(
+        source = source,
         pluginOptions = listOf(
             PluginOption(
                 KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
                 KueryClientCompilerCommandLineProcessor.AUTO_TRIM_INDENT_OPTION_NAME,
                 autoTrimIndent.toString(),
             ),
-        )
-        inheritClassPath = true
-        verbose = false
-    }.compile()
+        ),
+    )
 
     // The constant pool stores referenced method names as plain modified-UTF-8 entries, so a
     // simple byte scan is enough to tell whether any generated class calls the function.

@@ -2,6 +2,8 @@ plugins {
     id("conventions.preset.base")
 }
 
+// Mirrors ../functional-test/build.gradle.kts with only the autoTrimIndent plugin option added —
+// keep the two build scripts in sync.
 description = "Kuery client's compiler functional test module with autoTrimIndent enabled."
 
 dependencies {

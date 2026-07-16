@@ -152,18 +152,6 @@ class BindCallInSqlTemplateCheckerTest {
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
-    private fun compile(
-        source: String,
-        allWarningsAsErrors: Boolean = false,
-    ): JvmCompilationResult = KotlinCompilation().apply {
-        sources = listOf(SourceFile.kotlin("Sample.kt", source))
-        commandLineProcessors = listOf(KueryClientCompilerCommandLineProcessor())
-        compilerPluginRegistrars = listOf(KueryClientCompilerPluginRegistrar())
-        inheritClassPath = true
-        verbose = false
-        this.allWarningsAsErrors = allWarningsAsErrors
-    }.compile()
-
     companion object {
         private const val DIAGNOSTIC_NAME = "KUERY_BIND_CALL_IN_SQL_TEMPLATE"
     }

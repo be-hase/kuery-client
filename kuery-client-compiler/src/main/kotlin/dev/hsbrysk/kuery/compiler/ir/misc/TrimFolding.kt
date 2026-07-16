@@ -28,18 +28,18 @@ internal object TrimFolding {
         }
 
         // Join in the same shape as DefaultSqlBuilder.interpolate: fragment, value, fragment, ...
-        val joined = buildString {
-            repeat(valueCount) { index ->
-                append(fragments.getOrElse(index) { "" })
-                append(SENTINEL)
-            }
-            fragments.drop(valueCount).forEach { append(it) }
-        }
+        // StringConcatenationProcessor emits one fragment per value plus an optional trailing
+        // fragment, so padding to valueCount + 1 slots only ever adds that missing last one.
+        val joined = List(valueCount + 1) { fragments.getOrElse(it) { "" } }
+            .joinToString(SENTINEL.toString())
 
+        val folded = joined.trimIndent().split(SENTINEL)
         // trimIndent only removes whitespace and blank first/last lines, none of which can
-        // contain the sentinel — but re-check the count defensively.
-        return joined.trimIndent()
-            .split(SENTINEL)
-            .takeIf { it.size == valueCount + 1 }
+        // contain the sentinel, so the value positions are always preserved.
+        check(folded.size == valueCount + 1) {
+            "Trim folding produced ${folded.size} fragments for $valueCount values. " +
+                "There might be an issue with the kuery-client compiler plugin."
+        }
+        return folded
     }
 }

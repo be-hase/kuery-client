@@ -3,6 +3,8 @@ plugins {
     // id("dev.hsbrysk.kuery-client") version "0.4.0-SNAPSHOT"
 }
 
+// Mirrored by ../functional-test-auto-trim/build.gradle.kts (same setup plus the autoTrimIndent
+// plugin option) — keep the two build scripts in sync.
 description = "Kuery client's compiler functional test module."
 
 dependencies {
