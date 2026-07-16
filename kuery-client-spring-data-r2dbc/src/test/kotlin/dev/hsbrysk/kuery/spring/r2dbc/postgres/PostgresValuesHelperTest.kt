@@ -2,8 +2,11 @@ package dev.hsbrysk.kuery.spring.r2dbc.postgres
 
 import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.cause
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotNull
+import assertk.assertions.messageContains
 import dev.hsbrysk.kuery.core.values
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
@@ -74,6 +77,30 @@ class PostgresValuesHelperTest {
             values(input)
         }.rowsUpdated()
         assertThat(rowsUpdated).isEqualTo(2L)
+    }
+
+    @Test
+    fun `values mixing conflicting parameter types in one column is rejected`() = runTest {
+        // PostgreSQL unifies the parameter types of a VALUES column across rows. A null is sent
+        // without type information and simply adopts the column type (see the test above), but
+        // a single String-typed row poisons the whole multi-row VALUES even when every other
+        // row is properly typed: the column's common type resolves to varchar and then fails
+        // against the uuid target column. (Historically this surfaced as "VALUES types
+        // character varying and uuid cannot be matched" on older driver/server combinations.)
+        val createdAt = OffsetDateTime.of(2026, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)
+        val input = listOf(
+            listOf(UUID.randomUUID(), UUID.randomUUID(), createdAt),
+            listOf(UUID.randomUUID(), "0f14d0ab-9605-4a62-a9e4-5ed26688389b", createdAt),
+        )
+
+        assertFailure {
+            kueryClient.sql {
+                +"INSERT INTO documents (id, parent_id, created_at)"
+                values(input)
+            }.rowsUpdated()
+        }.isInstanceOf(BadSqlGrammarException::class)
+            .cause().isNotNull()
+            .messageContains("is of type uuid but expression is of type character varying")
     }
 
     @Test
