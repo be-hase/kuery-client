@@ -25,6 +25,7 @@ plugins {
 
 include("kuery-client-compiler")
 include("kuery-client-compiler:functional-test")
+include("kuery-client-compiler:functional-test-auto-trim")
 include("kuery-client-core")
 include("kuery-client-gradle-plugin")
 include("kuery-client-spring-data-jdbc")
