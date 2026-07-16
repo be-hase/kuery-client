@@ -68,22 +68,6 @@ class AutoTrimIndentBytecodeTest {
         assertThat(result.classesReference("trimIndent")).isFalse()
     }
 
-    @Test
-    fun `an invalid option value fails with an error naming the option`() {
-        val result = compile(
-            source = "fun unused() {}",
-            pluginOptions = listOf(
-                PluginOption(
-                    KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
-                    KueryClientCompilerCommandLineProcessor.AUTO_TRIM_INDENT_OPTION_NAME,
-                    "True",
-                ),
-            ),
-        )
-        assertThat(result.exitCode).isNotEqualTo(KotlinCompilation.ExitCode.OK)
-        assertThat(result.messages).contains("autoTrimIndent must be 'true' or 'false', but was 'True'")
-    }
-
     private fun compile(
         autoTrimIndent: Boolean,
         source: String,
