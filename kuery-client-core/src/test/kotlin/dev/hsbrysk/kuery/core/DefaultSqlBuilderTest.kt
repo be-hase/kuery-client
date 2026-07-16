@@ -95,6 +95,33 @@ class DefaultSqlBuilderTest {
     }
 
     @Test
+    fun bindSameValueTwice() {
+        DefaultSqlBuilder()
+            .apply {
+                assertThat(bind(1)).isEqualTo(":p0")
+                assertThat(bind(1)).isEqualTo(":p1")
+            }
+            .build()
+            .let {
+                assertThat(it).isEqualTo(Sql("", listOf(NamedSqlParameter("p0", 1), NamedSqlParameter("p1", 1))))
+            }
+    }
+
+    @Test
+    fun bindCollection() {
+        // A collection is bound as a single parameter holding the collection itself.
+        val ids = listOf(1, 2, 3)
+        DefaultSqlBuilder()
+            .apply {
+                assertThat(bind(ids)).isEqualTo(":p0")
+            }
+            .build()
+            .let {
+                assertThat(it).isEqualTo(Sql("", listOf(NamedSqlParameter("p0", ids))))
+            }
+    }
+
+    @Test
     fun buildIsNotAffectedByLaterBind() {
         val builder = DefaultSqlBuilder().apply {
             addUnsafe("SELECT * FROM some_table WHERE id = ${bind(1)}")
