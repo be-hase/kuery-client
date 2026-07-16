@@ -6,7 +6,6 @@ import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
 import com.tschuchort.compiletesting.JvmCompilationResult
 import com.tschuchort.compiletesting.KotlinCompilation
-import com.tschuchort.compiletesting.PluginOption
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.junit.jupiter.api.Test
 
@@ -57,6 +56,77 @@ class RedundantTrimIndentCheckerTest {
         )
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `warn on a trimIndent chained after trimMargin`() {
+        val result = compileWithAutoTrim(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int) {
+                Sql { add("|SELECT * FROM users WHERE id = ${'$'}id".trimMargin().trimIndent()) }
+            }
+            """.trimIndent(),
+        )
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `warn on a doubled trimIndent`() {
+        val result = compileWithAutoTrim(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { +"SELECT 1".trimIndent().trimIndent() }
+            }
+            """.trimIndent(),
+        )
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `warn on a trimIndent inside an if branch`() {
+        val result = compileWithAutoTrim(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int, flag: Boolean) {
+                Sql { add(if (flag) "SELECT * FROM users WHERE id = ${'$'}id".trimIndent() else "SELECT 1") }
+            }
+            """.trimIndent(),
+        )
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `warn on a trimIndent inside a when branch even when another branch is unsafe`() {
+        // The unsafe branch draws KUERY_UNSAFE_SQL_STRING on the whole argument, but the
+        // redundant trim in the safe branch is still real: the runtime auto-trim wraps the
+        // selected branch value regardless.
+        val result = compileWithAutoTrim(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(sort: String, fragment: String) {
+                Sql {
+                    add(
+                        when (sort) {
+                            "name" -> "ORDER BY name".trimIndent()
+                            else -> fragment
+                        },
+                    )
+                }
+            }
+            """.trimIndent(),
+        )
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+        assertThat(result.messages).contains("KUERY_UNSAFE_SQL_STRING")
     }
 
     @Test
@@ -147,13 +217,7 @@ class RedundantTrimIndentCheckerTest {
     ): JvmCompilationResult = compile(
         source = source,
         allWarningsAsErrors = allWarningsAsErrors,
-        pluginOptions = listOf(
-            PluginOption(
-                KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
-                KueryClientCompilerCommandLineProcessor.AUTO_TRIM_INDENT_OPTION_NAME,
-                "true",
-            ),
-        ),
+        pluginOptions = listOf(autoTrimIndentOption()),
     )
 
     companion object {

@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirFunctionCallChec
 import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtension
 import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
 
-class KueryClientFirExtensionRegistrar(private val autoTrimIndent: Boolean = false) : FirExtensionRegistrar() {
+class KueryClientFirExtensionRegistrar(private val autoTrimIndent: Boolean) : FirExtensionRegistrar() {
     override fun ExtensionRegistrarContext.configurePlugin() {
         val checkersFactory: (FirSession) -> KueryClientFirCheckersExtension = { session ->
             KueryClientFirCheckersExtension(session, autoTrimIndent)

@@ -1,10 +1,10 @@
 package dev.hsbrysk.kuery.compiler.ir
 
-import dev.hsbrysk.kuery.compiler.ir.misc.CallableIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassNames
 import dev.hsbrysk.kuery.compiler.ir.misc.StringConcatenationProcessor
 import dev.hsbrysk.kuery.compiler.ir.misc.TrimFolding
+import dev.hsbrysk.kuery.compiler.misc.CallableIds
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
@@ -33,7 +33,7 @@ import org.jetbrains.kotlin.ir.util.parentClassOrNull
 @Suppress("OPT_IN_USAGE")
 class StringInterpolationTransformer(
     private val pluginContext: IrPluginContext,
-    private val autoTrimIndent: Boolean = false,
+    private val autoTrimIndent: Boolean,
 ) : IrElementTransformerVoidWithContext() {
     // The SqlBuilder receiver of the enclosing add/unaryPlus call, hoisted into a temporary
     // variable so that both the addUnsafe call and the interpolate call can reference it
@@ -102,6 +102,9 @@ class StringInterpolationTransformer(
     }
 
     /**
+     * The behavior described by the KUERY_REDUNDANT_TRIM_INDENT renderer text in
+     * KueryClientDiagnostics — keep the two in sync.
+     *
      * Applies the auto-trimIndent semantics to the whole add/unaryPlus argument, exactly once:
      * - a string template is trim-indented at compile time via [TrimFolding] (zero runtime cost);
      *   templates *nested* inside the argument (e.g. in if/when branches) are deliberately not
