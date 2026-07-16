@@ -4,6 +4,8 @@ import dev.hsbrysk.kuery.compiler.ir.misc.CallableIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassNames
 import dev.hsbrysk.kuery.compiler.ir.misc.StringConcatenationProcessor
+import dev.hsbrysk.kuery.compiler.ir.misc.TrimFolding
+import dev.hsbrysk.kuery.compiler.ir.misc.TrimOperation
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
@@ -15,6 +17,8 @@ import org.jetbrains.kotlin.ir.builders.irVararg
 import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrConst
+import org.jetbrains.kotlin.ir.expressions.IrConstKind
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrStringConcatenation
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
@@ -37,7 +41,7 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
 
     override fun visitCall(expression: IrCall): IrExpression {
         if (!expression.isAddOrUnaryPlus()) {
-            return super.visitCall(expression)
+            return foldTrimCallOrNull(expression) ?: super.visitCall(expression)
         }
 
         // Save/restore so that a nested add/unaryPlus inside the argument expression
@@ -90,6 +94,59 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
 
         val (fragments, values) = StringConcatenationProcessor.process(expression.arguments)
         return irInterpolateCall(irBuilder(expression), enclosing, fragments, values)
+    }
+
+    /**
+     * Folds a `trimIndent()` / `trimMargin(...)` call on a SQL string inside an add/unaryPlus
+     * argument at compile time, so no trim runs at runtime on the placeholder-interpolated
+     * string. Returns null when the call is not such a trim or when equivalence cannot be
+     * guaranteed (non-literal receiver or margin prefix, prefix that could match into `:pN`,
+     * etc.), in which case the caller leaves the call in place and it trims at runtime as
+     * before.
+     */
+    private fun foldTrimCallOrNull(expression: IrCall): IrExpression? {
+        val enclosing = current ?: return null
+        val operation = expression.trimOperationOrNull() ?: return null
+        val receiverParameter = expression.symbol.owner.parameters.firstOrNull {
+            it.kind == IrParameterKind.ExtensionReceiver
+        } ?: return null
+        return when (val receiver = expression.arguments[receiverParameter.indexInParameters]) {
+            is IrConst -> {
+                if (receiver.kind != IrConstKind.String) {
+                    return null
+                }
+                // A constant receiver has no values to bind; apply the trim directly. A failing
+                // trim (blank trimMargin prefix) must keep throwing at runtime, so fall back.
+                val folded = runCatching { operation.apply(receiver.value as String) }.getOrElse { return null }
+                irBuilder(expression).irString(folded)
+            }
+            is IrStringConcatenation -> {
+                // Check foldability on the arguments *before* transforming them, so that on
+                // fallback the IR is left completely untouched. The IrConst-or-not classification
+                // that `process` relies on is invariant under the transformation.
+                val (fragments, rawValues) = StringConcatenationProcessor.process(receiver.arguments)
+                val folded = TrimFolding.foldOrNull(fragments, rawValues.size, operation) ?: return null
+                // Same reasoning as in visitStringConcatenation: values are bound as parameters,
+                // so transform them outside the enclosing add/unaryPlus context.
+                val values = withoutCurrent { rawValues.map { it.transform(this, null) } }
+                irInterpolateCall(irBuilder(expression), enclosing, folded, values)
+            }
+            else -> null
+        }
+    }
+
+    private fun IrCall.trimOperationOrNull(): TrimOperation? = when (symbol.owner.fqNameWhenAvailable) {
+        TRIM_INDENT_FQ_NAME -> TrimOperation.TrimIndent
+        TRIM_MARGIN_FQ_NAME -> {
+            val prefixParameter = symbol.owner.parameters.first { it.kind == IrParameterKind.Regular }
+            when (val prefix = arguments[prefixParameter.indexInParameters]) {
+                // Omitted argument: the declaration's default, `"|"`.
+                null -> TrimOperation.TrimMargin("|")
+                is IrConst -> (prefix.value as? String)?.let { TrimOperation.TrimMargin(it) }
+                else -> null
+            }
+        }
+        else -> null
     }
 
     // Transform an expression outside the enclosing add/unaryPlus context (see
@@ -146,6 +203,9 @@ class StringInterpolationTransformer(private val pluginContext: IrPluginContext)
     }
 
     companion object {
+        private val TRIM_INDENT_FQ_NAME = CallableIds.TRIM_INDENT.asSingleFqName()
+        private val TRIM_MARGIN_FQ_NAME = CallableIds.TRIM_MARGIN.asSingleFqName()
+
         // Identify the call by its resolved declaration, not by the receiver expression's static
         // type: the receiver may be typed as a type parameter bounded by SqlBuilder (e.g. a fluent
         // helper `fun <T : SqlBuilder> T.helper(): T`), and the rewrite must still apply.
