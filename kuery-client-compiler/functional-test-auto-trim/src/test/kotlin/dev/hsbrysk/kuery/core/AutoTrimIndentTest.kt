@@ -222,13 +222,22 @@ class AutoTrimIndentTest {
         )
     }
 
+    @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
     fun `addUnsafe is not trimmed`() {
-        val sql = Sql {
-            addUnsafe("SELECT *\n    FROM user")
-        }
-        // Only the outer whitespace is trimmed by Sql building itself; the inner
-        // indentation written via addUnsafe is preserved.
-        assertThat(sql).isEqualTo(Sql("SELECT *\n    FROM user"))
+        val rawSql = """
+            SELECT *
+            FROM user
+        """
+
+        // The same raw string, side by side: add gets the automatic trimIndent ...
+        val trimmed = Sql { add(rawSql) }
+        assertThat(trimmed).isEqualTo(Sql("SELECT *\nFROM user"))
+
+        // ... while addUnsafe — the escape hatch for keeping indentation — applies no
+        // trimming at all, so the source indentation survives (Sql building itself only
+        // ever trims the outer edges).
+        val kept = Sql { addUnsafe(rawSql) }
+        assertThat(kept).isEqualTo(Sql(rawSql.trim()))
     }
 }
