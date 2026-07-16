@@ -37,7 +37,10 @@ In contrast, the following forms are accepted. The SQL string is fully determine
 time, so any interpolation in it is rewritten into bind parameters:
 
 - A string literal / string template: `"SELECT ... $id"`
-- `trimIndent()` / `trimMargin()` called on one (with literal-only arguments)
+- `trimIndent()` / `trimMargin()` called on one (with literal-only arguments) — these are also
+  computed at compile time by the plugin, so they add no runtime cost (in the rare cases where
+  equivalence cannot be guaranteed, e.g. a `trimMargin` prefix containing `:`, the plugin leaves
+  the call as-is and it runs at runtime as before)
 - A reference to a `const val`
 - An `if` / `when` expression whose every branch is one of the above (each branch is checked
   recursively): `if (asc) "ORDER BY id" else "ORDER BY id DESC"`. A branch that only throws —
