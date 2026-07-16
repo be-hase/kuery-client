@@ -1,7 +1,10 @@
 package dev.hsbrysk.kuery.spring.r2dbc
 
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
+import dev.hsbrysk.kuery.core.DelicateKueryClientApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -73,6 +76,125 @@ class CollectionConversionTest {
             +"SELECT * FROM converter WHERE (id, text) IN ($pairs)"
         }.listMap()
         assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1")))
+    }
+
+    @Test
+    fun testEmptyCollection() = runTest {
+        // An empty collection is bound as-is; Spring's named parameter expansion then renders
+        // it as `IN ()`. Whether that is valid SQL depends on the database: H2 accepts it and
+        // returns no rows, while MySQL/PostgreSQL reject it (see the mysql/postgres packages).
+        // Callers targeting those databases must guard against empty collections themselves.
+        kueryClient.sql {
+            +"INSERT INTO converter (text) VALUES ('text1')"
+        }.rowsUpdated()
+
+        val result = kueryClient.sql {
+            val emptyIds = emptyList<Long>()
+            +"SELECT * FROM converter WHERE id IN ($emptyIds)"
+        }.listMap()
+        assertThat(result).isEqualTo(emptyList())
+    }
+
+    @OptIn(DelicateKueryClientApi::class)
+    @Test
+    fun testHandBuiltTupleIn() = runTest {
+        kueryClient.sql {
+            +"""
+            INSERT INTO converter (text) VALUES
+            ('text1'),
+            ('text2'),
+            ('text3');
+            """.trimIndent()
+        }.rowsUpdated()
+
+        val pairs = listOf(1L to "text1", 3L to "text3")
+        val result = kueryClient.sql {
+            +"SELECT * FROM converter"
+            addUnsafe("WHERE (id, text) IN (${pairs.joinToString(", ") { "(${bind(it.first)}, ${bind(it.second)})" }})")
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 3L, "text" to "text3")))
+    }
+
+    @OptIn(DelicateKueryClientApi::class)
+    @Test
+    fun testBindCollectionViaAddUnsafe() = runTest {
+        kueryClient.sql {
+            +"""
+            INSERT INTO converter (text) VALUES
+            ('text1'),
+            ('text2'),
+            ('text3');
+            """.trimIndent()
+        }.rowsUpdated()
+
+        val result = kueryClient.sql {
+            val texts = listOf("text1", "text2")
+            addUnsafe("SELECT * FROM converter WHERE text IN (${bind(texts)})")
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 2L, "text" to "text2")))
+    }
+
+    @Test
+    fun testSet() = runTest {
+        insertThreeRows()
+
+        val result = kueryClient.sql {
+            val inSet = setOf(StringWrapper("text1"), StringWrapper("text2"))
+            +"SELECT * FROM converter WHERE text IN ($inSet)"
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 2L, "text" to "text2")))
+    }
+
+    @Test
+    fun testMapKeysView() = runTest {
+        insertThreeRows()
+
+        val map = mapOf(StringWrapper("text1") to 1, StringWrapper("text3") to 3)
+        val result = kueryClient.sql {
+            +"SELECT * FROM converter WHERE text IN (${map.keys})"
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 3L, "text" to "text3")))
+    }
+
+    @Test
+    fun testCustomCollectionSubtype() = runTest {
+        // Non-standard Collection implementations (e.g. NonEmptyList of functional libraries)
+        // must expand like any other Collection.
+        class NonEmptyList<T>(private val delegate: List<T>) : Collection<T> by delegate
+
+        insertThreeRows()
+
+        val result = kueryClient.sql {
+            val inList = NonEmptyList(listOf(StringWrapper("text1"), StringWrapper("text2")))
+            +"SELECT * FROM converter WHERE text IN ($inList)"
+        }.listMap()
+        assertThat(result).isEqualTo(listOf(mapOf("id" to 1L, "text" to "text1"), mapOf("id" to 2L, "text" to "text2")))
+    }
+
+    @Test
+    fun testNullElement() = runTest {
+        // Unlike JDBC (where a null element binds as SQL NULL and simply never matches),
+        // R2DBC's Statement.bind rejects null values, so a collection containing null cannot
+        // be expanded. This pins the asymmetry.
+        insertThreeRows()
+
+        assertFailure {
+            kueryClient.sql {
+                val inList = listOf(StringWrapper("text1"), null)
+                +"SELECT * FROM converter WHERE text IN ($inList)"
+            }.listMap()
+        }.isInstanceOf(IllegalArgumentException::class)
+    }
+
+    private suspend fun insertThreeRows() {
+        kueryClient.sql {
+            +"""
+            INSERT INTO converter (text) VALUES
+            ('text1'),
+            ('text2'),
+            ('text3');
+            """.trimIndent()
+        }.rowsUpdated()
     }
 
     companion object {
