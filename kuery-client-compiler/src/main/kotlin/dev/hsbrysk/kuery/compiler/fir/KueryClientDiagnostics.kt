@@ -32,10 +32,10 @@ internal object KueryClientDiagnosticRenderers : BaseDiagnosticRendererFactory()
             // Describes the behavior of StringInterpolationTransformer.autoTrimmedArgument —
             // keep the two in sync.
             "This trimIndent() is redundant: autoTrimIndent is enabled, so the kuery-client compiler plugin " +
-                "already applies trimIndent to every string passed to add()/unaryPlus. Worse, the explicit " +
-                "call prevents compile-time trimming — the string is trimmed twice at runtime instead. " +
-                "Remove the trimIndent() call. If this is intentional, annotate the enclosing declaration " +
-                "with @Suppress(\"KUERY_REDUNDANT_TRIM_INDENT\").",
+                "already applies trimIndent to every string passed to add()/unaryPlus. The explicit call " +
+                "only adds an extra runtime trim — and on a string literal/template it also prevents the " +
+                "compile-time trimming. Remove the trimIndent() call. If this is intentional, annotate the " +
+                "enclosing declaration with @Suppress(\"KUERY_REDUNDANT_TRIM_INDENT\").",
         )
         map.put(
             KueryClientDiagnostics.KUERY_BIND_CALL_IN_SQL_TEMPLATE,

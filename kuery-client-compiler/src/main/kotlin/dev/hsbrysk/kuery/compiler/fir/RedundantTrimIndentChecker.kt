@@ -13,17 +13,16 @@ import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
 
 /**
  * Reports an explicit `trimIndent()` on the SQL string of add/unaryPlus when `autoTrimIndent` is
- * enabled (this checker is only registered then). Such a call is not just redundant — it is the
- * pessimal path: the argument is no longer a plain template, so the plugin cannot fold the trim
- * at compile time and instead the string is trimmed twice at runtime.
+ * enabled (this checker is only registered then): the plugin applies trimIndent anyway, so the
+ * explicit call only adds runtime work — and on a literal/template receiver it also prevents the
+ * compile-time folding.
  *
- * Flagged shapes mirror [CompileTimeSafeSqlStrings.isCompileTimeSafe]: the trimIndent must be
- * the outermost call of the argument (or of an if/when branch result) over a compile-time-safe
- * receiver — including trim chains like `"...".trimMargin().trimIndent()`. Receivers the shared
- * predicate rejects (e.g. a variable) are left to
- * [KueryClientDiagnostics.KUERY_UNSAFE_SQL_STRING] so the same expression never gets both
- * warnings. `trimMargin` is never flagged — auto-trim does not remove margins, so an explicit
- * call is not redundant.
+ * Flagged is any trimIndent that is the outermost call of the argument (or of an if/when branch
+ * result), regardless of the receiver. A non-compile-time-safe receiver (e.g. a variable) also
+ * draws [KueryClientDiagnostics.KUERY_UNSAFE_SQL_STRING]; the two warnings state independent
+ * facts (the string cannot be verified / the trim is redundant), so both are reported.
+ * `trimMargin` is never flagged — auto-trim does not remove margins, so an explicit call is not
+ * redundant.
  */
 internal object RedundantTrimIndentChecker : FirFunctionCallChecker(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)
@@ -36,14 +35,9 @@ internal object RedundantTrimIndentChecker : FirFunctionCallChecker(MppCheckerKi
     private fun reportRedundantTrims(expression: FirExpression) {
         when (expression) {
             is FirFunctionCall -> {
-                if (expression.calleeReference.toResolvedCallableSymbol()?.callableId != CallableIds.TRIM_INDENT) {
-                    return
+                if (expression.calleeReference.toResolvedCallableSymbol()?.callableId == CallableIds.TRIM_INDENT) {
+                    reporter.reportOn(expression.source, KueryClientDiagnostics.KUERY_REDUNDANT_TRIM_INDENT)
                 }
-                val receiver = expression.extensionReceiver ?: return
-                if (!CompileTimeSafeSqlStrings.isCompileTimeSafe(receiver)) {
-                    return
-                }
-                reporter.reportOn(expression.source, KueryClientDiagnostics.KUERY_REDUNDANT_TRIM_INDENT)
             }
             // The automatic trim applies to whichever branch value is selected, so a trimIndent
             // that is the outermost call of a branch result is just as redundant.

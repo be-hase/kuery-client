@@ -179,7 +179,9 @@ class RedundantTrimIndentCheckerTest {
     }
 
     @Test
-    fun `a variable receiver gets the unsafe warning instead`() {
+    fun `a variable receiver gets both the unsafe and the redundant warning`() {
+        // The two warnings state independent facts: the string cannot be verified at compile
+        // time, and the explicit trim is redundant because the automatic one runs anyway.
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -191,7 +193,7 @@ class RedundantTrimIndentCheckerTest {
         )
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains("KUERY_UNSAFE_SQL_STRING")
-        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
