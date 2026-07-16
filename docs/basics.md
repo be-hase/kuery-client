@@ -52,6 +52,9 @@ kueryClient {
 }
 ```
 
+(On Gradle versions without Kotlin DSL property assignment — before 8.2 — write
+`autoTrimIndent.set(true)` instead.)
+
 Every string passed to `+` / `add()` then gets `trimIndent()` applied automatically. For string
 literals and templates the trimming is computed **at compile time** by the compiler plugin, so it
 adds no runtime cost. Arguments the plugin cannot see through (e.g. a variable) are trimmed at
@@ -60,8 +63,11 @@ runtime instead.
 Notes:
 
 - `addUnsafe()` is not affected — use it when you need to keep indentation as-is.
-- An explicit `.trimIndent()` on a literal still works; it simply becomes redundant (it runs at
-  runtime before the automatic trim, which is then effectively a no-op).
+- An explicit `.trimIndent()` / `.trimMargin()` still works, but the automatic trim runs once
+  more on its result. For `trimIndent` this only matters when the trimmed string still starts or
+  ends with a blank line — the automatic trim drops it. For `trimMargin`, per-line indentation
+  deliberately kept after the margin prefix (e.g. `|  SELECT`) is stripped by the automatic trim;
+  use `addUnsafe()` when such indentation must survive.
 - The option defaults to `false`, so existing builds are unaffected.
 
 ## Binding Parameters

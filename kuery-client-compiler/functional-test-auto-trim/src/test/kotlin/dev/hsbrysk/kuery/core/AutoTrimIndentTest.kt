@@ -161,6 +161,34 @@ class AutoTrimIndentTest {
     }
 
     @Test
+    fun `post-margin indentation kept by an explicit trimMargin is also trimmed`() {
+        // The automatic trim applies to whatever string reaches add — including the result of
+        // an explicit trimMargin. Indentation deliberately kept after the margin prefix is
+        // therefore stripped as well (documented in docs/basics.md; use addUnsafe to keep it).
+        val sql = Sql {
+            +"""
+            |  SELECT *
+            |  FROM user
+            """.trimMargin()
+        }
+        assertThat(sql).isEqualTo(Sql("SELECT *\nFROM user"))
+    }
+
+    @Test
+    fun `blank edge line kept by an explicit trimIndent is also dropped`() {
+        // Without the option the body would keep the blank line the explicit trimIndent
+        // retained ("A\n\nSELECT 1"); the automatic trim drops it.
+        val sql = Sql {
+            +"A"
+            +"""
+
+            SELECT 1
+            """.trimIndent()
+        }
+        assertThat(sql).isEqualTo(Sql("A\nSELECT 1"))
+    }
+
+    @Test
     fun `nested add inside an interpolation value`() {
         val x = "X"
         val sql = Sql {
