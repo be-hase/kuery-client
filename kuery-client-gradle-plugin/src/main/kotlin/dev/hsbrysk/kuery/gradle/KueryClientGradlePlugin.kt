@@ -18,7 +18,15 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
         val project = kotlinCompilation.target.project
         val extension = project.extensions.getByType(KueryClientExtension::class.java)
         return project.provider {
-            listOf(SubpluginOption("autoTrimIndent", extension.autoTrimIndent.get().toString()))
+            // Only emit the option when it deviates from the compiler plugin's default, so a
+            // build whose compiler-plugin artifact resolves to an older kuery-client-compiler
+            // (which would reject the unknown option) keeps working as long as the feature is
+            // not enabled.
+            if (extension.autoTrimIndent.get()) {
+                listOf(SubpluginOption("autoTrimIndent", "true"))
+            } else {
+                emptyList()
+            }
         }
     }
 

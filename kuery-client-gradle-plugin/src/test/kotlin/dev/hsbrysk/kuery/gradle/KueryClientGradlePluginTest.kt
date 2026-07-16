@@ -1,6 +1,7 @@
 package dev.hsbrysk.kuery.gradle
 
 import assertk.assertThat
+import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
@@ -30,12 +31,12 @@ class KueryClientGradlePluginTest {
     }
 
     @Test
-    fun `autoTrimIndent defaults to false`() {
+    fun `no option is emitted at the default so older compiler plugins keep working`() {
         val project = ProjectBuilder.builder().build()
         plugin.apply(project)
 
         val options = plugin.applyToCompilation(compilation(project)).get()
-        assertThat(options.single().toEqualsString()).isEqualTo("autoTrimIndent=false")
+        assertThat(options).isEmpty()
     }
 
     @Test
