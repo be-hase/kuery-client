@@ -39,16 +39,19 @@ class MySqlScalarFetchTest {
     }
 
     @Test
-    fun `COUNT maps to Long and narrows to Int`() {
-        val asLong: Long = kueryClient
+    fun `COUNT maps to Long`() {
+        val count: Long = kueryClient
             .sql { +"SELECT COUNT(*) FROM scalar_users" }
             .single()
-        assertThat(asLong).isEqualTo(2L)
+        assertThat(count).isEqualTo(2L)
+    }
 
-        val asInt: Int = kueryClient
+    @Test
+    fun `COUNT narrows to Int`() {
+        val count: Int = kueryClient
             .sql { +"SELECT COUNT(*) FROM scalar_users" }
             .single()
-        assertThat(asInt).isEqualTo(2)
+        assertThat(count).isEqualTo(2)
     }
 
     companion object {

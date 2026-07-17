@@ -142,22 +142,24 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `a string literal value is inlined while a computed string is bound`() {
-        // In such cases, string interpolation will not be executed.
-        val sql1 = Sql {
+    fun `a string literal value is inlined as raw text`() {
+        // A string literal is a compile-time constant, so it is not bound as a parameter.
+        val sql = Sql {
             +"a ${"hoge"}"
         }
-        assertThat(sql1).isEqualTo(
+        assertThat(sql).isEqualTo(
             Sql(
                 "a hoge",
             ),
         )
+    }
 
-        // On the other hand, in such cases, it will be executed.
-        val sql2 = Sql {
+    @Test
+    fun `a computed string value is bound as a parameter`() {
+        val sql = Sql {
             +"a ${"hoge".removePrefix("h").removePrefix("o")}"
         }
-        assertThat(sql2).isEqualTo(
+        assertThat(sql).isEqualTo(
             Sql(
                 "a :p0",
                 listOf(NamedSqlParameter("p0", "ge")),
@@ -575,23 +577,25 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `a null constant is bound as null and a computed null string as text`() {
-        // In such cases, string interpolation will not be executed.
-        val sql1 = Sql {
+    fun `a null constant is bound as a null parameter`() {
+        val sql = Sql {
             +"a ${null}"
         }
-        assertThat(sql1).isEqualTo(
+        assertThat(sql).isEqualTo(
             Sql(
                 "a :p0",
                 listOf(NamedSqlParameter("p0", null)),
             ),
         )
+    }
 
-        // On the other hand, in such cases, it will be executed.
-        val sql2 = Sql {
+    @Test
+    fun `a computed null string is bound as the string null`() {
+        // The expression evaluates to the string "null", not to a null reference.
+        val sql = Sql {
             +"a ${null.toStr()}"
         }
-        assertThat(sql2).isEqualTo(
+        assertThat(sql).isEqualTo(
             Sql(
                 "a :p0",
                 listOf(NamedSqlParameter("p0", "null")),
