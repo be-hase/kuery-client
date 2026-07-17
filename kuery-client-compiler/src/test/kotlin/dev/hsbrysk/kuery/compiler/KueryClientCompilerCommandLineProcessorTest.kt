@@ -34,12 +34,12 @@ class KueryClientCompilerCommandLineProcessorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["ansi", "oracle", "mysql", "sqlserver", "mariadb", "postgresql", "h2", "MySQL"])
-    fun `known dialect values are accepted case-insensitively`(value: String) {
+    @ValueSource(strings = ["generic", "ansi", "oracle", "mysql", "sqlserver", "mariadb", "postgresql", "h2", "MySQL"])
+    fun `known sqlSyntaxCheck values are accepted case-insensitively`(value: String) {
         // when
         val result = compile(
             source = "fun unused() {}",
-            pluginOptions = listOf(sqlSyntaxCheckDialectOption(value)),
+            pluginOptions = listOf(sqlSyntaxCheckOption(value)),
         )
 
         // then
@@ -47,17 +47,17 @@ class KueryClientCompilerCommandLineProcessorTest {
     }
 
     @Test
-    fun `an unknown dialect value fails with an error listing the supported dialects`() {
+    fun `an unknown sqlSyntaxCheck value fails with an error listing the supported values`() {
         // when
         val result = compile(
             source = "fun unused() {}",
-            pluginOptions = listOf(sqlSyntaxCheckDialectOption("db2")),
+            pluginOptions = listOf(sqlSyntaxCheckOption("db2")),
         )
 
         // then
         assertThat(result.exitCode).isNotEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(
-            "sqlSyntaxCheckDialect must be one of ansi, oracle, mysql, sqlserver, mariadb, postgresql, h2, " +
+            "sqlSyntaxCheck must be one of generic, ansi, oracle, mysql, sqlserver, mariadb, postgresql, h2, " +
                 "but was 'db2'",
         )
     }

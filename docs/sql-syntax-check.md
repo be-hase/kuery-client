@@ -6,16 +6,18 @@ description: The opt-in KUERY_SQL_SYNTAX compiler warning that validates statica
 
 Kuery Client lets you write raw SQL, so a typo like `SELCT` or a missing parenthesis normally
 surfaces only at runtime, as a database error. The compiler plugin can optionally validate the
-SQL syntax of your `sql { }` blocks **at compile time**. Enable it in the Gradle plugin:
+SQL syntax of your `sql { }` blocks **at compile time**. Enable it in the Gradle plugin with a
+single option — `"generic"` for a dialect-agnostic syntax check, or a dialect name to also check
+that dialect's feature set (see [below](#choosing-a-dialect)):
 
 ```kotlin
 kueryClient {
-    sqlSyntaxCheck = true
+    sqlSyntaxCheck = "generic" // or "mysql", "postgresql", ...
 }
 ```
 
 (On Gradle versions without Kotlin DSL property assignment — before 8.2 — write
-`sqlSyntaxCheck.set(true)` instead.)
+`sqlSyntaxCheck.set("generic")` instead.)
 
 A block whose SQL fails to parse is then reported as a `KUERY_SQL_SYNTAX` **warning**, anchored
 to the offending line:
@@ -49,21 +51,24 @@ This mirrors how compile-time-checked SQL works elsewhere (e.g. Rust's sqlx): st
 are fully known are verified, dynamically assembled ones are not — no false alarms on dynamic
 SQL.
 
-## Dialect-aware feature check
+## Choosing a dialect
 
-JSqlParser parses a superset of all dialects, so by default a MySQL-only construct passes even
-in a PostgreSQL project. If you specify your dialect, statements that pass the syntax check are
-additionally validated against that dialect's feature set:
+The parser (JSqlParser) parses a superset of all dialects, so under `"generic"` a MySQL-only
+construct passes even in a PostgreSQL project. If you set `sqlSyntaxCheck` to your dialect
+instead, statements that pass the syntax check are additionally validated against that dialect's
+feature set:
 
 ```kotlin
 kueryClient {
-    sqlSyntaxCheckDialect = "postgresql" // implies sqlSyntaxCheck = true
+    sqlSyntaxCheck = "postgresql"
 }
 ```
 
-Supported values: `ansi`, `oracle`, `mysql`, `sqlserver`, `mariadb`, `postgresql`, `h2`.
+Values: `generic`, `ansi`, `oracle`, `mysql`, `sqlserver`, `mariadb`, `postgresql`, `h2`.
+`generic` runs the syntax check with no feature validation (the fewest false positives); `ansi`
+is a real, strict ANSI SQL feature set, distinct from `generic`.
 
-A violation is reported as a separate `KUERY_SQL_DIALECT` warning:
+A dialect feature violation is reported as a separate `KUERY_SQL_DIALECT` warning:
 
 ```kotlin
 kueryClient.sql {
@@ -100,6 +105,6 @@ Like every diagnostic of the plugin, the standard Kotlin mechanisms apply:
 - Treat it as an error: `-Xwarning-level=KUERY_SQL_SYNTAX:error`, or enable
   `allWarningsAsErrors` (`-Werror`)
 - Disable it for specific code with `@Suppress("KUERY_SQL_SYNTAX")`, or project-wide with
-  `-Xwarning-level=KUERY_SQL_SYNTAX:disabled` (or simply leave `sqlSyntaxCheck` off)
+  `-Xwarning-level=KUERY_SQL_SYNTAX:disabled` (or simply leave `sqlSyntaxCheck` unset)
 
-The option defaults to `false`, so existing builds are unaffected.
+The option is unset by default, so existing builds are unaffected.

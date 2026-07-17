@@ -13,15 +13,9 @@ internal fun autoTrimIndentOption(value: String = "true"): PluginOption = Plugin
     value,
 )
 
-internal fun sqlSyntaxCheckOption(value: String = "true"): PluginOption = PluginOption(
+internal fun sqlSyntaxCheckOption(value: String = "generic"): PluginOption = PluginOption(
     KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
     KueryClientCompilerCommandLineProcessor.SQL_SYNTAX_CHECK_OPTION_NAME,
-    value,
-)
-
-internal fun sqlSyntaxCheckDialectOption(value: String): PluginOption = PluginOption(
-    KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
-    KueryClientCompilerCommandLineProcessor.SQL_SYNTAX_CHECK_DIALECT_OPTION_NAME,
     value,
 )
 

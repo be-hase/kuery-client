@@ -13,35 +13,29 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         val extension = target.extensions.create(EXTENSION_NAME, KueryClientExtension::class.java)
         extension.autoTrimIndent.convention(false)
-        extension.sqlSyntaxCheck.convention(false)
     }
 
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
         val extension = kotlinCompilation.target.project.extensions.getByType(KueryClientExtension::class.java)
         return extension.autoTrimIndent
-            .zip(extension.sqlSyntaxCheck) { autoTrimIndent, sqlSyntaxCheck ->
+            .zip(extension.sqlSyntaxCheck.orElse("")) { autoTrimIndent, sqlSyntaxCheck ->
                 // Only emit an option when it deviates from the compiler plugin's default, so a
                 // build whose compiler-plugin artifact resolves to an older kuery-client-compiler
                 // (which would reject the unknown option) keeps working as long as the feature is
                 // not enabled.
                 buildList {
                     if (autoTrimIndent) add(SubpluginOption("autoTrimIndent", "true"))
-                    if (sqlSyntaxCheck) add(SubpluginOption("sqlSyntaxCheck", "true"))
-                }
-            }
-            .zip(extension.sqlSyntaxCheckDialect.orElse("")) { options, dialect ->
-                if (dialect.isBlank()) {
-                    options
-                } else {
-                    // Fail fast at configuration time with a clear message instead of deferring
-                    // to a compiler-plugin error during compilation.
-                    if (SUPPORTED_DIALECTS.none { it.equals(dialect, ignoreCase = true) }) {
-                        throw InvalidUserDataException(
-                            "kueryClient.sqlSyntaxCheckDialect must be one of " +
-                                "${SUPPORTED_DIALECTS.joinToString(", ")}, but was '$dialect'",
-                        )
+                    if (sqlSyntaxCheck.isNotBlank()) {
+                        // Fail fast at configuration time with a clear message instead of
+                        // deferring to a compiler-plugin error during compilation.
+                        if (SUPPORTED_SQL_SYNTAX_CHECKS.none { it.equals(sqlSyntaxCheck, ignoreCase = true) }) {
+                            throw InvalidUserDataException(
+                                "kueryClient.sqlSyntaxCheck must be one of " +
+                                    "${SUPPORTED_SQL_SYNTAX_CHECKS.joinToString(", ")}, but was '$sqlSyntaxCheck'",
+                            )
+                        }
+                        add(SubpluginOption("sqlSyntaxCheck", sqlSyntaxCheck))
                     }
-                    options + SubpluginOption("sqlSyntaxCheckDialect", dialect)
                 }
             }
     }
@@ -66,10 +60,10 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
     companion object {
         private const val EXTENSION_NAME = "kueryClient"
 
-        // The dialect vocabulary accepted by sqlSyntaxCheckDialect. This module cannot depend on
+        // The vocabulary accepted by sqlSyntaxCheck. This module cannot depend on
         // kuery-client-compiler (that would drag the Kotlin compiler onto the Gradle classpath),
-        // so this mirrors the SqlDialect enum there — keep the two in sync.
-        private val SUPPORTED_DIALECTS =
-            listOf("ansi", "oracle", "mysql", "sqlserver", "mariadb", "postgresql", "h2")
+        // so this mirrors the SqlSyntaxCheck enum there — keep the two in sync.
+        private val SUPPORTED_SQL_SYNTAX_CHECKS =
+            listOf("generic", "ansi", "oracle", "mysql", "sqlserver", "mariadb", "postgresql", "h2")
     }
 }

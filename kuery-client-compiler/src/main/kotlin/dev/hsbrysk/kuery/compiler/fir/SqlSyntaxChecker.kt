@@ -1,6 +1,6 @@
 package dev.hsbrysk.kuery.compiler.fir
 
-import dev.hsbrysk.kuery.compiler.SqlDialect
+import dev.hsbrysk.kuery.compiler.SqlSyntaxCheck
 import dev.hsbrysk.kuery.compiler.misc.CallableIds
 import dev.hsbrysk.kuery.compiler.misc.ClassIds
 import net.sf.jsqlparser.JSQLParserException
@@ -52,16 +52,18 @@ import java.util.concurrent.Executors
  * belongs to. JSqlParser is deliberately lenient, so this check trades detection power for a
  * low false-positive rate; internal parser errors (including its parse timeout) fail open.
  *
- * When a [dialect] is configured, a statement that parses is additionally checked against that
- * dialect's feature allow-list (JSqlParser's validation framework) and violations are reported
- * as [KueryClientDiagnostics.KUERY_SQL_DIALECT] — e.g. `ON DUPLICATE KEY UPDATE` under
- * `postgresql`. This is feature-level, not a full dialect grammar: some cross-dialect syntax
- * still passes, which keeps the failure mode on the false-negative side.
+ * Unless [mode] is [SqlSyntaxCheck.GENERIC], a statement that parses is additionally checked
+ * against that dialect's feature allow-list (JSqlParser's validation framework) and violations
+ * are reported as [KueryClientDiagnostics.KUERY_SQL_DIALECT] — e.g. `ON DUPLICATE KEY UPDATE`
+ * under `postgresql`. This is feature-level, not a full dialect grammar: some cross-dialect
+ * syntax still passes, which keeps the failure mode on the false-negative side.
  */
 internal class SqlSyntaxChecker(
     private val autoTrimIndent: Boolean,
-    private val dialect: SqlDialect?,
+    mode: SqlSyntaxCheck,
 ) : FirFunctionCallChecker(MppCheckerKind.Common) {
+    // null for GENERIC: parse only, no feature validation.
+    private val dialect: DatabaseType? = mode.toDatabaseTypeOrNull()
     private class Part(
         val text: String,
         val source: KtSourceElement?,
@@ -226,31 +228,32 @@ internal class SqlSyntaxChecker(
         @Suppress("TooGenericExceptionCaught", "SwallowedException")
         private fun dialectFailureOrNull(
             statements: List<Statement>,
-            dialect: SqlDialect,
+            dialect: DatabaseType,
         ): String? = try {
-            val context = Validation.createValidationContext(FeatureConfiguration(), listOf(dialect.asDatabaseType()))
+            val context = Validation.createValidationContext(FeatureConfiguration(), listOf(dialect))
             val messages = statements
                 .flatMap { statement -> Validation.validate(statement, context).values.flatten() }
                 .mapNotNull { it.message }
             if (messages.isEmpty()) {
                 null
             } else {
-                "${messages.joinToString(" ")} (dialect: ${dialect.optionValue})"
+                "${messages.joinToString(" ")} (dialect: ${dialect.name.lowercase()})"
             }
         } catch (e: Exception) {
             null
         }
 
-        // The only place the vendor enum appears: our public dialect vocabulary mapped onto the
-        // parser currently backing the check.
-        private fun SqlDialect.asDatabaseType(): DatabaseType = when (this) {
-            SqlDialect.ANSI -> DatabaseType.ANSI_SQL
-            SqlDialect.ORACLE -> DatabaseType.ORACLE
-            SqlDialect.MYSQL -> DatabaseType.MYSQL
-            SqlDialect.SQLSERVER -> DatabaseType.SQLSERVER
-            SqlDialect.MARIADB -> DatabaseType.MARIADB
-            SqlDialect.POSTGRESQL -> DatabaseType.POSTGRESQL
-            SqlDialect.H2 -> DatabaseType.H2
+        // The only place the vendor enum appears: our public check vocabulary mapped onto the
+        // parser currently backing the check. GENERIC parses without any feature validation.
+        private fun SqlSyntaxCheck.toDatabaseTypeOrNull(): DatabaseType? = when (this) {
+            SqlSyntaxCheck.GENERIC -> null
+            SqlSyntaxCheck.ANSI -> DatabaseType.ANSI_SQL
+            SqlSyntaxCheck.ORACLE -> DatabaseType.ORACLE
+            SqlSyntaxCheck.MYSQL -> DatabaseType.MYSQL
+            SqlSyntaxCheck.SQLSERVER -> DatabaseType.SQLSERVER
+            SqlSyntaxCheck.MARIADB -> DatabaseType.MARIADB
+            SqlSyntaxCheck.POSTGRESQL -> DatabaseType.POSTGRESQL
+            SqlSyntaxCheck.H2 -> DatabaseType.H2
         }
 
         // JSqlParser messages start with "Encountered ... at line N, column M." and then list

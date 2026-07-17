@@ -522,7 +522,7 @@ class SqlSyntaxCheckerTest {
                 Sql { +"INSERT INTO users (id, name) VALUES (${'$'}id, ${'$'}name) ON DUPLICATE KEY UPDATE name = ${'$'}name" }
             }
             """.trimIndent(),
-            pluginOptions = listOf(sqlSyntaxCheckOption(), sqlSyntaxCheckDialectOption("postgresql")),
+            pluginOptions = listOf(sqlSyntaxCheckOption("postgresql")),
         )
 
         // then
@@ -544,11 +544,34 @@ class SqlSyntaxCheckerTest {
             }
             """.trimIndent(),
             allWarningsAsErrors = true,
-            pluginOptions = listOf(sqlSyntaxCheckOption(), sqlSyntaxCheckDialectOption("mysql")),
+            pluginOptions = listOf(sqlSyntaxCheckOption("mysql")),
         )
 
         // then
         assertThat(result.messages).doesNotContain(DIALECT_DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `no dialect warning under the generic check even for a vendor-specific feature`() {
+        // generic parses without any feature validation, so a MySQL-only feature draws neither
+        // warning.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int, name: String) {
+                Sql { +"INSERT INTO users (id, name) VALUES (${'$'}id, ${'$'}name) ON DUPLICATE KEY UPDATE name = ${'$'}name" }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption("generic")),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIALECT_DIAGNOSTIC_NAME)
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
@@ -565,32 +588,13 @@ class SqlSyntaxCheckerTest {
                 Sql { +"SELCT * FROM users" }
             }
             """.trimIndent(),
-            pluginOptions = listOf(sqlSyntaxCheckOption(), sqlSyntaxCheckDialectOption("postgresql")),
+            pluginOptions = listOf(sqlSyntaxCheckOption("postgresql")),
         )
 
         // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
         assertThat(result.messages).doesNotContain(DIALECT_DIAGNOSTIC_NAME)
-    }
-
-    @Test
-    fun `the dialect option alone enables the syntax check`() {
-        // when
-        val result = compile(
-            """
-            import dev.hsbrysk.kuery.core.Sql
-
-            fun query() {
-                Sql { +"SELCT * FROM users" }
-            }
-            """.trimIndent(),
-            pluginOptions = listOf(sqlSyntaxCheckDialectOption("mysql")),
-        )
-
-        // then
-        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
-        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
@@ -606,7 +610,7 @@ class SqlSyntaxCheckerTest {
             }
             """.trimIndent(),
             allWarningsAsErrors = true,
-            pluginOptions = listOf(sqlSyntaxCheckOption(), sqlSyntaxCheckDialectOption("postgresql")),
+            pluginOptions = listOf(sqlSyntaxCheckOption("postgresql")),
         )
 
         // then

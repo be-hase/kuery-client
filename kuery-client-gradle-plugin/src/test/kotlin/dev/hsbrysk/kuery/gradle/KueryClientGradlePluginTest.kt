@@ -62,61 +62,47 @@ class KueryClientGradlePluginTest {
     }
 
     @Test
-    fun `sqlSyntaxCheck is passed through when enabled`() {
+    fun `sqlSyntaxCheck is passed through when set`() {
         // given
         val project = ProjectBuilder.builder().build()
         plugin.apply(project)
-        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set(true)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set("postgresql")
 
         // when
         val options = plugin.applyToCompilation(compilation(project)).get()
 
         // then
-        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheck=true")
+        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheck=postgresql")
     }
 
     @Test
-    fun `sqlSyntaxCheckDialect is passed through when set`() {
-        // given
-        val project = ProjectBuilder.builder().build()
-        plugin.apply(project)
-        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheckDialect.set("postgresql")
-
-        // when
-        val options = plugin.applyToCompilation(compilation(project)).get()
-
-        // then
-        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheckDialect=postgresql")
-    }
-
-    @Test
-    fun `a mixed-case sqlSyntaxCheckDialect is accepted and passed through verbatim`() {
-        // The compiler resolves the dialect case-insensitively, so the plugin must not reject a
+    fun `a mixed-case sqlSyntaxCheck value is accepted and passed through verbatim`() {
+        // The compiler resolves the value case-insensitively, so the plugin must not reject a
         // valid value on case alone.
         // given
         val project = ProjectBuilder.builder().build()
         plugin.apply(project)
-        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheckDialect.set("MySQL")
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set("Generic")
 
         // when
         val options = plugin.applyToCompilation(compilation(project)).get()
 
         // then
-        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheckDialect=MySQL")
+        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheck=Generic")
     }
 
     @Test
-    fun `an invalid sqlSyntaxCheckDialect is rejected with the supported values`() {
+    fun `an invalid sqlSyntaxCheck value is rejected with the supported values`() {
         // given
         val project = ProjectBuilder.builder().build()
         plugin.apply(project)
-        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheckDialect.set("db2")
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set("db2")
 
         // when & then
         assertFailure { plugin.applyToCompilation(compilation(project)).get() }
             .message()
             .isNotNull()
-            .contains("must be one of ansi, oracle, mysql, sqlserver, mariadb, postgresql, h2, but was 'db2'")
+            .contains("must be one of generic, ansi, oracle, mysql, sqlserver, mariadb, postgresql, h2, but was 'db2'")
     }
 
     private fun compilation(platformType: KotlinPlatformType): KotlinCompilation<*> = mockk {

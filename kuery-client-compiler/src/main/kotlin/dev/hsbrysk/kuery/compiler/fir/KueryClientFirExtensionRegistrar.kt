@@ -1,6 +1,6 @@
 package dev.hsbrysk.kuery.compiler.fir
 
-import dev.hsbrysk.kuery.compiler.SqlDialect
+import dev.hsbrysk.kuery.compiler.SqlSyntaxCheck
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.ExpressionCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirFunctionCallChecker
@@ -9,12 +9,11 @@ import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
 
 class KueryClientFirExtensionRegistrar(
     private val autoTrimIndent: Boolean,
-    private val sqlSyntaxCheck: Boolean,
-    private val sqlSyntaxCheckDialect: SqlDialect? = null,
+    private val sqlSyntaxCheck: SqlSyntaxCheck?,
 ) : FirExtensionRegistrar() {
     override fun ExtensionRegistrarContext.configurePlugin() {
         val checkersFactory: (FirSession) -> KueryClientFirCheckersExtension = { session ->
-            KueryClientFirCheckersExtension(session, autoTrimIndent, sqlSyntaxCheck, sqlSyntaxCheckDialect)
+            KueryClientFirCheckersExtension(session, autoTrimIndent, sqlSyntaxCheck)
         }
         +checkersFactory
         registerDiagnosticContainers(KueryClientDiagnostics)
@@ -24,8 +23,7 @@ class KueryClientFirExtensionRegistrar(
 internal class KueryClientFirCheckersExtension(
     session: FirSession,
     autoTrimIndent: Boolean,
-    sqlSyntaxCheck: Boolean,
-    sqlSyntaxCheckDialect: SqlDialect?,
+    sqlSyntaxCheck: SqlSyntaxCheck?,
 ) : FirAdditionalCheckersExtension(session) {
     override val expressionCheckers: ExpressionCheckers = object : ExpressionCheckers() {
         override val functionCallCheckers: Set<FirFunctionCallChecker> = buildSet {
@@ -36,9 +34,10 @@ internal class KueryClientFirCheckersExtension(
             if (autoTrimIndent) {
                 add(RedundantTrimIndentChecker)
             }
-            // Opt-in; the checker must know autoTrimIndent to reconstruct the runtime SQL text.
-            if (sqlSyntaxCheck) {
-                add(SqlSyntaxChecker(autoTrimIndent, sqlSyntaxCheckDialect))
+            // Opt-in (null = disabled); the checker must know autoTrimIndent to reconstruct the
+            // runtime SQL text.
+            if (sqlSyntaxCheck != null) {
+                add(SqlSyntaxChecker(autoTrimIndent, sqlSyntaxCheck))
             }
         }
     }

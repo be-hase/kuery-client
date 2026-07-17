@@ -14,22 +14,19 @@ interface KueryClientExtension {
     val autoTrimIndent: Property<Boolean>
 
     /**
-     * When true, the compiler plugin validates the SQL syntax of `sql { ... }` blocks at compile
-     * time and reports a `KUERY_SQL_SYNTAX` warning on parse failures. Only blocks whose complete
-     * statement is statically known are checked (every statement an `add`/`unaryPlus` with a
-     * literal/template/const argument); dynamically assembled blocks are skipped. The check uses
-     * a generic SQL parser (JSqlParser), so rare vendor-specific syntax may be reported as a
-     * false positive — suppress with `@Suppress("KUERY_SQL_SYNTAX")`. Default: false.
+     * Enables compile-time SQL syntax checking of `sql { ... }` blocks and selects its strictness.
+     * Leave unset to disable (the default). Values:
+     *
+     * - `"generic"` — validate syntax with a generic SQL parser (JSqlParser) and report a
+     *   `KUERY_SQL_SYNTAX` warning on parse failures. Fewest false positives.
+     * - a dialect name (`ansi`, `oracle`, `mysql`, `sqlserver`, `mariadb`, `postgresql`, `h2`) —
+     *   the above, plus a check against that dialect's feature set, reported as a
+     *   `KUERY_SQL_DIALECT` warning (e.g. `ON DUPLICATE KEY UPDATE` under `postgresql`).
+     *
+     * Only blocks whose complete statement is statically known are checked (every statement an
+     * `add`/`unaryPlus` with a literal/template/const argument); dynamically assembled blocks are
+     * skipped. The checks are lenient and may occasionally produce a false positive — suppress
+     * with `@Suppress("KUERY_SQL_SYNTAX")` / `@Suppress("KUERY_SQL_DIALECT")`.
      */
-    val sqlSyntaxCheck: Property<Boolean>
-
-    /**
-     * Additionally checks statements that pass the syntax check against this dialect's feature
-     * set (JSqlParser's validation framework) and reports a `KUERY_SQL_DIALECT` warning on
-     * violations — e.g. `ON DUPLICATE KEY UPDATE` when the dialect is `postgresql`. One of
-     * `ansi`, `oracle`, `mysql`, `sqlserver`, `mariadb`, `postgresql`, `h2`. Setting a dialect
-     * implies [sqlSyntaxCheck]. The check is a feature-level allow-list, not a full dialect
-     * grammar; suppress false positives with `@Suppress("KUERY_SQL_DIALECT")`. Default: unset.
-     */
-    val sqlSyntaxCheckDialect: Property<String>
+    val sqlSyntaxCheck: Property<String>
 }
