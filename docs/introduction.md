@@ -8,17 +8,37 @@ description: Overview of Kuery Client's features, motivation, and the SQL builde
 This documentation assumes you are already familiar with Spring / Spring Boot and does not explain them.
 :::
 
+It looks like plain string interpolation...
+
+```kotlin
+val user: User? = kueryClient
+    .sql { +"SELECT * FROM users WHERE user_id = $userId" }
+    .singleOrNull()
+```
+
+...but it executes as a **parameterized query**. A Kotlin compiler plugin rewrites the
+interpolation into named parameter binding at compile time — so you get the readability of
+raw SQL without the risk of SQL injection:
+
+```sql
+SELECT * FROM users WHERE user_id = :p0  -- :p0 = userId, bound as a named parameter
+```
+
 ## Features
 
-- **Love SQL ♥**
+- ♥️ **Love SQL**
     - ORM libraries are convenient, but they each require learning their own DSL, which we believe is a steep
       cost. Kuery Client emphasizes writing SQL as it is.
-- **Based on spring-data-r2dbc and spring-data-jdbc**
-    - Kuery Client is implemented on top of spring-data-r2dbc and spring-data-jdbc. Use whichever you prefer.
-      You can keep using Spring's ecosystem as is, such as `@Transactional`.
-- **Observability**
+- 🛡️ **Safe by design**
+    - String interpolation is converted into bind parameters by the compiler plugin — never concatenated into
+      the SQL text. A built-in [compiler safety check](/compiler-safety-check) warns when it detects a SQL
+      string that cannot be converted safely.
+- 🍃 **Based on spring-data-r2dbc and spring-data-jdbc**
+    - Kuery Client is implemented on top of spring-data-r2dbc (coroutines) and spring-data-jdbc (blocking).
+      Use whichever you prefer. You can keep using Spring's ecosystem as is, such as `@Transactional`.
+- 🔭 **Observability**
     - It supports Micrometer Observation, so you can collect and customize metrics, tracing, and logging.
-- **Extensible**
+- 🧩 **Extensible**
     - When dealing with complex data schemas, you often want to share common query logic. Kotlin's extension
       functions make this easy.
 
@@ -32,6 +52,10 @@ using the syntax provided by the programming language as much as possible.
 We want to write dynamic SQL using Kotlin syntax, similar to [kotlinx.html](https://github.com/Kotlin/kotlinx.html).
 
 To meet these needs, we implemented `Kuery Client`.
+
+Kuery Client simply provides the SQL builder shown below on top of the well-established
+`spring-data-r2dbc` / `spring-data-jdbc`. It is designed to be usable alongside plain
+spring-data code, so you can start small.
 
 ## Overview
 
@@ -111,13 +135,3 @@ This SQL builder is very simple. There are only two things you need to remember:
 - You can concatenate SQL strings using `+`(unaryPlus).
     - You can also directly express logic such as if statements in Kotlin.
 - You can bind parameters using string interpolation.
-
-## Based on spring-data-r2dbc and spring-data-jdbc
-
-Currently, it is implemented on top of the well-established `spring-data-r2dbc` and `spring-data-jdbc`.
-Kuery Client simply provides the SQL builder shown above on this foundation.
-
-It is designed to be usable alongside plain `spring-data-r2dbc` / `spring-data-jdbc` code, so you can start
-small.
-
-In the future, we may add a different foundation or possibly create a new one from scratch.
