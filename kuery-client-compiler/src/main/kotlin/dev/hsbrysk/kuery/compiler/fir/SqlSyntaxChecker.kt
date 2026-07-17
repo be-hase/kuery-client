@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.fir.declarations.FirNamedFunction
 import org.jetbrains.kotlin.fir.expressions.FirAnonymousFunctionExpression
 import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
+import org.jetbrains.kotlin.fir.expressions.FirLazyBlock
 import org.jetbrains.kotlin.fir.expressions.FirReturnExpression
 import org.jetbrains.kotlin.fir.expressions.FirStatement
 import org.jetbrains.kotlin.fir.expressions.FirThisReceiverExpression
@@ -47,6 +48,7 @@ import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -86,9 +88,11 @@ internal class SqlSyntaxChecker(
         val source: KtSourceElement?,
     )
 
+    private val entryPoints = SqlBlockEntryPoints()
+
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(expression: FirFunctionCall) {
-        val block = sqlBlockOrNull(expression, context.session) ?: return
+        val block = entryPoints.sqlBlockOrNull(expression, context.session) ?: return
         val parts = reconstructedPartsFailSafe(block) ?: return
         val sql = parts.joinToString("\n") { it.text }
         if (sql.isBlank()) return
@@ -103,6 +107,84 @@ internal class SqlSyntaxChecker(
         reconstructedPartsOrNull(block)
     } catch (e: Exception) {
         null
+    }
+
+    // Which calls start a checkable `sql { }` block, and the receiver-type matching
+    // behind it (kept in its own class to stay within the function-count threshold).
+    private class SqlBlockEntryPoints {
+        // The client-type answer depends only on the receiver's ClassId; cache it per checker
+        // instance (one exists per FirSession). Concurrent for safety under parallel checker runs.
+        private val clientTypeCache = ConcurrentHashMap<ClassId, Boolean>()
+
+        fun sqlBlockOrNull(
+            call: FirFunctionCall,
+            session: FirSession,
+        ): FirAnonymousFunction? {
+            // This checker runs on every function call in the project, so pre-filter on the
+            // callee name before any symbol resolution.
+            val isEntryPoint = when (call.calleeReference.name) {
+                CallableIds.SQL_TOP_LEVEL.callableName ->
+                    call.calleeReference.toResolvedCallableSymbol()?.callableId == CallableIds.SQL_TOP_LEVEL
+                SQL_MEMBER_NAME -> call.isClientSqlCall(session)
+                else -> false
+            }
+            if (!isEntryPoint) return null
+            return call.argumentList.arguments
+                .asSequence()
+                .map { it.unwrapArgument() }
+                .filterIsInstance<FirAnonymousFunctionExpression>()
+                .singleOrNull()
+                ?.anonymousFunction
+                // The lambda must actually be a SqlBuilder-receiver block: a like-named member on a
+                // client subtype taking a plain lambda has different semantics and is not checked.
+                ?.takeIf { it.isSqlBuilderLambda(session) }
+        }
+
+        private fun FirAnonymousFunction.isSqlBuilderLambda(session: FirSession): Boolean = receiverParameter
+            ?.typeRef
+            ?.coneType
+            ?.fullyExpandedType(session)
+            ?.classId == ClassIds.SQL_BUILDER
+
+        // Matching by the receiver's type rather than the resolved callable covers both
+        // sub-interfaces (fake overrides) and overriding decorators such as
+        // `class Decorated(d: KueryClient) : KueryClient by d`, mirroring the IR-side override
+        // walk in SqlIdInjectionTransformer.
+        private fun FirFunctionCall.isClientSqlCall(session: FirSession): Boolean {
+            val receiverType = dispatchReceiver?.resolvedType ?: return false
+            return receiverType.isClientType(session, visitedTypeParameters = mutableSetOf())
+        }
+
+        // Also recognizes generic receivers (`fun <T : KueryClient> ...`) via type-parameter
+        // upper bounds, and the intersection / definitely-non-null types smart casts produce.
+        // The visited set guards against (illegal but representable) cyclic bounds.
+        private fun ConeKotlinType.isClientType(
+            session: FirSession,
+            visitedTypeParameters: MutableSet<FirTypeParameterSymbol>,
+        ): Boolean = when (val expanded = fullyExpandedType(session)) {
+            is ConeDefinitelyNotNullType -> expanded.original.isClientType(session, visitedTypeParameters)
+            is ConeIntersectionType ->
+                expanded.intersectedTypes.any { it.isClientType(session, visitedTypeParameters) }
+            is ConeTypeParameterType -> {
+                val symbol = expanded.lookupTag.typeParameterSymbol
+                visitedTypeParameters.add(symbol) &&
+                    symbol.resolvedBounds.any { it.coneType.isClientType(session, visitedTypeParameters) }
+            }
+            else -> {
+                val classSymbol = expanded.toRegularClassSymbol(session)
+                classSymbol != null &&
+                    clientTypeCache.computeIfAbsent(classSymbol.classId) { classId ->
+                        classId in ClassIds.SQL_CLIENTS ||
+                            lookupSuperTypes(
+                                classSymbol,
+                                lookupInterfaces = true,
+                                deep = true,
+                                useSiteSession = session,
+                            )
+                                .any { it.classId in ClassIds.SQL_CLIENTS }
+                    }
+            }
+        }
     }
 
     context(context: CheckerContext, reporter: DiagnosticReporter)
@@ -162,7 +244,7 @@ internal class SqlSyntaxChecker(
     ): String? {
         val sqlArgument = SqlBuilderCalls.sqlArgumentOrNull(call)
         return if (sqlArgument != null) {
-            if (call.dispatchReceiver.isThisBoundTo(owners)) addTextOrNull(sqlArgument, numbering) else null
+            if (call.dispatchReceiver.isThisBoundTo(owners)) addTextOrNull(sqlArgument, owners, numbering) else null
         } else {
             inlinedHelperTextOrNull(call, owners, numbering, seen, depth)
         }
@@ -170,9 +252,10 @@ internal class SqlSyntaxChecker(
 
     private fun addTextOrNull(
         sqlArgument: FirExpression,
+        owners: Set<FirBasedSymbol<*>>,
         numbering: SqlTextReconstruction.ParameterNumbering,
     ): String? {
-        val text = SqlTextReconstruction.textOrNull(sqlArgument, numbering) ?: return null
+        val text = SqlTextReconstruction.textOrNull(sqlArgument, numbering, owners) ?: return null
         // The runtime auto-trim applies per add/unaryPlus call, so trim each text here rather
         // than per block statement (an inlined helper contributes several adds in one statement).
         return if (autoTrimIndent) text.trimIndent() else text
@@ -182,7 +265,8 @@ internal class SqlSyntaxChecker(
     // receiver (or further such helpers) is inlined into the reconstruction: its interpolations
     // become the same :pN binds at runtime regardless of the call arguments, so the numbering
     // simply continues through the body. A compiled helper from another module has no body here
-    // and returns null (skip), as does anything dynamic.
+    // and returns null (skip), as does anything dynamic — including argument or default-value
+    // expressions that could themselves reach a builder and append fragments of their own.
     private fun inlinedHelperTextOrNull(
         call: FirFunctionCall,
         callerOwners: Set<FirBasedSymbol<*>>,
@@ -244,64 +328,6 @@ internal class SqlSyntaxChecker(
             Thread(runnable, "kuery-client-sql-syntax-check").apply { isDaemon = true }
         }
 
-        private fun sqlBlockOrNull(
-            call: FirFunctionCall,
-            session: FirSession,
-        ): FirAnonymousFunction? {
-            // This checker runs on every function call in the project, so pre-filter on the
-            // callee name before any symbol resolution.
-            val isEntryPoint = when (call.calleeReference.name) {
-                CallableIds.SQL_TOP_LEVEL.callableName ->
-                    call.calleeReference.toResolvedCallableSymbol()?.callableId == CallableIds.SQL_TOP_LEVEL
-                SQL_MEMBER_NAME -> call.isClientSqlCall(session)
-                else -> false
-            }
-            if (!isEntryPoint) return null
-            return call.argumentList.arguments
-                .asSequence()
-                .map { it.unwrapArgument() }
-                .filterIsInstance<FirAnonymousFunctionExpression>()
-                .singleOrNull()
-                ?.anonymousFunction
-        }
-
-        // Matching by the receiver's type rather than the resolved callable covers both
-        // sub-interfaces (fake overrides) and overriding decorators such as
-        // `class Decorated(d: KueryClient) : KueryClient by d`, mirroring the IR-side override
-        // walk in SqlIdInjectionTransformer.
-        // UnreachableCode: detekt's type resolution (Kotlin 1.9-based) cannot resolve the 2.4
-        // compiler API and falsely flags the elvis-return chain as unreachable.
-        @Suppress("UnreachableCode")
-        private fun FirFunctionCall.isClientSqlCall(session: FirSession): Boolean {
-            val receiverType = dispatchReceiver?.resolvedType ?: return false
-            return receiverType.isClientType(session, visitedTypeParameters = mutableSetOf())
-        }
-
-        // Also recognizes generic receivers (`fun <T : KueryClient> ...`) via type-parameter
-        // upper bounds, and the intersection / definitely-non-null types smart casts produce.
-        // The visited set guards against (illegal but representable) cyclic bounds.
-        private fun ConeKotlinType.isClientType(
-            session: FirSession,
-            visitedTypeParameters: MutableSet<FirTypeParameterSymbol>,
-        ): Boolean = when (val expanded = fullyExpandedType(session)) {
-            is ConeDefinitelyNotNullType -> expanded.original.isClientType(session, visitedTypeParameters)
-            is ConeIntersectionType ->
-                expanded.intersectedTypes.any { it.isClientType(session, visitedTypeParameters) }
-            is ConeTypeParameterType -> {
-                val symbol = expanded.lookupTag.typeParameterSymbol
-                visitedTypeParameters.add(symbol) &&
-                    symbol.resolvedBounds.any { it.coneType.isClientType(session, visitedTypeParameters) }
-            }
-            else -> {
-                val classSymbol = expanded.toRegularClassSymbol(session)
-                classSymbol != null && (
-                    classSymbol.classId in ClassIds.SQL_CLIENTS ||
-                        lookupSuperTypes(classSymbol, lookupInterfaces = true, deep = true, useSiteSession = session)
-                            .any { it.classId in ClassIds.SQL_CLIENTS }
-                    )
-            }
-        }
-
         private const val MAX_HELPER_DEPTH = 10
 
         private fun thisOwnersOf(vararg symbols: FirBasedSymbol<*>?): Set<FirBasedSymbol<*>> =
@@ -316,22 +342,37 @@ internal class SqlSyntaxChecker(
             return bound in owners
         }
 
-        // The helper must act on the caller's builder (its extension receiver), while a
-        // this-bound dispatch receiver (a member helper of the enclosing class) is harmless. An
-        // open helper can be overridden at runtime, so only a final one has a single known body.
+        // An open helper can be overridden at runtime, so only a final one has a single known
+        // body.
         @OptIn(SymbolInternals::class)
         private fun helperFunctionOrNull(
             call: FirFunctionCall,
             callerOwners: Set<FirBasedSymbol<*>>,
         ): FirNamedFunction? {
-            val dispatch = call.dispatchReceiver
-            val receiversOk = call.extensionReceiver.isThisBoundTo(callerOwners) &&
-                (dispatch == null || dispatch is FirThisReceiverExpression)
-            if (!receiversOk) return null
+            if (!call.isInlinableHelperCall(callerOwners)) return null
             val symbol = call.calleeReference.toResolvedCallableSymbol() as? FirNamedFunctionSymbol ?: return null
             if (symbol.resolvedStatus.modality != Modality.FINAL) return null
-            // A helper compiled in another module is deserialized without a body.
-            return symbol.fir.takeIf { it.body != null }
+            return symbol.fir.takeIf { it.hasInlinableBody() }
+        }
+
+        // The helper must act on the caller's builder (its extension receiver), a this-bound
+        // dispatch receiver (a member helper of the enclosing class) being harmless — and its
+        // argument expressions must not be able to reach a builder, because they run against it
+        // before the helper body does.
+        private fun FirFunctionCall.isInlinableHelperCall(callerOwners: Set<FirBasedSymbol<*>>): Boolean =
+            extensionReceiver.isThisBoundTo(callerOwners) &&
+                (dispatchReceiver == null || dispatchReceiver is FirThisReceiverExpression) &&
+                argumentList.arguments.none { it.containsThisBoundTo(callerOwners) }
+
+        // A helper compiled in another module is deserialized without a body (and a cross-file
+        // body may still be lazy under the IDE's LL FIR); a default-value expression that can
+        // reach the helper's own receiver would append fragments before the body runs.
+        private fun FirNamedFunction.hasInlinableBody(): Boolean {
+            val body = this.body
+            val owners = thisOwnersOf(symbol, receiverParameter?.symbol)
+            return body != null &&
+                body !is FirLazyBlock &&
+                valueParameters.none { it.defaultValue?.containsThisBoundTo(owners) == true }
         }
 
         // A lambda body's last expression may be wrapped in an implicit return.

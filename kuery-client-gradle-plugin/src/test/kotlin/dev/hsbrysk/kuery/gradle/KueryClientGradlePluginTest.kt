@@ -109,6 +109,34 @@ class KueryClientGradlePluginTest {
     }
 
     @Test
+    fun `a whitespace-only sqlSyntaxCheck value is rejected instead of silently disabling the check`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set("  ")
+
+        // when & then
+        assertFailure { plugin.applyToCompilation(compilation(project)).get() }
+            .message()
+            .isNotNull()
+            .contains("kueryClient.sqlSyntaxCheck must be one of")
+    }
+
+    @Test
+    fun `a padded sqlSyntaxCheck value is trimmed and passed through`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set(" mysql ")
+
+        // when
+        val options = plugin.applyToCompilation(compilation(project)).get()
+
+        // then
+        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheck=mysql")
+    }
+
+    @Test
     fun `an invalid sqlSyntaxCheck value is rejected with the supported values`() {
         // given
         val project = ProjectBuilder.builder().build()

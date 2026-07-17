@@ -25,16 +25,20 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
                 // not enabled.
                 buildList {
                     if (autoTrimIndent) add(SubpluginOption("autoTrimIndent", "true"))
-                    if (sqlSyntaxCheck.isNotBlank()) {
-                        // Fail fast at configuration time with a clear message instead of
-                        // deferring to a compiler-plugin error during compilation.
-                        if (SUPPORTED_SQL_SYNTAX_CHECKS.none { it.equals(sqlSyntaxCheck, ignoreCase = true) }) {
+                    // Only the empty string is the absent-sentinel from orElse(""); any other
+                    // value — including a whitespace-only one — must be valid or fail loudly.
+                    // The validation runs when the compile task's options are evaluated (still
+                    // before the compiler), with a clear message instead of a compiler-plugin
+                    // error deep in the build output.
+                    if (sqlSyntaxCheck.isNotEmpty()) {
+                        val value = sqlSyntaxCheck.trim()
+                        if (SUPPORTED_SQL_SYNTAX_CHECKS.none { it.equals(value, ignoreCase = true) }) {
                             throw InvalidUserDataException(
                                 "kueryClient.sqlSyntaxCheck must be one of " +
                                     "${SUPPORTED_SQL_SYNTAX_CHECKS.joinToString(", ")}, but was '$sqlSyntaxCheck'",
                             )
                         }
-                        add(SubpluginOption("sqlSyntaxCheck", sqlSyntaxCheck))
+                        add(SubpluginOption("sqlSyntaxCheck", value))
                     }
                 }
             }

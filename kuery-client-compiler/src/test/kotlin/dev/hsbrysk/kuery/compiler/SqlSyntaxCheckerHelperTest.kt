@@ -131,6 +131,40 @@ class SqlSyntaxCheckerHelperTest {
     }
 
     @Test
+    fun `no warning when a helper argument mutates the builder`() {
+        // The argument expression runs against the builder before the helper body, so the
+        // block's SQL is not the helper body alone — it must be skipped.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+            import dev.hsbrysk.kuery.core.SqlBuilder
+
+            fun SqlBuilder.limitOnly(limit: Int) {
+                +"LIMIT ${'$'}limit"
+            }
+
+            fun query() {
+                Sql {
+                    limitOnly(
+                        run {
+                            +"SELECT * FROM users"
+                            10
+                        },
+                    )
+                }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
     fun `no warning when a helper is dynamic`() {
         // The helper's body contains control flow, so the complete SQL is not statically known
         // and the block is skipped even though another fragment is broken.

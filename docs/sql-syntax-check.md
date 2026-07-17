@@ -39,9 +39,10 @@ like at runtime — joined with newlines, every interpolated `$value` replaced b
 placeholder — and parsed.
 
 Calls to your own **static helper functions** are inlined into the reconstruction: a final
-`SqlBuilder` extension in the same module whose body is itself only static `add()` / `+"..."`
-statements (or further such helpers). Its interpolated parameters become the same `:pN` binds
-they are at runtime, so this works regardless of the arguments:
+`SqlBuilder` extension in the same module — top-level or a member of the enclosing class (the
+common repository pattern) — whose body is itself only static `add()` / `+"..."` statements (or
+further such helpers). Its interpolated parameters become the same `:pN` binds they are at
+runtime, so this works regardless of the arguments:
 
 ```kotlin
 fun SqlBuilder.paging(limit: Int, offset: Int) {
@@ -84,11 +85,13 @@ Values: `generic`, `ansi`, `oracle`, `mysql`, `sqlserver`, `mariadb`, `postgresq
 `generic` runs the syntax check with no feature validation (the fewest false positives); `ansi`
 is a real, strict ANSI SQL feature set, distinct from `generic`.
 
-A dialect feature violation is reported as a separate `KUERY_SQL_DIALECT` warning:
+A dialect feature violation is reported as a separate `KUERY_SQL_DIALECT` warning. Unlike the
+syntax warning, it is anchored to the whole `sql { }` call (the parser's feature validation
+carries no line positions):
 
 ```kotlin
+// KUERY_SQL_DIALECT: insertUseDuplicateKeyUpdate not supported. (dialect: postgresql)
 kueryClient.sql {
-    // KUERY_SQL_DIALECT: insertUseDuplicateKeyUpdate not supported. (dialect: postgresql)
     +"INSERT INTO users (id, name) VALUES ($id, $name) ON DUPLICATE KEY UPDATE name = $name"
 }
 ```
@@ -116,11 +119,13 @@ fun listUsersWithVendorSyntax(): List<User> = ...
 
 ## Configuring the severity
 
-Like every diagnostic of the plugin, the standard Kotlin mechanisms apply:
+Like every diagnostic of the plugin, the standard Kotlin mechanisms apply — note there are two
+diagnostic names, `KUERY_SQL_SYNTAX` and `KUERY_SQL_DIALECT`, configured independently:
 
-- Treat it as an error: `-Xwarning-level=KUERY_SQL_SYNTAX:error`, or enable
-  `allWarningsAsErrors` (`-Werror`)
-- Disable it for specific code with `@Suppress("KUERY_SQL_SYNTAX")`, or project-wide with
-  `-Xwarning-level=KUERY_SQL_SYNTAX:disabled` (or simply leave `sqlSyntaxCheck` unset)
+- Treat them as errors: `-Xwarning-level=KUERY_SQL_SYNTAX:error` (and
+  `-Xwarning-level=KUERY_SQL_DIALECT:error`), or enable `allWarningsAsErrors` (`-Werror`)
+- Disable them for specific code with `@Suppress("KUERY_SQL_SYNTAX")` /
+  `@Suppress("KUERY_SQL_DIALECT")`, or project-wide with
+  `-Xwarning-level=<name>:disabled` (or simply leave `sqlSyntaxCheck` unset)
 
 The option is unset by default, so existing builds are unaffected.

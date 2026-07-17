@@ -532,6 +532,79 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
+    fun `no warning when a template value mutates the builder`() {
+        // The value expression runs before the enclosing add at runtime and emits its own line,
+        // so the block's SQL is not what the template alone suggests — it must be skipped.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+            import dev.hsbrysk.kuery.core.SqlBuilder
+
+            fun SqlBuilder.header(): Int {
+                +"SELECT * FROM users"
+                return 1
+            }
+
+            fun query() {
+                Sql { +"WHERE id = ${'$'}{header()}" }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `no warning when a Java constant appears in a template`() {
+        // FIR2IR folds Java compile-time constants into SQL text (like Kotlin const vals), so
+        // the runtime SQL is "SELECT * FROM xml" — valid.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { +"SELECT * FROM ${'$'}{javax.xml.XMLConstants.XML_NS_PREFIX}" }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `warn when a template with a non-string const accompanies broken SQL`() {
+        // A non-String const is bound as :pN at runtime (not inlined as text), so the block is
+        // still statically known and must be checked.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            const val LIMIT_CONST = 10
+
+            fun query() {
+                Sql { +"SELCT * FROM users LIMIT ${'$'}LIMIT_CONST" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
     fun `no warning when a const val initializer is not a single literal`() {
         // FIR2IR constant-folds such consts into SQL text, but the checker cannot compute the
         // value at FIR time, so the block must be skipped instead of guessing a placeholder.
