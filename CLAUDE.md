@@ -82,3 +82,33 @@ All modules apply `conventions.preset.base` (= `conventions.kotlin` + `conventio
 ### `@DelicateKueryClientApi`
 
 `SqlBuilder.addUnsafe()` and `bind()` are annotated with `@DelicateKueryClientApi` and require opt-in. They are for cases where the compiler plugin cannot be used (e.g., helper extension functions that dynamically build SQL fragments).
+
+## Testing Conventions
+
+### Naming & Structure
+
+- Test method names are backtick-quoted English specification sentences that include both the condition and the expected outcome, so the name alone reads as a spec (e.g., `` `singleMap throws when no rows match` ``). No `should`/`test` prefixes; use third-person singular present. An operation name alone (e.g., `singleMap`) is not enough.
+- Structure test bodies with lowercase `// given` / `// when` / `// then` comments (`// when & then` when combined). Omit them for trivial one/two-line tests or repetitive structures — don't paste them mechanically.
+- **One test function = one spec.** If multiple independently specifiable behaviors live in one function (happy path + error path, different behavior per type, etc.), split them. Do NOT split: (a) side-by-side tests where the contrast itself is the point, (b) incremental examples of the same rule (n=1/n=2), (c) tests exercising a single conditional expression with different inputs.
+
+### jdbc / r2dbc Mirror Convention
+
+The `kuery-client-spring-data-jdbc` and `kuery-client-spring-data-r2dbc` test suites mirror each other by feature subpackage (`conversion` / `mapping` / `usage` / `observation` / `sqlid` / `mysql` / `postgres`). Corresponding tests must use **identical class and method names** across both modules. One-sided classes are allowed only for genuinely one-sided features (e.g., Reactor context on r2dbc, `Sequence` on jdbc).
+
+### Database Test Matrix
+
+Pick the database by asking: "can this behavior differ per driver/DB code path?"
+
+- **Our own layer** (builder, mapper wrapping, terminal operations): use the in-memory H2 setup (`H2TestDatabase`) in the module's root test package — no container needed. H2 is configured with MySQL-like identifier behavior.
+- **Driver-dependent behavior** (binding, codecs, type mapping, generated keys, etc.): use the `mysql` / `postgres` subpackages, which run real databases via Testcontainers (only the dialects where the behavior matters — both are not required). Keep the `MySql` / `Postgres` class-name prefix even inside the dialect package (e.g., `mysql.MySqlNullBindingTest`).
+- Caveat: r2dbc-h2 executes queries synchronously, so tests that depend on actual suspension (e.g., Observation propagation) must go in the `mysql` package instead.
+
+### Compiler Plugin Test Placement
+
+- Tests that verify the **behavior** of transformed code go in `kuery-client-compiler/functional-test` (real plugin applied); behavior with auto-trim enabled goes in `functional-test-auto-trim`.
+- `kuery-client-compiler/src/test` (kotlin-compile-testing) is **only** for things observable at compile level: FIR diagnostics, compilation failures, bytecode inspection.
+- The `build.gradle.kts` files of `functional-test` and `functional-test-auto-trim` mirror each other — add dependencies to both.
+
+### Bug Fixes Are Test-First
+
+Write a reproducing test first and confirm it fails against the current implementation, then fix, then confirm green. This proves the fix actually addresses the bug.
