@@ -309,6 +309,9 @@ val users: CloseableSequence<User> = kueryClient
 ```
 
 ::: warning
+`sequence()` is not lazy: the statement executes eagerly when the sequence is created, before any element
+is consumed. Only the consumption of rows is deferred.
+
 The sequence is backed by an open JDBC ResultSet — iterate within an active transaction. It is single-pass.
 `CloseableSequence` implements `AutoCloseable`; if you stop iterating midway (e.g., with `take` or `first`),
 close it explicitly, typically via `use`.
