@@ -1,5 +1,8 @@
 package dev.hsbrysk.kuery.compiler.fir
 
+import dev.hsbrysk.kuery.compiler.SqlDialect
+import dev.hsbrysk.kuery.compiler.misc.CallableIds
+import dev.hsbrysk.kuery.compiler.misc.ClassIds
 import net.sf.jsqlparser.JSQLParserException
 import net.sf.jsqlparser.parser.CCJSqlParserUtil
 import net.sf.jsqlparser.parser.ParseException
@@ -57,7 +60,7 @@ import java.util.concurrent.Executors
  */
 internal class SqlSyntaxChecker(
     private val autoTrimIndent: Boolean,
-    private val dialect: DatabaseType?,
+    private val dialect: SqlDialect?,
 ) : FirFunctionCallChecker(MppCheckerKind.Common) {
     private class Part(
         val text: String,
@@ -144,17 +147,8 @@ internal class SqlSyntaxChecker(
     }
 
     companion object {
-        private val CORE_PACKAGE = FqName("dev.hsbrysk.kuery.core")
-
-        // Sql(block)
-        private val SQL_TOP_LEVEL = CallableId(CORE_PACKAGE, Name.identifier("Sql"))
-
         // KueryClient.sql([sqlId,] block) / KueryBlockingClient.sql([sqlId,] block)
         private val SQL_MEMBER_NAME = Name.identifier("sql")
-        private val CLIENT_CLASS_IDS = setOf(
-            ClassId(CORE_PACKAGE, Name.identifier("KueryClient")),
-            ClassId(CORE_PACKAGE, Name.identifier("KueryBlockingClient")),
-        )
 
         // JSqlParser reports positions within the reconstructed SQL as "at line N, column M".
         private val LINE_REGEX = Regex("""at line (\d+), column \d+""")
@@ -173,8 +167,8 @@ internal class SqlSyntaxChecker(
             // This checker runs on every function call in the project, so pre-filter on the
             // callee name before any symbol resolution.
             val isEntryPoint = when (call.calleeReference.name) {
-                SQL_TOP_LEVEL.callableName ->
-                    call.calleeReference.toResolvedCallableSymbol()?.callableId == SQL_TOP_LEVEL
+                CallableIds.SQL_TOP_LEVEL.callableName ->
+                    call.calleeReference.toResolvedCallableSymbol()?.callableId == CallableIds.SQL_TOP_LEVEL
                 SQL_MEMBER_NAME -> call.isClientSqlCall(session)
                 else -> false
             }
@@ -194,9 +188,9 @@ internal class SqlSyntaxChecker(
         private fun FirFunctionCall.isClientSqlCall(session: FirSession): Boolean {
             val receiverType = dispatchReceiver?.resolvedType?.fullyExpandedType(session) ?: return false
             val classSymbol = receiverType.toRegularClassSymbol(session) ?: return false
-            if (classSymbol.classId in CLIENT_CLASS_IDS) return true
+            if (classSymbol.classId in ClassIds.SQL_CLIENTS) return true
             return lookupSuperTypes(classSymbol, lookupInterfaces = true, deep = true, useSiteSession = session)
-                .any { it.classId in CLIENT_CLASS_IDS }
+                .any { it.classId in ClassIds.SQL_CLIENTS }
         }
 
         // add/unaryPlus must act on this block's own builder (the lambda's receiver); a call on
@@ -232,19 +226,31 @@ internal class SqlSyntaxChecker(
         @Suppress("TooGenericExceptionCaught", "SwallowedException")
         private fun dialectFailureOrNull(
             statements: List<Statement>,
-            dialect: DatabaseType,
+            dialect: SqlDialect,
         ): String? = try {
-            val context = Validation.createValidationContext(FeatureConfiguration(), listOf(dialect))
+            val context = Validation.createValidationContext(FeatureConfiguration(), listOf(dialect.asDatabaseType()))
             val messages = statements
                 .flatMap { statement -> Validation.validate(statement, context).values.flatten() }
                 .mapNotNull { it.message }
             if (messages.isEmpty()) {
                 null
             } else {
-                "${messages.joinToString(" ")} (dialect: ${dialect.name.lowercase()})"
+                "${messages.joinToString(" ")} (dialect: ${dialect.optionValue})"
             }
         } catch (e: Exception) {
             null
+        }
+
+        // The only place the vendor enum appears: our public dialect vocabulary mapped onto the
+        // parser currently backing the check.
+        private fun SqlDialect.asDatabaseType(): DatabaseType = when (this) {
+            SqlDialect.ANSI -> DatabaseType.ANSI_SQL
+            SqlDialect.ORACLE -> DatabaseType.ORACLE
+            SqlDialect.MYSQL -> DatabaseType.MYSQL
+            SqlDialect.SQLSERVER -> DatabaseType.SQLSERVER
+            SqlDialect.MARIADB -> DatabaseType.MARIADB
+            SqlDialect.POSTGRESQL -> DatabaseType.POSTGRESQL
+            SqlDialect.H2 -> DatabaseType.H2
         }
 
         // JSqlParser messages start with "Encountered ... at line N, column M." and then list

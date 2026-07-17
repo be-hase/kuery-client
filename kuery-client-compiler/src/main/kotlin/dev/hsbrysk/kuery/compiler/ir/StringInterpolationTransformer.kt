@@ -1,10 +1,10 @@
 package dev.hsbrysk.kuery.compiler.ir
 
-import dev.hsbrysk.kuery.compiler.ir.misc.ClassIds
 import dev.hsbrysk.kuery.compiler.ir.misc.ClassNames
 import dev.hsbrysk.kuery.compiler.ir.misc.StringConcatenationProcessor
 import dev.hsbrysk.kuery.compiler.ir.misc.TrimFolding
 import dev.hsbrysk.kuery.compiler.misc.CallableIds
+import dev.hsbrysk.kuery.compiler.misc.ClassIds
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder

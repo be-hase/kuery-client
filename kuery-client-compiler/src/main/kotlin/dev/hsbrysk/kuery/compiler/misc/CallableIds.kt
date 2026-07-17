@@ -10,4 +10,7 @@ internal object CallableIds {
     val TRIM_MARGIN = CallableId(FqName("kotlin.text"), Name.identifier("trimMargin"))
     val SQL_ID_PROVIDING_BLOCK =
         CallableId(FqName("dev.hsbrysk.kuery.core.internal"), Name.identifier("sqlIdProvidingBlock"))
+
+    /** The top-level `Sql(block)` factory function. */
+    val SQL_TOP_LEVEL = CallableId(ClassIds.CORE_PACKAGE, Name.identifier("Sql"))
 }

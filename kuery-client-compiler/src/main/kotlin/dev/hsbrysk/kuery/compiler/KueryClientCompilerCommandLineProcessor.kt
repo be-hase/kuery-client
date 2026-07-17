@@ -1,6 +1,5 @@
 package dev.hsbrysk.kuery.compiler
 
-import net.sf.jsqlparser.util.validation.feature.DatabaseType
 import org.jetbrains.kotlin.compiler.plugin.AbstractCliOption
 import org.jetbrains.kotlin.compiler.plugin.CliOption
 import org.jetbrains.kotlin.compiler.plugin.CliOptionProcessingException
@@ -29,7 +28,7 @@ class KueryClientCompilerCommandLineProcessor : CommandLineProcessor {
             SQL_SYNTAX_CHECK_OPTION.optionName ->
                 configuration.put(SQL_SYNTAX_CHECK_KEY, parseBoolean(SQL_SYNTAX_CHECK_OPTION_NAME, value))
             SQL_SYNTAX_CHECK_DIALECT_OPTION.optionName ->
-                configuration.put(SQL_SYNTAX_CHECK_DIALECT_KEY, parseDatabaseType(value))
+                configuration.put(SQL_SYNTAX_CHECK_DIALECT_KEY, parseSqlDialect(value))
             else -> error("Unexpected plugin option: ${option.optionName}")
         }
     }
@@ -40,8 +39,8 @@ class KueryClientCompilerCommandLineProcessor : CommandLineProcessor {
     ): Boolean = value.toBooleanStrictOrNull()
         ?: throw CliOptionProcessingException("$optionName must be 'true' or 'false', but was '$value'")
 
-    private fun parseDatabaseType(value: String): DatabaseType =
-        DatabaseType.entries.find { it.optionValue().equals(value, ignoreCase = true) }
+    private fun parseSqlDialect(value: String): SqlDialect =
+        SqlDialect.entries.find { it.optionValue.equals(value, ignoreCase = true) }
             ?: throw CliOptionProcessingException(
                 "$SQL_SYNTAX_CHECK_DIALECT_OPTION_NAME must be one of $SUPPORTED_DIALECTS, but was '$value'",
             )
@@ -52,16 +51,14 @@ class KueryClientCompilerCommandLineProcessor : CommandLineProcessor {
         const val SQL_SYNTAX_CHECK_OPTION_NAME = "sqlSyntaxCheck"
         const val SQL_SYNTAX_CHECK_DIALECT_OPTION_NAME = "sqlSyntaxCheckDialect"
 
-        private fun DatabaseType.optionValue(): String = if (this == DatabaseType.ANSI_SQL) "ansi" else name.lowercase()
-
         // Derived from the enum so the accepted and the advertised value sets cannot drift.
-        val SUPPORTED_DIALECTS: String = DatabaseType.entries.joinToString(", ") { it.optionValue() }
+        val SUPPORTED_DIALECTS: String = SqlDialect.entries.joinToString(", ") { it.optionValue }
 
         val AUTO_TRIM_INDENT_KEY: CompilerConfigurationKey<Boolean> =
             CompilerConfigurationKey.create("auto trimIndent")
         val SQL_SYNTAX_CHECK_KEY: CompilerConfigurationKey<Boolean> =
             CompilerConfigurationKey.create("sql syntax check")
-        val SQL_SYNTAX_CHECK_DIALECT_KEY: CompilerConfigurationKey<DatabaseType> =
+        val SQL_SYNTAX_CHECK_DIALECT_KEY: CompilerConfigurationKey<SqlDialect> =
             CompilerConfigurationKey.create("sql syntax check dialect")
 
         private val AUTO_TRIM_INDENT_OPTION = CliOption(

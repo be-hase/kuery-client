@@ -1,6 +1,6 @@
 package dev.hsbrysk.kuery.compiler.fir
 
-import net.sf.jsqlparser.util.validation.feature.DatabaseType
+import dev.hsbrysk.kuery.compiler.SqlDialect
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.ExpressionCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirFunctionCallChecker
@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
 class KueryClientFirExtensionRegistrar(
     private val autoTrimIndent: Boolean,
     private val sqlSyntaxCheck: Boolean,
-    private val sqlSyntaxCheckDialect: DatabaseType? = null,
+    private val sqlSyntaxCheckDialect: SqlDialect? = null,
 ) : FirExtensionRegistrar() {
     override fun ExtensionRegistrarContext.configurePlugin() {
         val checkersFactory: (FirSession) -> KueryClientFirCheckersExtension = { session ->
@@ -25,7 +25,7 @@ internal class KueryClientFirCheckersExtension(
     session: FirSession,
     autoTrimIndent: Boolean,
     sqlSyntaxCheck: Boolean,
-    sqlSyntaxCheckDialect: DatabaseType?,
+    sqlSyntaxCheckDialect: SqlDialect?,
 ) : FirAdditionalCheckersExtension(session) {
     override val expressionCheckers: ExpressionCheckers = object : ExpressionCheckers() {
         override val functionCallCheckers: Set<FirFunctionCallChecker> = buildSet {
