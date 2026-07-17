@@ -135,3 +135,11 @@ This SQL builder is very simple. There are only two things you need to remember:
 - You can concatenate SQL strings using `+`(unaryPlus).
     - You can also directly express logic such as if statements in Kotlin.
 - You can bind parameters using string interpolation.
+
+## For LLMs
+
+The entire documentation is also available in the [llms.txt](https://llmstxt.org/) format,
+which is convenient for feeding into AI assistants and LLM-based tools:
+
+- [llms.txt](https://kuery-client.hsbrysk.dev/llms.txt) — an index of all documentation pages
+- [llms-full.txt](https://kuery-client.hsbrysk.dev/llms-full.txt) — the full documentation in a single file
