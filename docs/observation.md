@@ -122,9 +122,10 @@ stack inspection happens at runtime and a given call site always produces the sa
 fold into the enclosing named method.
 
 The id is attached only when the block is written literally at the call site — a lambda or a function
-reference. Everything else resolves to the fixed id `NONE`: a block passed via a variable, call sites that are
-not compiled with the compiler plugin (e.g. Java callers or reflective invocations), and so on. Specify the id
-explicitly in such cases.
+reference. Everything else resolves to the fixed id `NONE`: a block passed via a variable, a function
+reference that needs adaptation (the referenced function declares default arguments or varargs), call sites
+that are not compiled with the compiler plugin (e.g. Java callers or reflective invocations), and so on.
+Specify the id explicitly in such cases.
 
 A few sharing rules follow from "the id is the enclosing declaration's FQN": overloads of the same method
 share one id, as do same-named top-level functions in different files of the same package; and a call inside
