@@ -14,8 +14,11 @@ import org.junit.jupiter.api.Test
 class AutoTrimIndentTest {
     @Test
     fun `multi-line template no longer needs an explicit trimIndent`() {
+        // given
         val name = "n"
         val age = 18
+
+        // when
         val sql = Sql {
             add(
                 """
@@ -25,6 +28,8 @@ class AutoTrimIndentTest {
                 """,
             )
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "UPDATE user\nSET name = :p0, age = :p1\nWHERE id = :p2",
@@ -38,15 +43,20 @@ class AutoTrimIndentTest {
     }
 
     @Test
-    fun `unaryPlus template with values at line start and line end`() {
+    fun `values at line start and line end survive the automatic trim`() {
+        // given
         val a = "A"
         val b = "B"
+
+        // when
         val sql = Sql {
             +"""
             $a AND x
             y = $b
             """
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 ":p0 AND x\ny = :p1",
@@ -57,7 +67,10 @@ class AutoTrimIndentTest {
 
     @Test
     fun `blank line in the middle is preserved`() {
+        // given
         val a = "A"
+
+        // when
         val sql = Sql {
             +"""
             a = $a
@@ -65,6 +78,8 @@ class AutoTrimIndentTest {
             b
             """
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "a = :p0\n\nb",
@@ -97,15 +112,21 @@ class AutoTrimIndentTest {
     @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
     fun `variable argument is trimmed at runtime`() {
+        // given
         val s = "\n    SELECT 1\n"
+
+        // when
         val sql = Sql {
             add(s)
         }
+
+        // then
         assertThat(sql).isEqualTo(Sql("SELECT 1"))
     }
 
     @Test
     fun `if expression argument is trimmed once as a whole`() {
+        // given
         val x = "X"
 
         fun build(flag: Boolean) = Sql {
@@ -120,6 +141,8 @@ class AutoTrimIndentTest {
                 }
                 )
         }
+
+        // when & then
         assertThat(build(true)).isEqualTo(
             Sql("id = :p0\nAND y", listOf(NamedSqlParameter("p0", x))),
         )
@@ -129,13 +152,18 @@ class AutoTrimIndentTest {
     @Suppress("KUERY_REDUNDANT_TRIM_INDENT")
     @Test
     fun `explicit trimIndent still works`() {
+        // given
         val a = "A"
+
+        // when
         val sql = Sql {
             +"""
             SELECT *
             WHERE id = $a
             """.trimIndent()
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "SELECT *\nWHERE id = :p0",
@@ -146,13 +174,18 @@ class AutoTrimIndentTest {
 
     @Test
     fun `explicit trimMargin still works`() {
+        // given
         val a = "A"
+
+        // when
         val sql = Sql {
             +"""
             |SELECT *
             |WHERE id = $a
             """.trimMargin()
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "SELECT *\nWHERE id = :p0",
@@ -166,12 +199,16 @@ class AutoTrimIndentTest {
         // The automatic trim applies to whatever string reaches add — including the result of
         // an explicit trimMargin. Indentation deliberately kept after the margin prefix is
         // therefore stripped as well (documented in docs/basics.md; use addUnsafe to keep it).
+
+        // when
         val sql = Sql {
             +"""
             |  SELECT *
             |  FROM user
             """.trimMargin()
         }
+
+        // then
         assertThat(sql).isEqualTo(Sql("SELECT *\nFROM user"))
     }
 
@@ -180,6 +217,8 @@ class AutoTrimIndentTest {
     fun `blank edge line kept by an explicit trimIndent is also dropped`() {
         // Without the option the body would keep the blank line the explicit trimIndent
         // retained ("A\n\nSELECT 1"); the automatic trim drops it.
+
+        // when
         val sql = Sql {
             +"A"
             +"""
@@ -187,12 +226,17 @@ class AutoTrimIndentTest {
             SELECT 1
             """.trimIndent()
         }
+
+        // then
         assertThat(sql).isEqualTo(Sql("A\nSELECT 1"))
     }
 
     @Test
-    fun `nested add inside an interpolation value`() {
+    fun `a nested add inside an interpolation value trims its own string`() {
+        // given
         val x = "X"
+
+        // when
         val sql = Sql {
             +"""
             A ${run {
@@ -201,6 +245,8 @@ class AutoTrimIndentTest {
             }}
             """
         }
+
+        // then
         // The inner add runs first while the outer template's values are being evaluated, and
         // each add trims its own string.
         assertThat(sql).isEqualTo(
@@ -227,11 +273,13 @@ class AutoTrimIndentTest {
     @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
     fun `addUnsafe is not trimmed`() {
+        // given
         val rawSql = """
             SELECT *
             FROM user
         """
 
+        // when & then
         // The same raw string, side by side: add gets the automatic trimIndent ...
         val trimmed = Sql { add(rawSql) }
         assertThat(trimmed).isEqualTo(Sql("SELECT *\nFROM user"))

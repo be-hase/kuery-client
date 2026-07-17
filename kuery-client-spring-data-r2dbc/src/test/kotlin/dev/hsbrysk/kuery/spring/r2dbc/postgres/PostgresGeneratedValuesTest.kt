@@ -43,15 +43,18 @@ class PostgresGeneratedValuesTest {
     }
 
     @Test
-    fun generatedValues() = runTest {
+    fun `generatedValues returns the generated key of a single insert`() = runTest {
+        // when
         val result = kueryClient
             .sql { +"INSERT INTO users (username, email) VALUES ('user1', 'user1@example.com')" }
             .generatedValues("user_id")
+
+        // then
         assertThat(result).isEqualTo(mapOf("user_id" to 1))
     }
 
     @Test
-    fun `generatedValues no generated keys`() = runTest {
+    fun `generatedValues throws EmptyResultDataAccessException when no keys are generated`() = runTest {
         assertFailure {
             kueryClient
                 .sql { +"UPDATE users SET username = 'updated' WHERE user_id = 1" }
@@ -60,7 +63,7 @@ class PostgresGeneratedValuesTest {
     }
 
     @Test
-    fun `generatedValues multiple generated keys`() = runTest {
+    fun `generatedValues throws IncorrectResultSizeDataAccessException for multiple keys`() = runTest {
         assertFailure {
             kueryClient
                 .sql {

@@ -10,18 +10,28 @@ class DefaultKueryClientFetchObservationConventionTest {
     private val target = DefaultKueryClientFetchObservationConvention()
 
     @Test
-    fun getLowCardinalityKeyValues() {
+    fun `getLowCardinalityKeyValues returns only the sql id key value`() {
+        // given
         val ctx = KueryClientFetchContext("id", Sql("body"))
+
+        // when
         val result = target.getLowCardinalityKeyValues(ctx)
+
+        // then
         assertThat(result.toList().size).isEqualTo(1)
         assertThat(result.first().key).isEqualTo("sql.id")
         assertThat(result.first().value).isEqualTo("id")
     }
 
     @Test
-    fun getHighCardinalityKeyValues() {
+    fun `getHighCardinalityKeyValues returns only the sql key holding the body`() {
+        // given
         val ctx = KueryClientFetchContext("id", Sql("body"))
+
+        // when
         val result = target.getHighCardinalityKeyValues(ctx)
+
+        // then
         assertThat(result.toList().size).isEqualTo(1)
         assertThat(result.first().key).isEqualTo("sql")
         assertThat(result.first().value).isEqualTo("body")

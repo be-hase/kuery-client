@@ -15,7 +15,7 @@ import java.lang.ref.WeakReference
 @OptIn(KueryClientInternalApi::class)
 class SqlIdsTest {
     @Test
-    fun id() {
+    fun `id resolves the fully qualified class and method name of the call site`() {
         assertThat(ClassA().sql1 {}).isEqualTo("com.example.core.ClassA.sql1")
         runBlocking { assertThat(ClassA().sql2 {}).isEqualTo("com.example.core.ClassA.sql2") }
         assertThat(ClassA.ClassB().sql3 {}).isEqualTo("com.example.core.ClassA.ClassB.sql3")
@@ -37,14 +37,17 @@ class SqlIdsTest {
     }
 
     @Test
-    fun removeSuffixes() {
+    fun `removeSuffixes strips a matching suffix and leaves the string unchanged otherwise`() {
         assertThat("a.b.c".removeSuffixes(listOf(".b", ".c"))).isEqualTo("a.b")
         assertThat("a.b.c".removeSuffixes(listOf(".a", ".d"))).isEqualTo("a.b.c")
     }
 
     @Test
-    fun `id should not pin the class loader of the block class`() {
+    fun `id does not pin the class loader of the block class`() {
+        // when
         val loaderRef = useBlockFromIsolatedClassLoader()
+
+        // then
         repeat(100) {
             if (loaderRef.get() == null) {
                 return

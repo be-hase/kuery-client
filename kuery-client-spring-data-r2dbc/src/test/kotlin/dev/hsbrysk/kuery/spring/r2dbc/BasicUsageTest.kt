@@ -93,7 +93,7 @@ open class BasicUsageTest {
     }
 
     @AfterEach
-    fun testDown() = runTest {
+    fun tearDown() = runTest {
         val queries = listOf(
             "DROP TABLE order_items",
             "DROP TABLE orders",
@@ -106,7 +106,7 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun singleMap() = runTest {
+    fun `singleMap returns the only row as a map`() = runTest {
         val userId = 1
         val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleMap()
         assertThat(result).isEqualTo(
@@ -119,7 +119,7 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `singleMap no record`() = runTest {
+    fun `singleMap throws when no rows match`() = runTest {
         val userId = 5
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleMap()
@@ -127,14 +127,14 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `singleMap more than 1 record`() = runTest {
+    fun `singleMap throws when more than one row matches`() = runTest {
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users" }.singleMap()
         }.isInstanceOf(IncorrectResultSizeDataAccessException::class)
     }
 
     @Test
-    fun singleMapOrNull() = runTest {
+    fun `singleMapOrNull returns the only row as a map`() = runTest {
         val userId = 1
         val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleMapOrNull()
         assertThat(result).isEqualTo(
@@ -147,21 +147,21 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `singleMapOrNull no record`() = runTest {
+    fun `singleMapOrNull returns null when no rows match`() = runTest {
         val userId = 5
         val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleMapOrNull()
         assertThat(result).isNull()
     }
 
     @Test
-    fun `singleMapOrNull more than 1 record`() = runTest {
+    fun `singleMapOrNull throws when more than one row matches`() = runTest {
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users" }.singleMap()
         }.isInstanceOf(IncorrectResultSizeDataAccessException::class)
     }
 
     @Test
-    fun single() = runTest {
+    fun `single returns the only row mapped to a data class`() = runTest {
         val userId = 1
         val result: User = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.single()
         assertThat(result).isEqualTo(
@@ -174,7 +174,7 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `single invalid type`() = runTest {
+    fun `single throws when the target class does not match the selected columns`() = runTest {
         data class InvalidUser(
             val userId: Int,
             val invalid: String,
@@ -187,7 +187,7 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `single no record`() = runTest {
+    fun `single throws when no rows match`() = runTest {
         val userId = 5
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.single<User>()
@@ -195,14 +195,14 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `single more than 1 record`() = runTest {
+    fun `single throws when more than one row matches`() = runTest {
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users" }.single<User>()
         }.isInstanceOf(IncorrectResultSizeDataAccessException::class)
     }
 
     @Test
-    fun singleOrNull() = runTest {
+    fun `singleOrNull returns the only row mapped to a data class`() = runTest {
         val userId = 1
         val result: User? = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleOrNull()
         assertThat(result).isEqualTo(
@@ -215,21 +215,21 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `singleOrNull no record`() = runTest {
+    fun `singleOrNull returns null when no rows match`() = runTest {
         val userId = 5
         val result: User? = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $userId" }.singleOrNull()
         assertThat(result).isNull()
     }
 
     @Test
-    fun `singleOrNull more than 1 record`() = runTest {
+    fun `singleOrNull throws when more than one row matches`() = runTest {
         assertFailure {
             kueryClient.sql { +"SELECT * FROM users" }.singleOrNull<User>()
         }.isInstanceOf(IncorrectResultSizeDataAccessException::class)
     }
 
     @Test
-    fun listMap() = runTest {
+    fun `listMap returns all rows as maps`() = runTest {
         val result = kueryClient.sql { +"SELECT * FROM users" }.listMap()
         assertThat(result).isEqualTo(
             listOf(
@@ -248,14 +248,14 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `listMap empty`() = runTest {
+    fun `listMap returns an empty list when no rows match`() = runTest {
         val userId = 3
         val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.listMap()
         assertThat(result).isEmpty()
     }
 
     @Test
-    fun list() = runTest {
+    fun `list returns all rows mapped to data classes`() = runTest {
         val result: List<User> = kueryClient.sql { +"SELECT * FROM users" }.list()
         assertThat(result).isEqualTo(
             listOf(
@@ -274,14 +274,14 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `list empty`() = runTest {
+    fun `list returns an empty list when no rows match`() = runTest {
         val userId = 3
         val result: List<User> = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.list()
         assertThat(result).isEmpty()
     }
 
     @Test
-    fun flowMap() = runTest {
+    fun `flowMap returns all rows as maps`() = runTest {
         val result = kueryClient.sql { +"SELECT * FROM users" }.flowMap().toList()
         assertThat(result).isEqualTo(
             listOf(
@@ -300,14 +300,14 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `flowMap empty`() = runTest {
+    fun `flowMap returns an empty flow when no rows match`() = runTest {
         val userId = 3
         val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.flowMap().toList()
         assertThat(result).isEmpty()
     }
 
     @Test
-    fun flow() = runTest {
+    fun `flow returns all rows mapped to data classes`() = runTest {
         val result = kueryClient.sql { +"SELECT * FROM users" }.flow<User>().toList()
         assertThat(result).isEqualTo(
             listOf(
@@ -326,14 +326,14 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `flow empty`() = runTest {
+    fun `flow returns an empty flow when no rows match`() = runTest {
         val userId = 3
         val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.flow<User>().toList()
         assertThat(result).isEmpty()
     }
 
     @Test
-    fun rowUpdated() = runTest {
+    fun `rowsUpdated returns the number of inserted rows`() = runTest {
         val username = "user3"
         val email = "user3"
         val result = kueryClient
@@ -345,7 +345,7 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `rowUpdated 0`() = runTest {
+    fun `rowsUpdated returns zero when no rows are affected`() = runTest {
         val userId = 5
         val result = kueryClient
             .sql {
@@ -356,7 +356,7 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `rowUpdated multi`() = runTest {
+    fun `rowsUpdated returns the count across all updated rows`() = runTest {
         val result = kueryClient
             .sql {
                 +"UPDATE users SET username = 'updated'"
@@ -366,7 +366,7 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun generatedValues() = runTest {
+    fun `generatedValues returns the auto-generated key of the inserted row`() = runTest {
         val username = "user3"
         val email = "user3"
         val result = kueryClient
@@ -378,7 +378,7 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun userOrder() = runTest {
+    fun `two-table join maps combined columns to a data class`() = runTest {
         data class UserOrder(
             val username: String,
             val orderId: Int,
@@ -411,7 +411,7 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun orderProduct() = runTest {
+    fun `three-table join maps combined columns to data classes`() = runTest {
         data class OrderProduct(
             val orderId: Int,
             val productName: String,
@@ -439,7 +439,7 @@ open class BasicUsageTest {
     }
 
     @Test
-    fun `using extension function`() = runTest {
+    fun `sql fragments can be composed via an extension function using addUnsafe and bind`() = runTest {
         @OptIn(DelicateKueryClientApi::class)
         fun SqlBuilder.userIdEqualsTo(userId: Int) {
             addUnsafe("users.user_id = ${bind(userId)}")

@@ -76,6 +76,7 @@ class ConverterRegistrationTest {
 
     @Test
     fun `GenericConverter is supported for reading`() {
+        // given
         val kueryClient = h2.kueryClient(
             listOf(StringToStringWrapperGenericConverter(), StringWrapperToStringConverter()),
         )
@@ -83,6 +84,7 @@ class ConverterRegistrationTest {
             +"INSERT INTO converter (text) VALUES ('hoge')"
         }.rowsUpdated()
 
+        // when & then
         val record: Record = kueryClient.sql {
             +"SELECT * FROM converter"
         }.single()
@@ -91,8 +93,10 @@ class ConverterRegistrationTest {
 
     @Test
     fun `GenericConverter for a Kotlin Int works via javaObjectType`() {
+        // given
         val kueryClient = h2.kueryClient(listOf(IntToIntWrapperGenericConverter()))
 
+        // when & then
         val record: IntRecord = kueryClient.sql {
             +"SELECT CAST(42 AS INT) AS num"
         }.single()
@@ -103,12 +107,15 @@ class ConverterRegistrationTest {
     fun `converter without annotation infers direction from the store-typed side`() {
         // Converter<StringWrapper, String> targets a store type, so Spring infers it as a
         // writing converter even without @WritingConverter.
+
+        // given
         val kueryClient = h2.kueryClient(listOf(UnannotatedStringWrapperToStringConverter()))
 
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES (${StringWrapper("hoge")})"
         }.rowsUpdated()
 
+        // when & then
         val result = kueryClient.sql {
             +"SELECT text FROM converter"
         }.single<String>()

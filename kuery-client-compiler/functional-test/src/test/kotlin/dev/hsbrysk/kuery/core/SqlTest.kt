@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 @OptIn(DelicateKueryClientApi::class)
 class SqlTest {
     @Test
-    fun `simple create`() {
+    fun `a plain fragment becomes the SQL body with no parameters`() {
         val sql = Sql {
             +"SELECT * FROM user"
         }
@@ -15,7 +15,8 @@ class SqlTest {
     }
 
     @Test
-    fun `simple insert`() {
+    fun `interpolated values are bound as ordered named parameters`() {
+        // given
         data class User(
             val name: String,
             val age: Int,
@@ -23,10 +24,14 @@ class SqlTest {
         )
 
         val user = User(name = "name", age = 18, address = "address")
+
+        // when
         val sql = Sql {
             +"INSERT INTO user (name, age, address)"
             +"VALUES (${user.name}, ${user.age}, ${user.address})"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """
@@ -43,7 +48,8 @@ class SqlTest {
     }
 
     @Test
-    fun `simple update`() {
+    fun `a multi-line template keeps its shape while values become placeholders`() {
+        // given
         data class User(
             val id: String,
             val name: String,
@@ -52,6 +58,8 @@ class SqlTest {
         )
 
         val user = User(id = "id", name = "name", age = 18, address = "address")
+
+        // when
         val sql = Sql {
             add(
                 """
@@ -65,6 +73,8 @@ class SqlTest {
                 """.trimIndent(),
             )
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """
@@ -87,11 +97,16 @@ class SqlTest {
     }
 
     @Test
-    fun `simple delete`() {
+    fun `an interpolated value in a single-line fragment is bound as a parameter`() {
+        // given
         val id = "id"
+
+        // when
         val sql = Sql {
             +"DELETE FROM user WHERE id = $id"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """
@@ -105,13 +120,18 @@ class SqlTest {
     }
 
     @Test
-    fun `select in`() {
+    fun `a collection value in an IN clause is bound as a single parameter`() {
+        // given
         val ids = listOf(1, 2, 3, 4, 5)
+
+        // when
         val sql = Sql {
             +"SELECT *"
             +"FROM user"
             +"WHERE id IN ($ids)"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """
@@ -127,16 +147,22 @@ class SqlTest {
     }
 
     @Test
-    fun `select in empty collection`() {
+    fun `an empty collection is bound as a single parameter without expansion`() {
         // An empty collection is NOT expanded at the core level. It is bound as a single
         // parameter whose value is the empty collection; what happens next is up to the
         // executing layer (e.g. Spring's named parameter expansion).
+
+        // given
         val emptyIds = emptyList<Int>()
+
+        // when
         val sql = Sql {
             +"SELECT *"
             +"FROM user"
             +"WHERE id IN ($emptyIds)"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """
@@ -150,10 +176,15 @@ class SqlTest {
             ),
         )
 
+        // given
         val emptyIdSet = emptySet<Int>()
+
+        // when
         val sql2 = Sql {
             +"SELECT * FROM user WHERE id IN ($emptyIdSet)"
         }
+
+        // then
         assertThat(sql2).isEqualTo(
             Sql(
                 "SELECT * FROM user WHERE id IN (:p0)",
@@ -165,14 +196,20 @@ class SqlTest {
     }
 
     @Test
-    fun `placeholder immediately followed by a cast suffix`() {
+    fun `a cast suffix immediately after a placeholder is kept verbatim`() {
         // PostgreSQL style casts like `$value::jsonb` must keep the cast suffix verbatim
         // right after the generated placeholder.
+
+        // given
         val json = """{"theme":"dark"}"""
         val id = "id"
+
+        // when
         val sql = Sql {
             +"UPDATE user SET settings = $json::jsonb WHERE id = $id::uuid"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "UPDATE user SET settings = :p0::jsonb WHERE id = :p1::uuid",
@@ -185,7 +222,8 @@ class SqlTest {
     }
 
     @Test
-    fun `insert multi`() {
+    fun `values expands rows into consecutively numbered parameters`() {
+        // given
         data class User(
             val name: String,
             val age: Int,
@@ -197,10 +235,14 @@ class SqlTest {
             User(name = "name2", age = 2, address = "address2"),
             User(name = "name3", age = 3, address = "address3"),
         )
+
+        // when
         val sql = Sql {
             +"INSERT INTO user (name, age, address)"
             values(users) { listOf(it.name, it.age, it.address) }
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """
@@ -219,7 +261,8 @@ class SqlTest {
     }
 
     @Test
-    fun `select complex condition`() {
+    fun `conditional lines appear only for non-null values with consecutive numbering`() {
+        // given
         data class UserFilter(
             val id: String,
             val name: String?,
@@ -228,6 +271,8 @@ class SqlTest {
         )
 
         val filter = UserFilter(id = "id", name = null, age = 18, address = null)
+
+        // when
         val sql = Sql {
             +"SELECT *"
             +"FROM user"
@@ -237,6 +282,8 @@ class SqlTest {
             filter.age?.let { +"AND age = $it" }
             filter.address?.let { +"AND address = $it" }
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """
@@ -256,17 +303,23 @@ class SqlTest {
 
     @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
-    fun `mixing interpolation and manual bind`() {
+    fun `interpolation and manual bind share a single parameter counter`() {
         // Interpolation and manual bind() share a single parameter counter, so numbering
         // never collides. Binding the same value twice yields two distinct parameters.
+
+        // given
         val userId = "user1"
         val mask = 0b0100
         val age = 18
+
+        // when
         val sql = Sql {
             +"SELECT * FROM user WHERE id = $userId"
             addUnsafe("AND permission & ${bind(mask)} = ${bind(mask)}")
             +"AND age = $age"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """
@@ -286,7 +339,8 @@ class SqlTest {
 
     @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
-    fun mixedOrder() {
+    fun `parameter numbering follows bind evaluation order, not line order`() {
+        // when
         val sql = Sql {
             val line2 = "L2=${bind(2)}"
             val line1 = "L1=${bind(1)}"
@@ -296,6 +350,8 @@ class SqlTest {
             +line1
             +line2
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """

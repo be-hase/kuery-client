@@ -43,29 +43,37 @@ class PostgresKeysetPaginationTest {
 
     @Test
     fun `keyset pagination ascending`() {
+        // given
         val cursorCreatedAt = LocalDateTime.of(2026, 1, 1, 10, 0, 0)
         val cursorId = 1
 
+        // when
         val page = kueryClient.sql {
             +"SELECT id FROM events"
             +"WHERE (created_at, id) > ($cursorCreatedAt, $cursorId)"
             +"ORDER BY created_at, id"
             +"LIMIT 2"
         }.listMap()
+
+        // then
         assertThat(page.map { it["id"] }).isEqualTo(listOf(2, 3))
     }
 
     @Test
     fun `keyset pagination descending`() {
+        // given
         val cursorCreatedAt = LocalDateTime.of(2026, 1, 1, 10, 5, 0)
         val cursorId = 4
 
+        // when
         val page = kueryClient.sql {
             +"SELECT id FROM events"
             +"WHERE (created_at, id) < ($cursorCreatedAt, $cursorId)"
             +"ORDER BY created_at DESC, id DESC"
             +"LIMIT 2"
         }.listMap()
+
+        // then
         assertThat(page.map { it["id"] }).isEqualTo(listOf(3, 2))
     }
 

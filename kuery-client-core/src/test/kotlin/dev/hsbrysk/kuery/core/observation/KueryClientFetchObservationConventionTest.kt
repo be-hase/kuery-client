@@ -12,12 +12,12 @@ class KueryClientFetchObservationConventionTest {
     private val target = KueryClientFetchObservationConvention.default()
 
     @Test
-    fun getName() {
+    fun `name returns the fixed observation name`() {
         assertThat(target.name).isEqualTo("kuery.client.fetches")
     }
 
     @Test
-    fun supportsContext() {
+    fun `supportsContext returns true only for KueryClientFetchContext`() {
         assertThat(target.supportsContext(KueryClientFetchContext("id", Sql("")))).isTrue()
         assertThat(target.supportsContext(Observation.Context())).isFalse()
     }

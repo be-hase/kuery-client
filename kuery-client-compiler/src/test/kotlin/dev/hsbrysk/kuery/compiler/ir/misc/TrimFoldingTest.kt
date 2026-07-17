@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 
 class TrimFoldingTest {
     @Test
-    fun `values mid-line`() {
+    fun `a template with values mid-line folds like runtime trimIndent`() {
         assertFoldsLikeRuntime(
             fragments = listOf("\n                UPDATE user\n                SET name = ", "\n                "),
             valueCount = 1,
@@ -15,7 +15,7 @@ class TrimFoldingTest {
     }
 
     @Test
-    fun `value at line start`() {
+    fun `a template with a value at line start folds like runtime trimIndent`() {
         assertFoldsLikeRuntime(
             fragments = listOf("\n    ", " AND foo\n    bar\n"),
             valueCount = 1,
@@ -23,7 +23,7 @@ class TrimFoldingTest {
     }
 
     @Test
-    fun `trailing value`() {
+    fun `a template ending with a value folds like runtime trimIndent`() {
         // fragments.size == valueCount (no trailing fragment)
         assertFoldsLikeRuntime(
             fragments = listOf("\n  SELECT *\n  WHERE id = "),
@@ -32,7 +32,7 @@ class TrimFoldingTest {
     }
 
     @Test
-    fun `consecutive values and blank lines`() {
+    fun `a template with consecutive values and blank lines folds like runtime trimIndent`() {
         assertFoldsLikeRuntime(
             fragments = listOf("\n   a ", "", "\n\n   b\n   "),
             valueCount = 3,
@@ -40,7 +40,7 @@ class TrimFoldingTest {
     }
 
     @Test
-    fun `blank first and last lines`() {
+    fun `a template with blank first and last lines folds like runtime trimIndent`() {
         assertFoldsLikeRuntime(
             fragments = listOf("   \n  x = ", "\n   \t"),
             valueCount = 1,
@@ -48,7 +48,7 @@ class TrimFoldingTest {
     }
 
     @Test
-    fun `no values`() {
+    fun `a template with no values folds like runtime trimIndent`() {
         assertFoldsLikeRuntime(
             fragments = listOf("\n  SELECT *\n  FROM user\n"),
             valueCount = 0,
@@ -56,7 +56,7 @@ class TrimFoldingTest {
     }
 
     @Test
-    fun `single line`() {
+    fun `a single-line template folds like runtime trimIndent`() {
         assertFoldsLikeRuntime(
             fragments = listOf("  SELECT ", ""),
             valueCount = 1,
@@ -64,7 +64,7 @@ class TrimFoldingTest {
     }
 
     @Test
-    fun `empty template`() {
+    fun `an empty template folds like runtime trimIndent`() {
         assertFoldsLikeRuntime(
             fragments = listOf(""),
             valueCount = 0,
@@ -72,7 +72,7 @@ class TrimFoldingTest {
     }
 
     @Test
-    fun `value only`() {
+    fun `a value-only template folds like runtime trimIndent`() {
         assertFoldsLikeRuntime(
             fragments = listOf(""),
             valueCount = 1,
@@ -80,7 +80,7 @@ class TrimFoldingTest {
     }
 
     @Test
-    fun `fragment containing the sentinel falls back`() {
+    fun `foldOrNull returns null when a fragment contains the sentinel character`() {
         assertThat(TrimFolding.foldOrNull(listOf("a\u0000b"), 0)).isNull()
     }
 

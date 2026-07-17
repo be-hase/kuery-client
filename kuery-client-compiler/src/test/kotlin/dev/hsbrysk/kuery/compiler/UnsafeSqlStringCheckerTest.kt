@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 class UnsafeSqlStringCheckerTest {
     @Test
     fun `warn when a variable is passed to add`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -22,12 +23,15 @@ class UnsafeSqlStringCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn when a variable is passed to unaryPlus`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -38,12 +42,15 @@ class UnsafeSqlStringCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn when a run block is passed to add`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -53,12 +60,15 @@ class UnsafeSqlStringCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `no warning when an if expression with safe branches is passed to add`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -71,12 +81,15 @@ class UnsafeSqlStringCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
     @Test
     fun `no warning when a when expression with safe branches is passed to add`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -97,12 +110,15 @@ class UnsafeSqlStringCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
     @Test
     fun `no warning when a when expression has an error branch`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -121,12 +137,15 @@ class UnsafeSqlStringCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
     @Test
     fun `no warning when an if expression has a throw branch`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -145,12 +164,15 @@ class UnsafeSqlStringCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
     @Test
     fun `warn when an if expression has an unsafe branch`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -160,12 +182,15 @@ class UnsafeSqlStringCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn when a non-whitelisted method chain is passed to add`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -175,12 +200,15 @@ class UnsafeSqlStringCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn when string concatenation via plus is passed to add`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -190,6 +218,8 @@ class UnsafeSqlStringCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
@@ -197,6 +227,7 @@ class UnsafeSqlStringCheckerTest {
     @Test
     fun `no warning for safe argument forms`() {
         // allWarningsAsErrors = true, so any unexpected warning fails the compilation as well
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.DelicateKueryClientApi
@@ -221,6 +252,8 @@ class UnsafeSqlStringCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
@@ -229,6 +262,7 @@ class UnsafeSqlStringCheckerTest {
     fun `no warning for extension function helpers writing common query parts`() {
         // Mirrors the documented helper style: common WHERE clauses etc. written as
         // SqlBuilder extension functions using add/unaryPlus with string templates.
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -254,12 +288,15 @@ class UnsafeSqlStringCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
     @Test
     fun `warn when an extension helper passes its parameter to unaryPlus`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.SqlBuilder
@@ -269,12 +306,15 @@ class UnsafeSqlStringCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warning can be suppressed by diagnostic name`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -287,12 +327,15 @@ class UnsafeSqlStringCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
     @Test
     fun `warning becomes an error with -Werror`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -304,6 +347,8 @@ class UnsafeSqlStringCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.COMPILATION_ERROR)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }

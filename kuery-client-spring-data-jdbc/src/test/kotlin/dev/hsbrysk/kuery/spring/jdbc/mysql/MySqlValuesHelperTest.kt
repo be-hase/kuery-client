@@ -35,16 +35,20 @@ class MySqlValuesHelperTest {
 
     @Test
     fun `values mixing null and non-null rows on typed columns`() {
+        // given
         val createdAt = LocalDateTime.of(2026, 1, 1, 0, 0, 0)
         val input = listOf(
             listOf(1, ByteArray(16) { it.toByte() }, createdAt),
             listOf(2, null, null),
         )
 
+        // when
         val rowsUpdated = kueryClient.sql {
             +"INSERT INTO documents (id, parent_id, created_at)"
             values(input)
         }.rowsUpdated()
+
+        // then
         assertThat(rowsUpdated).isEqualTo(2L)
     }
 

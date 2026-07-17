@@ -23,16 +23,19 @@ class CSVConversionTest {
     }
 
     @Test
-    fun test() {
+    fun `comma-separated text is read into a List property with trimmed elements`() {
+        // given
         val text = "a, b,c"
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES ($text)"
         }.rowsUpdated()
 
+        // when
         val record: Record = kueryClient.sql {
             +"SELECT * FROM converter"
         }.single()
 
+        // then
         assertThat(record.text).isEqualTo(listOf("a", "b", "c"))
     }
 

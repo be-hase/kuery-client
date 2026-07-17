@@ -41,7 +41,10 @@ class SequenceExecutionTimingTest {
 
     @Test
     fun `sequenceMap executes the query eagerly at call time`() {
+        // when
         val sequence = kueryClient.sql { +"SELECT * FROM converter" }.sequenceMap()
+
+        // then
         sequence.use {
             // The connection was already acquired (and the statement executed) by sequenceMap()
             // itself, before the first element was consumed.

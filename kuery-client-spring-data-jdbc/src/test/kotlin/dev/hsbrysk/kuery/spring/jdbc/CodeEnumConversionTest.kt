@@ -93,27 +93,32 @@ class CodeEnumConversionTest {
     }
 
     @Test
-    fun test() {
+    fun `code enums are written as their codes and mapped back to enum properties`() {
+        // given
         kueryClient.sql {
             +"INSERT INTO code_enum (int_enum, string_enum)"
             +"VALUES (${SampleIntCodeEnum.HOGE}, ${SampleStringCodeEnum.BAR})"
         }.rowsUpdated()
 
+        // when
         val record: Record = kueryClient.sql {
             +"SELECT * FROM code_enum"
         }.single()
 
+        // then
         assertThat(record.intEnum).isEqualTo(SampleIntCodeEnum.HOGE)
         assertThat(record.stringEnum).isEqualTo(SampleStringCodeEnum.BAR)
     }
 
     @Test
-    fun testScalar() {
+    fun `code enum is converted when fetched as a scalar`() {
+        // given
         kueryClient.sql {
             +"INSERT INTO code_enum (int_enum, string_enum)"
             +"VALUES (${SampleIntCodeEnum.HOGE}, ${SampleStringCodeEnum.BAR})"
         }.rowsUpdated()
 
+        // when & then
         val intEnum: SampleIntCodeEnum = kueryClient.sql {
             +"SELECT int_enum FROM code_enum"
         }.single()

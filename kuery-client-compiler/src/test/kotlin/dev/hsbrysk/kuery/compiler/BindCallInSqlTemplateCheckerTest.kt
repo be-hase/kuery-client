@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 class BindCallInSqlTemplateCheckerTest {
     @Test
     fun `warn when bind is called inside a template passed to unaryPlus`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.DelicateKueryClientApi
@@ -23,12 +24,15 @@ class BindCallInSqlTemplateCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn when bind is called inside a template passed to add`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.DelicateKueryClientApi
@@ -40,12 +44,15 @@ class BindCallInSqlTemplateCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn when bind is called indirectly inside an interpolated value`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.DelicateKueryClientApi
@@ -57,12 +64,15 @@ class BindCallInSqlTemplateCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn when bind is called inside a template in an if branch passed to add`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.DelicateKueryClientApi
@@ -74,12 +84,15 @@ class BindCallInSqlTemplateCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `no warning when bind is used with addUnsafe`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.DelicateKueryClientApi
@@ -92,12 +105,15 @@ class BindCallInSqlTemplateCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
     @Test
     fun `no warning for plain interpolation`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -109,12 +125,15 @@ class BindCallInSqlTemplateCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
     @Test
     fun `warning can be suppressed by diagnostic name`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.DelicateKueryClientApi
@@ -128,12 +147,15 @@ class BindCallInSqlTemplateCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
     @Test
     fun `warning becomes an error with -Werror`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.DelicateKueryClientApi
@@ -146,6 +168,8 @@ class BindCallInSqlTemplateCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.COMPILATION_ERROR)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }

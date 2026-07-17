@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 
 class NamedSqlParameterTest {
     @Test
-    fun of() {
+    fun `NamedSqlParameter creates a DefaultNamedSqlParameter with the given name and value`() {
         assertThat(NamedSqlParameter("hoge", "hoge-value"))
             .isEqualTo(DefaultNamedSqlParameter("hoge", "hoge-value"))
 

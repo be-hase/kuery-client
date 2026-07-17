@@ -33,20 +33,22 @@ class MySqlSingleBasicTypeTest {
     @OptIn(DelicateKueryClientApi::class)
     @ParameterizedTest
     @MethodSource("singleValues")
-    fun testSingleValues(
+    fun `single maps a single-column result to each basic type`(
         query: String,
         expected: Any,
         type: KClass<*>,
     ) = runTest {
+        // when
         val result = kueryClient.sql {
             addUnsafe(query)
         }.single(type)
 
+        // then
         assertThat(result).isEqualTo(expected)
     }
 
     @Test
-    fun unSupportNotSimpleProperty() = runTest {
+    fun `single with a non-simple data class type is rejected`() = runTest {
         assertFailure {
             kueryClient.sql {
                 +"SELECT 'hoge'"
@@ -55,11 +57,13 @@ class MySqlSingleBasicTypeTest {
     }
 
     @Test
-    fun testSingleColumnWithMultiValue() = runTest {
+    fun `list maps each row of a single-column result`() = runTest {
+        // when
         val result = kueryClient.sql {
             +"SELECT 1 UNION SELECT 0"
         }.list(Int::class)
 
+        // then
         assertThat(result).isEqualTo(listOf(1, 0))
     }
 

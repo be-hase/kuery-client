@@ -47,66 +47,66 @@ class SqlIdReactorContextTest {
     }
 
     @AfterEach
-    fun testDown() = runTest {
+    fun tearDown() = runTest {
         h2.databaseClient.sql("DROP TABLE users").fetch().awaitRowsUpdated()
     }
 
     @Test
-    fun singleMap() = runTest {
+    fun `singleMap propagates the auto-generated sqlId to statement execution`() = runTest {
         userRepository.singleMap(1)
         assertThat(capturedSqlIds).containsExactly("com.example.spring.r2dbc.UserRepository.singleMap")
     }
 
     @Test
-    fun singleMapOrNull() = runTest {
+    fun `singleMapOrNull propagates the auto-generated sqlId to statement execution`() = runTest {
         userRepository.singleMapOrNull(1)
         assertThat(capturedSqlIds).containsExactly("com.example.spring.r2dbc.UserRepository.singleMapOrNull")
     }
 
     @Test
-    fun single() = runTest {
+    fun `single propagates the auto-generated sqlId to statement execution`() = runTest {
         userRepository.single(1)
         assertThat(capturedSqlIds).containsExactly("com.example.spring.r2dbc.UserRepository.single")
     }
 
     @Test
-    fun singleOrNull() = runTest {
+    fun `singleOrNull propagates the auto-generated sqlId to statement execution`() = runTest {
         userRepository.singleOrNull(1)
         assertThat(capturedSqlIds).containsExactly("com.example.spring.r2dbc.UserRepository.singleOrNull")
     }
 
     @Test
-    fun listMap() = runTest {
+    fun `listMap propagates the auto-generated sqlId to statement execution`() = runTest {
         userRepository.listMap()
         assertThat(capturedSqlIds).containsExactly("com.example.spring.r2dbc.UserRepository.listMap")
     }
 
     @Test
-    fun list() = runTest {
+    fun `list propagates the auto-generated sqlId to statement execution`() = runTest {
         userRepository.list()
         assertThat(capturedSqlIds).containsExactly("com.example.spring.r2dbc.UserRepository.list")
     }
 
     @Test
-    fun flowMap() = runTest {
+    fun `flowMap propagates the auto-generated sqlId to statement execution`() = runTest {
         userRepository.flowMap().collect()
         assertThat(capturedSqlIds).containsExactly("com.example.spring.r2dbc.UserRepository.flowMap")
     }
 
     @Test
-    fun flow() = runTest {
+    fun `flow propagates the auto-generated sqlId to statement execution`() = runTest {
         userRepository.flow().collect()
         assertThat(capturedSqlIds).containsExactly("com.example.spring.r2dbc.UserRepository.flow")
     }
 
     @Test
-    fun rowsUpdated() = runTest {
+    fun `rowsUpdated propagates the auto-generated sqlId to statement execution`() = runTest {
         userRepository.rowUpdated("user3", "user3@example.com")
         assertThat(capturedSqlIds).containsExactly("com.example.spring.r2dbc.UserRepository.rowUpdated")
     }
 
     @Test
-    fun generatedValues() = runTest {
+    fun `generatedValues propagates the auto-generated sqlId to statement execution`() = runTest {
         userRepository.generatedValues("user3", "user3@example.com")
         assertThat(capturedSqlIds).containsExactly("com.example.spring.r2dbc.UserRepository.generatedValues")
     }

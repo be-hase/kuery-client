@@ -35,11 +35,13 @@ class NullReturningWritingConverterTest {
     }
 
     @Test
-    fun testNull() = runTest {
+    fun `null converter result is bound as SQL NULL`() = runTest {
+        // given
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES (${NullableText(null)})"
         }.rowsUpdated()
 
+        // when & then
         val map = kueryClient.sql {
             +"SELECT * FROM converter"
         }.singleMap()
@@ -47,11 +49,13 @@ class NullReturningWritingConverterTest {
     }
 
     @Test
-    fun testNonNull() = runTest {
+    fun `non-null converter result is bound as the converted value`() = runTest {
+        // given
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES (${NullableText("hoge")})"
         }.rowsUpdated()
 
+        // when & then
         val map = kueryClient.sql {
             +"SELECT * FROM converter"
         }.singleMap()

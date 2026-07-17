@@ -37,16 +37,20 @@ class PostgresUpsertTest {
 
     @Test
     fun `values followed by ON CONFLICT DO UPDATE`() = runTest {
+        // given
         val input = listOf(
             listOf(1, "new1@example.com"),
             listOf(2, "new2@example.com"),
         )
 
+        // when
         val rowsUpdated = kueryClient.sql {
             +"INSERT INTO upsert_users (user_id, email)"
             values(input)
             +"ON CONFLICT (user_id) DO UPDATE SET email = EXCLUDED.email"
         }.rowsUpdated()
+
+        // then
         assertThat(rowsUpdated).isEqualTo(2L)
 
         val result = kueryClient

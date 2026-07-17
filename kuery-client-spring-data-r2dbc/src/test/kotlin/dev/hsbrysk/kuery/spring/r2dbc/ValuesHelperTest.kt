@@ -28,7 +28,7 @@ class ValuesHelperTest {
     }
 
     @AfterEach
-    fun testDown() = runTest {
+    fun tearDown() = runTest {
         h2.databaseClient.sql(
             """
             DROP TABLE users
@@ -44,13 +44,15 @@ class ValuesHelperTest {
     )
 
     @Test
-    fun test() = runTest {
+    fun `values expands a list of rows into a multi-row INSERT`() = runTest {
+        // given
         val input = listOf(
             listOf("user1", "user1@example.com", 1),
             listOf("user2", null, 2),
             listOf("user3", "user3@example.com", 3),
         )
 
+        // when & then
         val rowsUpdated = kueryClient.sql {
             +"INSERT INTO users (username, email, age)"
             values(input)
@@ -70,19 +72,21 @@ class ValuesHelperTest {
     }
 
     @Test
-    fun `test with transformer`() = runTest {
+    fun `values with a transformer maps objects to rows before binding`() = runTest {
         data class UserParam(
             val username: String,
             val email: String?,
             val age: Int,
         )
 
+        // given
         val input = listOf(
             UserParam("user1", "user1@example.com", 1),
             UserParam("user2", null, 2),
             UserParam("user3", "user3@example.com", 3),
         )
 
+        // when & then
         val rowsUpdated = kueryClient.sql {
             +"INSERT INTO users (username, email, age)"
             values(input) { listOf(it.username, it.email, it.age) }

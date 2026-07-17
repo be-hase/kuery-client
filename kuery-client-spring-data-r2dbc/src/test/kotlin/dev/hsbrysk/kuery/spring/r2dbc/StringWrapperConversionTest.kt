@@ -44,15 +44,18 @@ class StringWrapperConversionTest {
     }
 
     @Test
-    fun test() = runTest {
+    fun `wrapper type round-trips through registered writing and reading converters`() = runTest {
+        // given
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES (${StringWrapper("hoge")})"
         }.rowsUpdated()
 
+        // when
         val record: Record = kueryClient.sql {
             +"SELECT * FROM converter"
         }.single()
 
+        // then
         assertThat(record.text).isEqualTo(StringWrapper("hoge"))
     }
 
