@@ -167,6 +167,11 @@ A method with a single call keeps the plain id without the suffix. Note that thi
 to a method changes the first call's id from `...selectByUserId` to `...selectByUserId#1`; specify the
 `sql_id` explicitly if you want ids that are independent of such refactorings.
 
+The suffix is an ordinal among the auto-generated ids that would otherwise collide — not the call's position
+in the method. Calls with an explicit `sql("...")` id neither receive nor shift numbers: in a method with one
+explicit-id call followed by one auto-id call, the auto id stays plain (no `#2`), exactly as if the explicit
+call were not there.
+
 ```kotlin
 val user: User = kueryClient
     .sql("my_sql_id_1") {
