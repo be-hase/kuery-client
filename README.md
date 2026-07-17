@@ -169,6 +169,10 @@ More details are on the [document site](https://kuery-client.hsbrysk.dev/):
 - [Observation](https://kuery-client.hsbrysk.dev/observation) — Micrometer-based metrics, tracing, and logging
 - [Compatibility](https://kuery-client.hsbrysk.dev/compatibility) — supported Kotlin / Spring versions
 
+For AI assistants and LLM-based tools, the entire documentation is also available in
+the [llms.txt](https://llmstxt.org/) format: [llms.txt](https://kuery-client.hsbrysk.dev/llms.txt)
+(index) and [llms-full.txt](https://kuery-client.hsbrysk.dev/llms-full.txt) (full content in a single file).
+
 ## Examples
 
 Runnable example projects live in [examples/](examples):
