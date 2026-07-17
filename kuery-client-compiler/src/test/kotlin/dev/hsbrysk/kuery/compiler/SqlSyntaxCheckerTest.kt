@@ -188,6 +188,29 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
+    fun `the warning stays a warning under -Werror when pinned with -Xwarning-level`() {
+        // The escape hatch documented for allWarningsAsErrors users: the explicit per-diagnostic
+        // level wins over -Werror, so the build succeeds while the warning is still shown.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { +"SELCT * FROM users" }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+            kotlincArguments = listOf("-Xwarning-level=$DIAGNOSTIC_NAME:warning"),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
     fun `warn when a KueryBlockingClient sql block does not parse`() {
         // The blocking client mirrors KueryClient and must be recognized as an entry point too.
         // when

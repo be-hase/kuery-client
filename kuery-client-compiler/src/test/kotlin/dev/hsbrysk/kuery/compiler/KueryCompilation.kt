@@ -26,6 +26,7 @@ internal fun compile(
     source: String,
     allWarningsAsErrors: Boolean = false,
     pluginOptions: List<PluginOption> = emptyList(),
+    kotlincArguments: List<String> = emptyList(),
 ): JvmCompilationResult = KotlinCompilation().apply {
     sources = listOf(SourceFile.kotlin("Sample.kt", source))
     commandLineProcessors = listOf(KueryClientCompilerCommandLineProcessor())
@@ -34,4 +35,5 @@ internal fun compile(
     inheritClassPath = true
     verbose = false
     this.allWarningsAsErrors = allWarningsAsErrors
+    this.kotlincArguments = kotlincArguments
 }.compile()
