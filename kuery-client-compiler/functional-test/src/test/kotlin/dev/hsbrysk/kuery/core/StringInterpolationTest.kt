@@ -420,6 +420,16 @@ class StringInterpolationTest {
     }
 
     @Test
+    fun `a Java static final constant in a template is expanded as raw SQL text`() {
+        // FIR2IR folds Java compile-time constants exactly like Kotlin const vals: the value is
+        // spliced as SQL text, not bound as a parameter.
+        val sql = Sql {
+            +"SELECT * FROM ${javax.xml.XMLConstants.XML_NS_PREFIX}_users"
+        }
+        assertThat(sql).isEqualTo(Sql("SELECT * FROM xml_users"))
+    }
+
+    @Test
     fun `a const val passed directly to add executes as raw SQL text`() {
         // A const val reference is a compile-time constant, so it is accepted without
         // a KUERY_UNSAFE_SQL_STRING warning and executed as raw SQL text.
