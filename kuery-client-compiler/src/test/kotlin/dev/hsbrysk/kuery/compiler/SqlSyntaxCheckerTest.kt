@@ -96,6 +96,196 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
+    fun `warn when a KueryBlockingClient sql block does not parse`() {
+        // The blocking client mirrors KueryClient and must be recognized as an entry point too.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.KueryBlockingClient
+
+            fun query(client: KueryBlockingClient) {
+                client.sql { +"SELCT * FROM users" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `no warning for a valid multi-line SQL string`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int) {
+                Sql {
+                    add(
+                        ${TRIPLE_QUOTE}
+                        SELECT *
+                        FROM users
+                        WHERE id = ${'$'}id
+                        ${TRIPLE_QUOTE}.trimIndent(),
+                    )
+                }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `the warning is anchored to the failing add when the block mixes multi-line and single-line parts`() {
+        // The reconstructed SQL spans several lines per part, so the failing line must be mapped
+        // back to the right add across the multi-line accumulation.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int) {
+                Sql {
+                    +${TRIPLE_QUOTE}
+                        SELECT *
+                        FROM users
+                        ${TRIPLE_QUOTE}.trimIndent()
+                    +"WHRE id = ${'$'}id"
+                }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        // The broken single-line fragment is on line 9 of the compiled source.
+        assertThat(result.messages).contains("Sample.kt:9")
+    }
+
+    @Test
+    fun `warn under autoTrimIndent when the assembled SQL does not parse`() {
+        // The checker trims each part the same way the plugin does at runtime, so the check must
+        // still fire when both options are enabled.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql {
+                    +${TRIPLE_QUOTE}
+                        SELCT *
+                        FROM users
+                    ${TRIPLE_QUOTE}
+                }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption(), autoTrimIndentOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `the reconstructed text of a trimMargin argument is the margin-stripped SQL`() {
+        // The margin prefix must be stripped exactly as at runtime: `|SELCT ...` parses (with the
+        // pipe kept it would fail on the pipe, not on the typo), so a broken statement built with
+        // trimMargin is still flagged for the right reason.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { add("|SELCT 1".trimMargin()) }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+        // The reported token is the typo, proving the leading '|' was removed before parsing.
+        assertThat(result.messages).contains("SELCT")
+    }
+
+    @Test
+    fun `no warning when an add argument is an if expression`() {
+        // An if/when result is compile-time-safe but not reconstructable, so the block is skipped
+        // even when a branch is broken.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(flag: Boolean) {
+                Sql { add(if (flag) "SELCT 1" else "SELECT 2") }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `no warning for an empty sql block`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `no warning for a like-named function that is not a client sql call`() {
+        // The entry-point pre-filter matches on the callee name first; a user's own function
+        // named Sql must not be treated as a builder block.
+        // when
+        val result = compile(
+            """
+            fun Sql(block: () -> Unit) {}
+
+            fun query() {
+                Sql { }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
     fun `no warning when the block contains statements other than add or unaryPlus`() {
         // The full statement is not statically known, so even a broken fragment is skipped.
         // when
@@ -363,6 +553,28 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
+    fun `a syntax error rather than a dialect violation is reported when the SQL does not parse`() {
+        // A statement that fails to parse cannot be feature-checked, so only the syntax warning
+        // fires even with a dialect configured.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { +"SELCT * FROM users" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption(), sqlSyntaxCheckDialectOption("postgresql")),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+        assertThat(result.messages).doesNotContain(DIALECT_DIAGNOSTIC_NAME)
+    }
+
+    @Test
     fun `the dialect option alone enables the syntax check`() {
         // when
         val result = compile(
@@ -405,5 +617,8 @@ class SqlSyntaxCheckerTest {
     companion object {
         private const val DIAGNOSTIC_NAME = "KUERY_SQL_SYNTAX"
         private const val DIALECT_DIAGNOSTIC_NAME = "KUERY_SQL_DIALECT"
+
+        // A triple-quote token to embed inside the triple-quoted source snippets below.
+        private const val TRIPLE_QUOTE = "\"\"\""
     }
 }
