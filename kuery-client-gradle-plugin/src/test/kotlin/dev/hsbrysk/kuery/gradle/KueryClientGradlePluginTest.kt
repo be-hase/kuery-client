@@ -57,6 +57,20 @@ class KueryClientGradlePluginTest {
         assertThat(options.single().toEqualsString()).isEqualTo("autoTrimIndent=true")
     }
 
+    @Test
+    fun `sqlSyntaxCheck is passed through when enabled`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set(true)
+
+        // when
+        val options = plugin.applyToCompilation(compilation(project)).get()
+
+        // then
+        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheck=true")
+    }
+
     private fun compilation(platformType: KotlinPlatformType): KotlinCompilation<*> = mockk {
         every { target.platformType } returns platformType
     }

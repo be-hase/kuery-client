@@ -10,21 +10,21 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
 class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
-        target.extensions.create(EXTENSION_NAME, KueryClientExtension::class.java)
-            .autoTrimIndent.convention(false)
+        val extension = target.extensions.create(EXTENSION_NAME, KueryClientExtension::class.java)
+        extension.autoTrimIndent.convention(false)
+        extension.sqlSyntaxCheck.convention(false)
     }
 
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
         val extension = kotlinCompilation.target.project.extensions.getByType(KueryClientExtension::class.java)
-        return extension.autoTrimIndent.map { enabled ->
-            // Only emit the option when it deviates from the compiler plugin's default, so a
+        return extension.autoTrimIndent.zip(extension.sqlSyntaxCheck) { autoTrimIndent, sqlSyntaxCheck ->
+            // Only emit an option when it deviates from the compiler plugin's default, so a
             // build whose compiler-plugin artifact resolves to an older kuery-client-compiler
             // (which would reject the unknown option) keeps working as long as the feature is
             // not enabled.
-            if (enabled) {
-                listOf(SubpluginOption("autoTrimIndent", "true"))
-            } else {
-                emptyList()
+            buildList {
+                if (autoTrimIndent) add(SubpluginOption("autoTrimIndent", "true"))
+                if (sqlSyntaxCheck) add(SubpluginOption("sqlSyntaxCheck", "true"))
             }
         }
     }

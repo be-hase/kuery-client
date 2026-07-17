@@ -4,7 +4,9 @@ import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactoryToRendererMap
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticsContainer
 import org.jetbrains.kotlin.diagnostics.SourceElementPositioningStrategies
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
+import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
 import org.jetbrains.kotlin.diagnostics.warning0
+import org.jetbrains.kotlin.diagnostics.warning1
 import org.jetbrains.kotlin.psi.KtExpression
 
 internal object KueryClientDiagnostics : KtDiagnosticsContainer() {
@@ -12,6 +14,7 @@ internal object KueryClientDiagnostics : KtDiagnosticsContainer() {
     val KUERY_UNSAFE_SQL_STRING by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
     val KUERY_BIND_CALL_IN_SQL_TEMPLATE by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
     val KUERY_REDUNDANT_TRIM_INDENT by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
+    val KUERY_SQL_SYNTAX by warning1<KtExpression, String>(SourceElementPositioningStrategies.DEFAULT)
 
     override fun getRendererFactory(): BaseDiagnosticRendererFactory = KueryClientDiagnosticRenderers
 }
@@ -45,6 +48,14 @@ internal object KueryClientDiagnosticRenderers : BaseDiagnosticRendererFactory()
                 "compare against the literal string ':pN'. Interpolate the value directly (\$value instead " +
                 "of \${bind(value)}), or use addUnsafe() when you need bind(). If this is intentional, " +
                 "annotate the enclosing declaration with @Suppress(\"KUERY_BIND_CALL_IN_SQL_TEMPLATE\").",
+        )
+        map.put(
+            KueryClientDiagnostics.KUERY_SQL_SYNTAX,
+            "The SQL assembled from this block failed to parse: {0} The check uses a generic SQL parser " +
+                "(JSqlParser), which does not know every vendor-specific syntax, so this may be a false " +
+                "positive. If the SQL is valid, annotate the enclosing declaration with " +
+                "@Suppress(\"KUERY_SQL_SYNTAX\").",
+            CommonRenderers.STRING,
         )
     }
 }

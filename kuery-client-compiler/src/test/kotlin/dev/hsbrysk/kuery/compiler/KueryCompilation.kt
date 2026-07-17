@@ -6,10 +6,16 @@ import com.tschuchort.compiletesting.PluginOption
 import com.tschuchort.compiletesting.SourceFile
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 
-// The plugin option triple in one place, so tests cannot drift from the real option wiring.
+// The plugin option triples in one place, so tests cannot drift from the real option wiring.
 internal fun autoTrimIndentOption(value: String = "true"): PluginOption = PluginOption(
     KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
     KueryClientCompilerCommandLineProcessor.AUTO_TRIM_INDENT_OPTION_NAME,
+    value,
+)
+
+internal fun sqlSyntaxCheckOption(value: String = "true"): PluginOption = PluginOption(
+    KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
+    KueryClientCompilerCommandLineProcessor.SQL_SYNTAX_CHECK_OPTION_NAME,
     value,
 )
 

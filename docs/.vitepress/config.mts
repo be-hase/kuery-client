@@ -64,6 +64,7 @@ export default defineConfig({
                     {text: "Type Conversion", link: '/type-conversion'},
                     {text: "Observation", link: '/observation'},
                     {text: "Compiler Safety Check", link: '/compiler-safety-check'},
+                    {text: "SQL Syntax Check", link: '/sql-syntax-check'},
                     {text: "Helpers", link: '/helpers'},
                 ]
             },
