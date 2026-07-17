@@ -54,7 +54,10 @@ class ValueClassFetchTest {
 
     @Test
     fun `value class as a data class property is not supported either`() {
+        // given
         val kueryClient = h2.kueryClient(listOf(StringToUserNameConverter()))
+
+        // when & then
         assertFailure {
             kueryClient.sql {
                 +"SELECT id, text FROM converter ORDER BY id"

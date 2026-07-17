@@ -9,15 +9,19 @@ import org.junit.jupiter.api.Test
 @OptIn(DelicateKueryClientApi::class)
 class SqlBuilderHelpersTest {
     @Test
-    fun `values single`() {
+    fun `values with a single row appends a single VALUES group`() {
+        // given
         val input = listOf(
             listOf("user0", "user0@example.com", 1),
         )
+
+        // when
         val result = Sql {
             addUnsafe("INSERT INTO users (userid, email, age)")
             values(input)
         }
 
+        // then
         assertThat(result.body)
             .isEqualTo("INSERT INTO users (userid, email, age)\nVALUES (:p0, :p1, :p2)")
         assertThat(result.parameters).isEqualTo(
@@ -30,17 +34,21 @@ class SqlBuilderHelpersTest {
     }
 
     @Test
-    fun `values multi`() {
+    fun `values with multiple rows appends comma-separated VALUES groups`() {
+        // given
         val input = listOf(
             listOf("user0", "user0@example.com", 1),
             listOf("user1", null, 2),
             listOf("user2", "user2@example.com", 3),
         )
+
+        // when
         val result = Sql {
             addUnsafe("INSERT INTO users (userid, email, age)")
             values(input)
         }
 
+        // then
         assertThat(result.body)
             .isEqualTo(
                 "INSERT INTO users (userid, email, age)\nVALUES (:p0, :p1, :p2), (:p3, :p4, :p5), (:p6, :p7, :p8)",
@@ -61,7 +69,8 @@ class SqlBuilderHelpersTest {
     }
 
     @Test
-    fun `values empty`() {
+    fun `values throws IllegalArgumentException for an empty list`() {
+        // when & then
         assertFailure {
             Sql {
                 addUnsafe("INSERT INTO users (userid, email, age)")
@@ -71,10 +80,13 @@ class SqlBuilderHelpersTest {
     }
 
     @Test
-    fun `values child list empty`() {
+    fun `values throws IllegalArgumentException when a row is empty`() {
+        // given
         val input = listOf(
             listOf<Any>(),
         )
+
+        // when & then
         assertFailure {
             Sql {
                 addUnsafe("INSERT INTO users (userid, email, age)")
@@ -84,12 +96,15 @@ class SqlBuilderHelpersTest {
     }
 
     @Test
-    fun `values child list size is different`() {
+    fun `values throws IllegalArgumentException when rows have different sizes`() {
+        // given
         val input = listOf(
             listOf("user0", "user0@example.com", 1),
             listOf("user1", null),
             listOf("user2", "user2@example.com", 3),
         )
+
+        // when & then
         assertFailure {
             Sql {
                 addUnsafe("INSERT INTO users (userid, email, age)")
@@ -99,7 +114,8 @@ class SqlBuilderHelpersTest {
     }
 
     @Test
-    fun `values multi with transformer`() {
+    fun `values with a transformer maps each element to a row of bind values`() {
+        // given
         data class UserParam(
             val userid: String,
             val email: String?,
@@ -111,11 +127,14 @@ class SqlBuilderHelpersTest {
             UserParam("user1", null, 2),
             UserParam("user2", "user2@example.com", 3),
         )
+
+        // when
         val result = Sql {
             addUnsafe("INSERT INTO users (userid, email, age)")
             values(input) { listOf(it.userid, it.email, it.age) }
         }
 
+        // then
         assertThat(result.body)
             .isEqualTo(
                 "INSERT INTO users (userid, email, age)\nVALUES (:p0, :p1, :p2), (:p3, :p4, :p5), (:p6, :p7, :p8)",

@@ -40,7 +40,10 @@ class SequenceResourceManagementTest {
 
     @Test
     fun `sequence releases the connection after full iteration`() {
+        // when
         val result: List<User> = kueryClient.sql { +"SELECT * FROM users" }.sequence<User>().toList()
+
+        // then
         assertThat(result).isEqualTo(
             listOf(
                 User(userId = 1, username = "user1"),
@@ -52,7 +55,10 @@ class SequenceResourceManagementTest {
 
     @Test
     fun `sequenceMap releases the connection after full iteration`() {
+        // when
         val result = kueryClient.sql { +"SELECT * FROM users" }.sequenceMap().toList()
+
+        // then
         assertThat(result).isEqualTo(
             listOf(
                 mapOf("user_id" to 1, "username" to "user1"),
@@ -72,17 +78,25 @@ class SequenceResourceManagementTest {
 
     @Test
     fun `sequence releases the connection when closed via use after partial iteration`() {
+        // when
         val result = kueryClient.sql { +"SELECT * FROM users" }.sequence<User>().use { seq ->
             seq.first()
         }
+
+        // then
         assertThat(result).isEqualTo(User(userId = 1, username = "user1"))
         assertAllTrackedConnectionsClosed()
     }
 
     @Test
     fun `sequence can be iterated only once`() {
+        // given
         val seq = kueryClient.sql { +"SELECT * FROM users" }.sequence<User>()
+
+        // when
         seq.toList()
+
+        // then
         assertFailure { seq.toList() }.isInstanceOf(IllegalStateException::class)
     }
 

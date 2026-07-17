@@ -51,31 +51,39 @@ class PostgresValuesHelperTest {
 
     @Test
     fun `values with non-null typed rows`() = runTest {
+        // given
         val createdAt = OffsetDateTime.of(2026, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)
         val input = listOf(
             listOf(UUID.randomUUID(), UUID.randomUUID(), createdAt),
             listOf(UUID.randomUUID(), UUID.randomUUID(), createdAt),
         )
 
+        // when
         val rowsUpdated = kueryClient.sql {
             +"INSERT INTO documents (id, parent_id, created_at)"
             values(input)
         }.rowsUpdated()
+
+        // then
         assertThat(rowsUpdated).isEqualTo(2L)
     }
 
     @Test
     fun `values mixing null and non-null rows on a typed column`() = runTest {
+        // given
         val createdAt = OffsetDateTime.of(2026, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)
         val input = listOf(
             listOf(UUID.randomUUID(), UUID.randomUUID(), createdAt),
             listOf(UUID.randomUUID(), null, createdAt),
         )
 
+        // when
         val rowsUpdated = kueryClient.sql {
             +"INSERT INTO documents (id, parent_id, created_at)"
             values(input)
         }.rowsUpdated()
+
+        // then
         assertThat(rowsUpdated).isEqualTo(2L)
     }
 
@@ -87,12 +95,15 @@ class PostgresValuesHelperTest {
         // row is properly typed: the column's common type resolves to varchar and then fails
         // against the uuid target column. (Historically this surfaced as "VALUES types
         // character varying and uuid cannot be matched" on older driver/server combinations.)
+
+        // given
         val createdAt = OffsetDateTime.of(2026, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)
         val input = listOf(
             listOf(UUID.randomUUID(), UUID.randomUUID(), createdAt),
             listOf(UUID.randomUUID(), "0f14d0ab-9605-4a62-a9e4-5ed26688389b", createdAt),
         )
 
+        // when & then
         assertFailure {
             kueryClient.sql {
                 +"INSERT INTO documents (id, parent_id, created_at)"
@@ -105,10 +116,12 @@ class PostgresValuesHelperTest {
 
     @Test
     fun `values binding strings for typed columns is rejected`() = runTest {
+        // given
         val input = listOf(
             listOf("0f14d0ab-9605-4a62-a9e4-5ed26688389b", null, "2026-01-01 00:00:00+00"),
         )
 
+        // when & then
         assertFailure {
             kueryClient.sql {
                 +"INSERT INTO documents (id, parent_id, created_at)"

@@ -37,7 +37,10 @@ class PostgresDuplicateKeyTest {
 
     @Test
     fun `unique constraint violation throws DuplicateKeyException`() = runTest {
+        // given
         val email = "user1@example.com"
+
+        // when & then
         assertFailure {
             kueryClient.sql {
                 +"INSERT INTO dup_users (user_id, email) VALUES (2, $email)"

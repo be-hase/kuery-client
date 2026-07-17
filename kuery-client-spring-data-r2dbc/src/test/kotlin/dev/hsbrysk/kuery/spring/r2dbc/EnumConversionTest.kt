@@ -28,11 +28,13 @@ class EnumConversionTest {
     }
 
     @Test
-    fun test() = runTest {
+    fun `enum is stored as its name and mapped back to the enum`() = runTest {
+        // given
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES (${SampleEnum.HOGE})"
         }.rowsUpdated()
 
+        // when & then
         val record: Record = kueryClient.sql {
             +"SELECT * FROM converter"
         }.single()
@@ -45,11 +47,13 @@ class EnumConversionTest {
     }
 
     @Test
-    fun testScalar() = runTest {
+    fun `enum is converted when fetched as a scalar`() = runTest {
+        // given
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES (${SampleEnum.HOGE})"
         }.rowsUpdated()
 
+        // when & then
         val result: SampleEnum = kueryClient.sql {
             +"SELECT text FROM converter"
         }.single()
@@ -57,11 +61,13 @@ class EnumConversionTest {
     }
 
     @Test
-    fun testInCollection() = runTest {
+    fun `enum in an IN clause matches the row stored by name`() = runTest {
+        // given
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES (${SampleEnum.HOGE})"
         }.rowsUpdated()
 
+        // when & then
         val record: Record = kueryClient.sql {
             +"SELECT * FROM converter WHERE text IN (${listOf(SampleEnum.HOGE)})"
         }.single()
@@ -69,11 +75,13 @@ class EnumConversionTest {
     }
 
     @Test
-    fun testCompositeIn() = runTest {
+    fun `enum in a composite IN tuple matches the row stored by name`() = runTest {
+        // given
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES (${SampleEnum.HOGE})"
         }.rowsUpdated()
 
+        // when & then
         val record: Record = kueryClient.sql {
             val pairs = listOf(arrayOf<Any>(1L, SampleEnum.HOGE))
             +"SELECT * FROM converter WHERE (id, text) IN ($pairs)"

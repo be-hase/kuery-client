@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 
 class KueryClientObservationDocumentationTest {
     @Test
-    fun fetch() {
+    fun `FETCH declares the default convention and its low and high cardinality key names`() {
         assertThat(FETCH.defaultConvention).isEqualTo(DefaultKueryClientFetchObservationConvention::class.java)
         assertThat(FETCH.lowCardinalityKeyNames.map { it.asString() }).isEqualTo(listOf("sql.id"))
         assertThat(FETCH.highCardinalityKeyNames.map { it.asString() }).isEqualTo(listOf("sql"))

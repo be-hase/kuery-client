@@ -40,8 +40,13 @@ class MySqlNullScalarResultTest {
 
     @Test
     fun `singleOrNull returns null for a NULL column`() = runTest {
+        // given
         insert("user1@example.com", age = null)
+
+        // when
         val age: Int? = kueryClient.sql { +"SELECT age FROM users" }.singleOrNull()
+
+        // then
         assertThat(age).isNull()
     }
 
@@ -53,14 +58,22 @@ class MySqlNullScalarResultTest {
 
     @Test
     fun `singleOrNull returns null for a NULL string column`() = runTest {
+        // given
         insert("user1@example.com", age = null)
+
+        // when
         val username: String? = kueryClient.sql { +"SELECT username FROM users" }.singleOrNull()
+
+        // then
         assertThat(username).isNull()
     }
 
     @Test
     fun `single throws for a NULL column`() = runTest {
+        // given
         insert("user1@example.com", age = null)
+
+        // when & then
         assertFailure {
             kueryClient.sql { +"SELECT age FROM users" }.single<Int>()
         }.isInstanceOf(TypeMismatchDataAccessException::class)
@@ -68,17 +81,27 @@ class MySqlNullScalarResultTest {
 
     @Test
     fun `list preserves NULL elements`() = runTest {
+        // given
         insert("user1@example.com", age = 20)
         insert("user2@example.com", age = null)
+
+        // when
         val ages: List<Int?> = kueryClient.sql { +"SELECT age FROM users ORDER BY user_id" }.list(Int::class)
+
+        // then
         assertThat(ages).isEqualTo(listOf(20, null))
     }
 
     @Test
     fun `flow preserves NULL elements`() = runTest {
+        // given
         insert("user1@example.com", age = 20)
         insert("user2@example.com", age = null)
+
+        // when
         val ages: List<Int?> = kueryClient.sql { +"SELECT age FROM users ORDER BY user_id" }.flow<Int>().toList()
+
+        // then
         assertThat(ages).isEqualTo(listOf(20, null))
     }
 

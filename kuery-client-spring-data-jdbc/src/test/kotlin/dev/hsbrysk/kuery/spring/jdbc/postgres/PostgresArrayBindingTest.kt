@@ -45,38 +45,58 @@ class PostgresArrayBindingTest {
 
     @Test
     fun `bind array to ANY predicate`() {
+        // given
         val usernames = arrayOf("HOGE", "FUGA")
+
+        // when
         val list = kueryClient
             .sql { +"SELECT username FROM users WHERE username = ANY($usernames) ORDER BY user_id" }
             .listMap()
+
+        // then
         assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
     }
 
     @Test
     fun `bind enum array to ANY predicate`() {
+        // given
         val usernames = arrayOf(SampleEnum.HOGE, SampleEnum.FUGA)
+
+        // when
         val list = kueryClient
             .sql { +"SELECT username FROM users WHERE username = ANY($usernames) ORDER BY user_id" }
             .listMap()
+
+        // then
         assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
     }
 
     @Test
     fun `bind custom-converted array to ANY predicate`() {
+        // given
         val kueryClient = postgres.kueryClient(listOf(StringWrapperToStringConverter()))
         val usernames = arrayOf(StringWrapper("HOGE"), StringWrapper("FUGA"))
+
+        // when
         val list = kueryClient
             .sql { +"SELECT username FROM users WHERE username = ANY($usernames) ORDER BY user_id" }
             .listMap()
+
+        // then
         assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
     }
 
     @Test
     fun `bind array to a native array column`() {
+        // given
         val tags = arrayOf("a", "b")
+
+        // when
         val count = kueryClient
             .sql { +"INSERT INTO users (username, tags) VALUES ('tagged', $tags)" }
             .rowsUpdated()
+
+        // then
         assertThat(count).isEqualTo(1L)
 
         val record = kueryClient
@@ -88,10 +108,15 @@ class PostgresArrayBindingTest {
 
     @Test
     fun `bind all-null enum array to a native array column`() {
+        // given
         val tags = arrayOf<SampleEnum?>(null, null)
+
+        // when
         val count = kueryClient
             .sql { +"INSERT INTO users (username, tags) VALUES ('tagged', $tags)" }
             .rowsUpdated()
+
+        // then
         assertThat(count).isEqualTo(1L)
 
         val record = kueryClient
@@ -103,10 +128,15 @@ class PostgresArrayBindingTest {
 
     @Test
     fun `bind empty enum array to a native array column`() {
+        // given
         val tags = arrayOf<SampleEnum>()
+
+        // when
         val count = kueryClient
             .sql { +"INSERT INTO users (username, tags) VALUES ('tagged', $tags)" }
             .rowsUpdated()
+
+        // then
         assertThat(count).isEqualTo(1L)
 
         val record = kueryClient
@@ -118,10 +148,15 @@ class PostgresArrayBindingTest {
 
     @Test
     fun `bind primitive int array to ANY predicate`() {
+        // given
         val userIds = intArrayOf(1, 2)
+
+        // when
         val list = kueryClient
             .sql { +"SELECT username FROM users WHERE user_id = ANY($userIds) ORDER BY user_id" }
             .listMap()
+
+        // then
         assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
     }
 

@@ -41,7 +41,7 @@ class ObservationTest {
     }
 
     @AfterEach
-    fun testDown() {
+    fun tearDown() {
         h2.jdbcClient.sql(
             """
             DROP TABLE users;
@@ -50,7 +50,7 @@ class ObservationTest {
     }
 
     @Test
-    fun singleMap() {
+    fun `singleMap records an observation with sqlId and sql`() {
         userRepository.singleMap(1)
         assertObservation(
             sqlId = "com.example.spring.jdbc.UserRepository.singleMap",
@@ -59,7 +59,7 @@ class ObservationTest {
     }
 
     @Test
-    fun singleMapOrNull() {
+    fun `singleMapOrNull records an observation with sqlId and sql`() {
         userRepository.singleMapOrNull(1)
         assertObservation(
             sqlId = "com.example.spring.jdbc.UserRepository.singleMapOrNull",
@@ -68,7 +68,7 @@ class ObservationTest {
     }
 
     @Test
-    fun single() {
+    fun `single records an observation with sqlId and sql`() {
         userRepository.single(1)
         assertObservation(
             sqlId = "com.example.spring.jdbc.UserRepository.single",
@@ -77,7 +77,7 @@ class ObservationTest {
     }
 
     @Test
-    fun singleOrNull() {
+    fun `singleOrNull records an observation with sqlId and sql`() {
         userRepository.singleOrNull(1)
         assertObservation(
             sqlId = "com.example.spring.jdbc.UserRepository.singleOrNull",
@@ -86,7 +86,7 @@ class ObservationTest {
     }
 
     @Test
-    fun listMap() {
+    fun `listMap records an observation with sqlId and sql`() {
         userRepository.listMap()
         assertObservation(
             sqlId = "com.example.spring.jdbc.UserRepository.listMap",
@@ -95,7 +95,7 @@ class ObservationTest {
     }
 
     @Test
-    fun list() {
+    fun `list records an observation with sqlId and sql`() {
         userRepository.list()
         assertObservation(
             sqlId = "com.example.spring.jdbc.UserRepository.list",
@@ -104,7 +104,7 @@ class ObservationTest {
     }
 
     @Test
-    fun rowUpdated() {
+    fun `rowsUpdated records an observation with sqlId and sql`() {
         userRepository.rowUpdated("user3", "user3@example.com")
         assertObservation(
             sqlId = "com.example.spring.jdbc.UserRepository.rowUpdated",
@@ -113,7 +113,7 @@ class ObservationTest {
     }
 
     @Test
-    fun generatedValues() {
+    fun `generatedValues records an observation with sqlId and sql`() {
         userRepository.generatedValues("user3", "user3@example.com")
         assertObservation(
             sqlId = "com.example.spring.jdbc.UserRepository.generatedValues",
@@ -159,6 +159,8 @@ class ObservationTest {
     @Test
     fun `scope is closed before the observation is stopped`() {
         // The documented Micrometer lifecycle order: close the scope, then stop the observation.
+
+        // given
         val events = mutableListOf<String>()
         val recordingRegistry = TestObservationRegistry.create().apply {
             observationConfig().observationHandler(object : ObservationHandler<Observation.Context> {
@@ -175,8 +177,10 @@ class ObservationTest {
         }
         val client = h2.kueryClient(observationRegistry = recordingRegistry)
 
+        // when
         UserRepository(client).singleMap(1)
 
+        // then
         assertThat(events).isEqualTo(listOf("scopeClosed", "stop"))
     }
 

@@ -41,7 +41,8 @@ class CollectionConversionTest {
     }
 
     @Test
-    fun test() {
+    fun `list in an IN clause is expanded with each element converted`() {
+        // given
         kueryClient.sql {
             +"""
             INSERT INTO converter (text) VALUES
@@ -51,6 +52,7 @@ class CollectionConversionTest {
             """.trimIndent()
         }.rowsUpdated()
 
+        // when & then
         val result = kueryClient.sql {
             val inList = listOf(StringWrapper("text1"), StringWrapper("text2"))
             +"SELECT * FROM converter WHERE text IN ($inList)"
@@ -59,7 +61,8 @@ class CollectionConversionTest {
     }
 
     @Test
-    fun testCompositeIn() {
+    fun `list of arrays expands into composite IN tuples`() {
+        // given
         kueryClient.sql {
             +"""
             INSERT INTO converter (text) VALUES
@@ -68,6 +71,7 @@ class CollectionConversionTest {
             """.trimIndent()
         }.rowsUpdated()
 
+        // when & then
         val result = kueryClient.sql {
             val pairs = listOf(arrayOf<Any>(1L, StringWrapper("text1")))
             +"SELECT * FROM converter WHERE (id, text) IN ($pairs)"
@@ -76,15 +80,18 @@ class CollectionConversionTest {
     }
 
     @Test
-    fun testEmptyCollection() {
+    fun `empty collection in an IN clause returns no rows on H2`() {
         // An empty collection is bound as-is; Spring's named parameter expansion then renders
         // it as `IN ()`. Whether that is valid SQL depends on the database: H2 accepts it and
         // returns no rows, while MySQL/PostgreSQL reject it (see the mysql/postgres packages).
         // Callers targeting those databases must guard against empty collections themselves.
+
+        // given
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES ('text1')"
         }.rowsUpdated()
 
+        // when & then
         val result = kueryClient.sql {
             val emptyIds = emptyList<Long>()
             +"SELECT * FROM converter WHERE id IN ($emptyIds)"
@@ -94,7 +101,8 @@ class CollectionConversionTest {
 
     @OptIn(DelicateKueryClientApi::class)
     @Test
-    fun testHandBuiltTupleIn() {
+    fun `tuple IN clause hand-built with addUnsafe and bind matches the given pairs`() {
+        // given
         kueryClient.sql {
             +"""
             INSERT INTO converter (text) VALUES
@@ -104,6 +112,7 @@ class CollectionConversionTest {
             """.trimIndent()
         }.rowsUpdated()
 
+        // when & then
         val pairs = listOf(1L to "text1", 3L to "text3")
         val result = kueryClient.sql {
             +"SELECT * FROM converter"
@@ -114,7 +123,8 @@ class CollectionConversionTest {
 
     @OptIn(DelicateKueryClientApi::class)
     @Test
-    fun testBindCollectionViaAddUnsafe() {
+    fun `collection bound via bind inside addUnsafe is expanded in the IN clause`() {
+        // given
         kueryClient.sql {
             +"""
             INSERT INTO converter (text) VALUES
@@ -124,6 +134,7 @@ class CollectionConversionTest {
             """.trimIndent()
         }.rowsUpdated()
 
+        // when & then
         val result = kueryClient.sql {
             val texts = listOf("text1", "text2")
             addUnsafe("SELECT * FROM converter WHERE text IN (${bind(texts)})")
@@ -132,9 +143,11 @@ class CollectionConversionTest {
     }
 
     @Test
-    fun testSet() {
+    fun `set in an IN clause is expanded like a list`() {
+        // given
         insertThreeRows()
 
+        // when & then
         val result = kueryClient.sql {
             val inSet = setOf(StringWrapper("text1"), StringWrapper("text2"))
             +"SELECT * FROM converter WHERE text IN ($inSet)"
@@ -143,9 +156,11 @@ class CollectionConversionTest {
     }
 
     @Test
-    fun testMapKeysView() {
+    fun `map keys view in an IN clause is expanded like a collection`() {
+        // given
         insertThreeRows()
 
+        // when & then
         val map = mapOf(StringWrapper("text1") to 1, StringWrapper("text3") to 3)
         val result = kueryClient.sql {
             +"SELECT * FROM converter WHERE text IN (${map.keys})"
@@ -154,13 +169,15 @@ class CollectionConversionTest {
     }
 
     @Test
-    fun testCustomCollectionSubtype() {
+    fun `custom Collection subtype in an IN clause is expanded like a list`() {
         // Non-standard Collection implementations (e.g. NonEmptyList of functional libraries)
         // must expand like any other Collection.
         class NonEmptyList<T>(private val delegate: List<T>) : Collection<T> by delegate
 
+        // given
         insertThreeRows()
 
+        // when & then
         val result = kueryClient.sql {
             val inList = NonEmptyList(listOf(StringWrapper("text1"), StringWrapper("text2")))
             +"SELECT * FROM converter WHERE text IN ($inList)"
@@ -169,11 +186,14 @@ class CollectionConversionTest {
     }
 
     @Test
-    fun testNullElement() {
+    fun `null element in an IN list binds as SQL NULL and never matches`() {
         // A null element binds as SQL NULL, which never matches in an IN list; the non-null
         // elements still do.
+
+        // given
         insertThreeRows()
 
+        // when & then
         val result = kueryClient.sql {
             val inList = listOf(StringWrapper("text1"), null)
             +"SELECT * FROM converter WHERE text IN ($inList)"

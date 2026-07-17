@@ -12,7 +12,8 @@ import org.junit.jupiter.api.Test
 
 class DefaultSqlBuilderTest {
     @Test
-    fun add() {
+    fun `add throws IllegalStateException when the compiler plugin is not applied`() {
+        // when & then
         assertFailure {
             DefaultSqlBuilder().add("")
         }.isInstanceOf(IllegalStateException::class)
@@ -23,7 +24,8 @@ class DefaultSqlBuilderTest {
     }
 
     @Test
-    fun unaryPlus() {
+    fun `unaryPlus throws IllegalStateException when the compiler plugin is not applied`() {
+        // when & then
         assertFailure {
             with(DefaultSqlBuilder()) {
                 +""
@@ -36,7 +38,7 @@ class DefaultSqlBuilderTest {
     }
 
     @Test
-    fun addUnsafe() {
+    fun `addUnsafe joins fragments with newlines, ignoring empty fragments`() {
         DefaultSqlBuilder()
             .apply {
                 addUnsafe("")
@@ -74,7 +76,7 @@ class DefaultSqlBuilderTest {
     }
 
     @Test
-    fun bind() {
+    fun `bind returns sequential placeholders and records the parameters in order`() {
         DefaultSqlBuilder()
             .apply {
                 assertThat(bind(1)).isEqualTo(":p0")
@@ -95,7 +97,7 @@ class DefaultSqlBuilderTest {
     }
 
     @Test
-    fun bindSameValueTwice() {
+    fun `binding the same value twice creates two parameters`() {
         DefaultSqlBuilder()
             .apply {
                 assertThat(bind(1)).isEqualTo(":p0")
@@ -108,7 +110,7 @@ class DefaultSqlBuilderTest {
     }
 
     @Test
-    fun bindCollection() {
+    fun `bind binds a collection as a single parameter holding the collection itself`() {
         // A collection is bound as a single parameter holding the collection itself.
         val ids = listOf(1, 2, 3)
         DefaultSqlBuilder()
@@ -122,19 +124,22 @@ class DefaultSqlBuilderTest {
     }
 
     @Test
-    fun buildIsNotAffectedByLaterBind() {
+    fun `build returns a snapshot that is not affected by later bind calls`() {
+        // given
         val builder = DefaultSqlBuilder().apply {
             addUnsafe("SELECT * FROM some_table WHERE id = ${bind(1)}")
         }
         val sql = builder.build()
 
+        // when
         builder.bind(2)
 
+        // then
         assertThat(sql.parameters).isEqualTo(listOf(NamedSqlParameter("p0", 1)))
     }
 
     @Test
-    fun interpolate() {
+    fun `interpolate weaves placeholders between fragments and throws IllegalStateException on count mismatch`() {
         assertThat(DefaultSqlBuilder().interpolate(emptyList(), emptyList())).isEqualTo("")
         assertThat(DefaultSqlBuilder().interpolate(listOf("a"), emptyList())).isEqualTo("a")
         assertThat(DefaultSqlBuilder().interpolate(listOf("a"), listOf(1))).isEqualTo("a:p0")

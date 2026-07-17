@@ -15,10 +15,12 @@ import java.util.stream.StreamSupport
 
 class StreamCloseableSequenceTest {
     @Test
-    fun `iterator throws ISE when the sequence is already closed`() {
+    fun `iterator throws IllegalStateException when the sequence is already closed`() {
+        // given
         val sequence = Stream.of("a", "b").asCloseableSequence()
         sequence.close()
 
+        // when & then
         assertFailure { sequence.iterator() }
             .isInstanceOf(IllegalStateException::class)
             .hasMessage("This sequence is already closed.")
@@ -26,19 +28,24 @@ class StreamCloseableSequenceTest {
 
     @Test
     fun `close is idempotent`() {
+        // given
         val closeCount = AtomicInteger()
         val sequence = Stream.of("a", "b").onClose { closeCount.incrementAndGet() }.asCloseableSequence()
 
+        // when
         sequence.close()
         sequence.close()
 
+        // then
         assertThat(closeCount.get()).isEqualTo(1)
     }
 
     @Test
     fun `hasNext stays false after exhaustion without touching the closed stream`() {
+        // given
         val iterator = resultSetLikeStream("a", "b").asCloseableSequence().iterator()
 
+        // when & then
         assertThat(iterator.next()).isEqualTo("a")
         assertThat(iterator.next()).isEqualTo("b")
         assertThat(iterator.hasNext()).isFalse()
@@ -50,8 +57,10 @@ class StreamCloseableSequenceTest {
 
     @Test
     fun `next after exhaustion throws NoSuchElementException`() {
+        // given
         val iterator = resultSetLikeStream("a").asCloseableSequence().iterator()
 
+        // when & then
         assertThat(iterator.next()).isEqualTo("a")
         assertThat(iterator.hasNext()).isFalse()
 
@@ -60,9 +69,11 @@ class StreamCloseableSequenceTest {
 
     @Test
     fun `explicit close after full iteration does not close the stream twice`() {
+        // given
         val closeCount = AtomicInteger()
         val sequence = Stream.of("a", "b").onClose { closeCount.incrementAndGet() }.asCloseableSequence()
 
+        // when & then
         // Reaching the end of the iteration closes the underlying stream.
         assertThat(sequence.toList()).isEqualTo(listOf("a", "b"))
         assertThat(closeCount.get()).isEqualTo(1)

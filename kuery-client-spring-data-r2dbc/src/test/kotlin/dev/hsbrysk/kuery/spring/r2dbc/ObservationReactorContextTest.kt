@@ -58,61 +58,64 @@ class ObservationReactorContextTest {
     }
 
     @AfterEach
-    fun testDown() = runTest {
+    fun tearDown() = runTest {
         h2.databaseClient.sql("DROP TABLE users").fetch().awaitRowsUpdated()
     }
 
     @Test
-    fun singleMap() = runTest {
+    fun `singleMap propagates an observation carrying the sqlId via the Reactor context`() = runTest {
         userRepository.singleMap(1)
         assertCapturedObservation("com.example.spring.r2dbc.UserRepository.singleMap")
     }
 
     @Test
-    fun singleMapOrNull() = runTest {
+    fun `singleMapOrNull propagates an observation carrying the sqlId via the Reactor context`() = runTest {
         userRepository.singleMapOrNull(1)
         assertCapturedObservation("com.example.spring.r2dbc.UserRepository.singleMapOrNull")
     }
 
     @Test
-    fun single() = runTest {
+    fun `single propagates an observation carrying the sqlId via the Reactor context`() = runTest {
         userRepository.single(1)
         assertCapturedObservation("com.example.spring.r2dbc.UserRepository.single")
     }
 
     @Test
-    fun singleOrNull() = runTest {
+    fun `singleOrNull propagates an observation carrying the sqlId via the Reactor context`() = runTest {
         userRepository.singleOrNull(1)
         assertCapturedObservation("com.example.spring.r2dbc.UserRepository.singleOrNull")
     }
 
     @Test
-    fun listMap() = runTest {
+    fun `listMap propagates an observation carrying the sqlId via the Reactor context`() = runTest {
         userRepository.listMap()
         assertCapturedObservation("com.example.spring.r2dbc.UserRepository.listMap")
     }
 
     @Test
-    fun list() = runTest {
+    fun `list propagates an observation carrying the sqlId via the Reactor context`() = runTest {
         userRepository.list()
         assertCapturedObservation("com.example.spring.r2dbc.UserRepository.list")
     }
 
     @Test
-    fun rowsUpdated() = runTest {
+    fun `rowsUpdated propagates an observation carrying the sqlId via the Reactor context`() = runTest {
         userRepository.rowUpdated("user3", "user3@example.com")
         assertCapturedObservation("com.example.spring.r2dbc.UserRepository.rowUpdated")
     }
 
     @Test
-    fun generatedValues() = runTest {
+    fun `generatedValues propagates an observation carrying the sqlId via the Reactor context`() = runTest {
         userRepository.generatedValues("user3", "user3@example.com")
         assertCapturedObservation("com.example.spring.r2dbc.UserRepository.generatedValues")
     }
 
     @Test
     fun `links parent observation from the Reactor context`() = runTest {
+        // given
         val parent = Observation.start("parent", registry)
+
+        // when
         try {
             withContext(Context.of(ObservationThreadLocalAccessor.KEY, parent).asCoroutineContext()) {
                 userRepository.singleMap(1)
@@ -121,6 +124,7 @@ class ObservationReactorContextTest {
             parent.stop()
         }
 
+        // then
         assertThat(capturedObservations).hasSize(1)
         val observation = assertThat(capturedObservations.single()).isNotNull()
         observation.transform { it.context.parentObservation }.isEqualTo(parent)

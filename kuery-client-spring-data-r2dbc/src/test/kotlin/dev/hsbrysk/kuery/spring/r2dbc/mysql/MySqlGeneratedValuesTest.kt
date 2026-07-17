@@ -35,12 +35,17 @@ class MySqlGeneratedValuesTest {
     }
 
     @Test
-    fun generatedValues() = runTest {
+    fun `generatedValues returns the generated key of a single insert`() = runTest {
+        // given
         val username = "user1"
         val email = "user1@example.com"
+
+        // when
         val result = kueryClient
             .sql { +"INSERT INTO users (username, email) VALUES ($username, $email)" }
             .generatedValues("user_id")
+
+        // then
         assertThat(result).isEqualTo(mapOf("user_id" to 1L))
     }
 

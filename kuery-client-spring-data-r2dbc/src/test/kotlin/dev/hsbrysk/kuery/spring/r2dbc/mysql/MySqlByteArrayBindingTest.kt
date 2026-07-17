@@ -38,12 +38,16 @@ class MySqlByteArrayBindingTest {
 
     @Test
     fun `bind ByteArray as a single binary value`() = runTest {
+        // given
         val id = ByteArray(16) { it.toByte() }
         val data = byteArrayOf(1, 2, 3)
 
+        // when
         val inserted = kueryClient
             .sql { +"INSERT INTO binaries (id, data) VALUES ($id, $data)" }
             .rowsUpdated()
+
+        // then
         assertThat(inserted).isEqualTo(1L)
 
         val stored = kueryClient
@@ -54,24 +58,33 @@ class MySqlByteArrayBindingTest {
 
     @Test
     fun `bind the same ByteArray twice in one statement`() = runTest {
+        // given
         val id = ByteArray(16) { it.toByte() }
         val data = byteArrayOf(1, 2, 3)
         kueryClient
             .sql { +"INSERT INTO binaries (id, data) VALUES ($id, $data)" }
             .rowsUpdated()
 
+        // when
         val count = kueryClient
             .sql { +"SELECT COUNT(*) FROM binaries WHERE id = $id AND data = $data AND data = $data" }
             .single<Long>()
+
+        // then
         assertThat(count).isEqualTo(1L)
     }
 
     @Test
     fun `singleOrNull ByteArray returns null when no row matches`() = runTest {
+        // given
         val id = ByteArray(16) { it.toByte() }
+
+        // when
         val stored = kueryClient
             .sql { +"SELECT data FROM binaries WHERE id = $id" }
             .singleOrNull<ByteArray>()
+
+        // then
         assertThat(stored).isNull()
     }
 

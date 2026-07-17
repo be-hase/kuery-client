@@ -31,11 +31,14 @@ private fun SqlBuilder.paging(
 class ExtensionHelperTest {
     @Test
     fun `extension function helpers are interpolated as usual`() {
+        // when
         val sql = Sql {
             +"SELECT * FROM users"
             whereUser(UserFilter(tenantId = 1, name = null, minAge = 20))
             paging(limit = 10, offset = 0)
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """

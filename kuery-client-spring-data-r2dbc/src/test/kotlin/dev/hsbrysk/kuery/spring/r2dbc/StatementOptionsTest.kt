@@ -43,12 +43,15 @@ class StatementOptionsTest {
 
     @Test
     fun `options are applied immutably`() = runTest {
+        // given
         val base = kueryClient.sql { +"SELECT * FROM users" }
         val withFetchSize = base.fetchSize(3)
 
+        // when
         val baseResult = base.listMap()
         val withFetchSizeResult = withFetchSize.listMap()
 
+        // then
         assertThat(baseResult).hasSize(10)
         assertThat(withFetchSizeResult).hasSize(10)
     }

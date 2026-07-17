@@ -36,17 +36,22 @@ class MySqlGeneratedValuesTest {
     }
 
     @Test
-    fun generatedValues() {
+    fun `generatedValues returns the generated key of a single insert`() {
+        // given
         val username = "user1"
         val email = "user1@example.com"
+
+        // when
         val result = kueryClient
             .sql { +"INSERT INTO users (username, email) VALUES ($username, $email)" }
             .generatedValues("user_id")
+
+        // then
         assertThat(result).isEqualTo(mapOf("GENERATED_KEY" to BigInteger.valueOf(1)))
     }
 
     @Test
-    fun `generatedValues no generated keys`() {
+    fun `generatedValues throws EmptyResultDataAccessException when no keys are generated`() {
         // Unlike H2 (which reports the affected row's identity even for UPDATE), MySQL emits no
         // generated keys here, exercising the EmptyResultDataAccessException failure path.
         assertFailure {

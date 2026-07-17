@@ -20,13 +20,17 @@ import org.junit.jupiter.api.Test
 class AutoTrimIndentBytecodeTest {
     @Test
     fun `template argument is trimmed at compile time`() {
+        // when
         val result = compile(autoTrimIndent = true, source = TEMPLATE_ARGUMENT_SOURCE)
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.classesReference("trimIndent")).isFalse()
     }
 
     @Test
     fun `constant argument is trimmed at compile time`() {
+        // when
         val result = compile(
             autoTrimIndent = true,
             source = """
@@ -39,27 +43,38 @@ class AutoTrimIndentBytecodeTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.classesReference("trimIndent")).isFalse()
     }
 
     @Test
     fun `variable argument is trimmed at runtime`() {
+        // when
         val result = compile(autoTrimIndent = true, source = VARIABLE_ARGUMENT_SOURCE)
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.classesReference("trimIndent")).isTrue()
     }
 
     @Test
     fun `nothing is injected for a template argument when the option is off`() {
+        // when
         val result = compile(autoTrimIndent = false, source = TEMPLATE_ARGUMENT_SOURCE)
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.classesReference("trimIndent")).isFalse()
     }
 
     @Test
     fun `nothing is injected for a variable argument when the option is off`() {
+        // when
         val result = compile(autoTrimIndent = false, source = VARIABLE_ARGUMENT_SOURCE)
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.classesReference("trimIndent")).isFalse()
     }

@@ -10,14 +10,14 @@ private const val ORDER_COLUMN = "created_at"
 
 class StringInterpolationTest {
     @Test
-    fun none() {
+    fun `an empty block builds an empty Sql`() {
         val sql = Sql {
         }
         assertThat(sql).isEqualTo(Sql(""))
     }
 
     @Test
-    fun `empty string`() {
+    fun `empty fragments collapse to an empty Sql`() {
         val sql1 = Sql {
             +""
         }
@@ -34,7 +34,7 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `only string interpolation`() {
+    fun `a template consisting only of values produces only placeholders`() {
         val sql1 = Sql {
             +"${1}"
         }
@@ -57,7 +57,7 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `only fragments`() {
+    fun `fragments without values are joined with newlines`() {
         val sql1 = Sql {
             +"hoge"
         }
@@ -77,7 +77,7 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun mixed() {
+    fun `values become placeholders at their exact positions in the text`() {
         val sql1 = Sql {
             +"a${1}b"
         }
@@ -119,7 +119,7 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `int string interpolation`() {
+    fun `int constants and int expressions are bound as parameters`() {
         val sql1 = Sql {
             +"a ${1}"
         }
@@ -142,7 +142,7 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `string string interpolation`() {
+    fun `a string literal value is inlined while a computed string is bound`() {
         // In such cases, string interpolation will not be executed.
         val sql1 = Sql {
             +"a ${"hoge"}"
@@ -166,7 +166,7 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `boolean string interpolation`() {
+    fun `boolean constants and boolean expressions are bound as parameters`() {
         // In such cases, string interpolation will not be executed.
         val sql1 = Sql {
             +"a ${true}"
@@ -192,9 +192,12 @@ class StringInterpolationTest {
 
     @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
-    fun `nested add`() {
+    fun `an add nested in a run block emits its line before the outer add`() {
+        // given
         val x = "X"
         val y = "1; DROP TABLE users"
+
+        // when
         val sql = Sql {
             add(
                 run {
@@ -203,6 +206,8 @@ class StringInterpolationTest {
                 },
             )
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "B :p0\nS :p1",
@@ -213,15 +218,20 @@ class StringInterpolationTest {
 
     @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
-    fun `nested unaryPlus`() {
+    fun `a unaryPlus nested in a run block emits its line before the outer one`() {
+        // given
         val x = "X"
         val y = "1; DROP TABLE users"
+
+        // when
         val sql = Sql {
             +run {
                 +"B $x"
                 "S $y"
             }
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "B :p0\nS :p1",
@@ -232,10 +242,13 @@ class StringInterpolationTest {
 
     @Suppress("KUERY_UNSAFE_SQL_STRING")
     @Test
-    fun `doubly nested add`() {
+    fun `doubly nested adds emit lines in innermost-first order`() {
+        // given
         val x = "X"
         val y = "Y"
         val z = "Z"
+
+        // when
         val sql = Sql {
             add(
                 run {
@@ -249,6 +262,8 @@ class StringInterpolationTest {
                 },
             )
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "A :p0\nB :p1\nC :p2",
@@ -262,15 +277,20 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `nested add inside an interpolation value`() {
+    fun `an add inside an interpolation value emits first and the block result is bound`() {
+        // given
         val x = "X"
         val y = "Y"
+
+        // when
         val sql = Sql {
             +"A ${run {
                 add("B $x")
                 "v"
             }} C $y"
         }
+
+        // then
         // The inner add runs first while the outer template's values are being evaluated,
         // then the outer template binds the run block's result ("v") as a single value.
         assertThat(sql).isEqualTo(
@@ -286,14 +306,19 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `nested unaryPlus inside an interpolation value`() {
+    fun `a unaryPlus inside an interpolation value emits first and the block result is bound`() {
+        // given
         val x = "X"
+
+        // when
         val sql = Sql {
             +"A ${run {
                 +"B $x"
                 "v"
             }}"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "B :p0\nA :p1",
@@ -321,16 +346,20 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `if expression as the whole argument`() {
+    fun `templates inside if branches are converted into bind parameters`() {
         // The IR transformation keeps its context across the whole argument expression,
         // so templates inside if branches are converted into bind parameters.
         // This is the premise for KUERY_UNSAFE_SQL_STRING accepting if/when expressions
         // with safe branches (allWarningsAsErrors guards that no warning is reported).
+
+        // given
         val x = "X"
 
         fun build(flag: Boolean) = Sql {
             +(if (flag) "id = $x" else "TRUE")
         }
+
+        // when & then
         assertThat(build(true)).isEqualTo(
             Sql("id = :p0", listOf(NamedSqlParameter("p0", "X"))),
         )
@@ -338,7 +367,8 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `when expression as the whole argument`() {
+    fun `templates inside when branches are converted and const branches stay raw text`() {
+        // given
         val x = "X"
 
         fun build(sort: String?) = Sql {
@@ -350,6 +380,8 @@ class StringInterpolationTest {
                 },
             )
         }
+
+        // when & then
         assertThat(build("name")).isEqualTo(Sql("ORDER BY name"))
         assertThat(build("id")).isEqualTo(
             Sql("ORDER BY id, :p0", listOf(NamedSqlParameter("p0", "X"))),
@@ -359,11 +391,16 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `const val string interpolation`() {
+    fun `a const val in a template is expanded as raw SQL text`() {
+        // given
         val id = 1
+
+        // when
         val sql = Sql {
             +"SELECT * FROM $TABLE WHERE id = $id"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "SELECT * FROM users WHERE id = :p0",
@@ -373,7 +410,7 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `const val only`() {
+    fun `a template consisting of a single const val expands to its raw text`() {
         val sql = Sql {
             +"$TABLE"
         }
@@ -381,7 +418,7 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `const val as whole argument`() {
+    fun `a const val passed directly to add executes as raw SQL text`() {
         // A const val reference is a compile-time constant, so it is accepted without
         // a KUERY_UNSAFE_SQL_STRING warning and executed as raw SQL text.
         val sql = Sql {
@@ -391,11 +428,16 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `trailing const val`() {
+    fun `a trailing const val expands as raw text while runtime values are bound`() {
+        // given
         val id = 1
+
+        // when
         val sql = Sql {
             +"WHERE id = $id ORDER BY $ORDER_COLUMN"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "WHERE id = :p0 ORDER BY created_at",
@@ -405,11 +447,16 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `char constant string interpolation`() {
+    fun `an interpolated char constant is inlined as raw text`() {
+        // given
         val x = 1
+
+        // when
         val sql = Sql {
             +"SELECT data->>'${'$'}name' FROM t WHERE id = $x"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "SELECT data->>'\$name' FROM t WHERE id = :p0",
@@ -419,11 +466,16 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `char percent constant string interpolation`() {
+    fun `interpolated percent chars are inlined as raw text around a bound value`() {
+        // given
         val keyword = "foo"
+
+        // when
         val sql = Sql {
             +"WHERE name LIKE ${'%'}$keyword${'%'}"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "WHERE name LIKE %:p0%",
@@ -434,10 +486,15 @@ class StringInterpolationTest {
 
     @Test
     fun `consecutive constants are merged`() {
+        // given
         val x = 1
+
+        // when
         val sql = Sql {
             +"a$TABLE${'c'} $x"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "ausersc :p0",
@@ -447,11 +504,16 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `literal string interpolation mixed with runtime value`() {
+    fun `an inlined literal and a bound runtime value coexist in one template`() {
+        // given
         val x = 1
+
+        // when
         val sql = Sql {
             +"a ${"hoge"} b $x"
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 "a hoge b :p0",
@@ -462,7 +524,10 @@ class StringInterpolationTest {
 
     @Test
     fun `receiver expression is evaluated only once`() {
+        // given
         var count = 0
+
+        // when
         val sql = Sql {
             fun receiver(): SqlBuilder {
                 count++
@@ -470,6 +535,8 @@ class StringInterpolationTest {
             }
             receiver().add("WHERE id = ${1}")
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql("WHERE id = :p0", listOf(NamedSqlParameter("p0", 1))),
         )
@@ -478,9 +545,12 @@ class StringInterpolationTest {
 
     @Test
     fun `body and parameter go to the same builder even if the receiver expression is impure`() {
+        // given
         var callCount = 0
         lateinit var outerBuilder: SqlBuilder
         val innerSqls = mutableListOf<Sql>()
+
+        // when
         val outerSql = Sql {
             outerBuilder = this
             val innerSql = Sql {
@@ -494,6 +564,8 @@ class StringInterpolationTest {
             }
             innerSqls.add(innerSql)
         }
+
+        // then
         // The receiver expression must be evaluated once, so both the SQL body and
         // the parameter must go to its first result (= outerBuilder).
         assertThat(outerSql).isEqualTo(
@@ -503,7 +575,7 @@ class StringInterpolationTest {
     }
 
     @Test
-    fun `null string interpolation`() {
+    fun `a null constant is bound as null and a computed null string as text`() {
         // In such cases, string interpolation will not be executed.
         val sql1 = Sql {
             +"a ${null}"

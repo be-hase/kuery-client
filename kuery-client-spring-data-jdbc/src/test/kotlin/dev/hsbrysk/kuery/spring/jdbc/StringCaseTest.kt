@@ -35,16 +35,19 @@ class StringCaseTest {
     )
 
     @Test
-    fun test() {
+    fun `snake_case and camelCase columns both map to data class properties`() {
+        // given
         kueryClient.sql {
             +"INSERT INTO string_case (hoge_bar, fugaPiyo) VALUES ('a', 'b')"
         }.rowsUpdated()
 
+        // when
         val record: Record = kueryClient.sql {
             +"SELECT * FROM string_case"
         }.single()
         println(record)
 
+        // then
         assertThat(record.hogeBar).isEqualTo("a")
         assertThat(record.fugaPiyo).isEqualTo("b")
     }

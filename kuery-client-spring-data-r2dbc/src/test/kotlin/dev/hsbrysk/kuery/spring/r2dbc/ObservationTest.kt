@@ -48,12 +48,12 @@ class ObservationTest {
     }
 
     @AfterEach
-    fun testDown() = runTest {
+    fun tearDown() = runTest {
         h2.databaseClient.sql("DROP TABLE users").fetch().awaitRowsUpdated()
     }
 
     @Test
-    fun singleMap() = runTest {
+    fun `singleMap records an observation with sqlId and sql`() = runTest {
         userRepository.singleMap(1)
         assertObservation(
             sqlId = "com.example.spring.r2dbc.UserRepository.singleMap",
@@ -62,7 +62,7 @@ class ObservationTest {
     }
 
     @Test
-    fun singleMapOrNull() = runTest {
+    fun `singleMapOrNull records an observation with sqlId and sql`() = runTest {
         userRepository.singleMapOrNull(1)
         assertObservation(
             sqlId = "com.example.spring.r2dbc.UserRepository.singleMapOrNull",
@@ -71,7 +71,7 @@ class ObservationTest {
     }
 
     @Test
-    fun single() = runTest {
+    fun `single records an observation with sqlId and sql`() = runTest {
         userRepository.single(1)
         assertObservation(
             sqlId = "com.example.spring.r2dbc.UserRepository.single",
@@ -80,7 +80,7 @@ class ObservationTest {
     }
 
     @Test
-    fun singleOrNull() = runTest {
+    fun `singleOrNull records an observation with sqlId and sql`() = runTest {
         userRepository.singleOrNull(1)
         assertObservation(
             sqlId = "com.example.spring.r2dbc.UserRepository.singleOrNull",
@@ -89,7 +89,7 @@ class ObservationTest {
     }
 
     @Test
-    fun listMap() = runTest {
+    fun `listMap records an observation with sqlId and sql`() = runTest {
         userRepository.listMap()
         assertObservation(
             sqlId = "com.example.spring.r2dbc.UserRepository.listMap",
@@ -98,7 +98,7 @@ class ObservationTest {
     }
 
     @Test
-    fun list() = runTest {
+    fun `list records an observation with sqlId and sql`() = runTest {
         userRepository.list()
         assertObservation(
             sqlId = "com.example.spring.r2dbc.UserRepository.list",
@@ -107,7 +107,7 @@ class ObservationTest {
     }
 
     @Test
-    fun rowUpdated() = runTest {
+    fun `rowsUpdated records an observation with sqlId and sql`() = runTest {
         userRepository.rowUpdated("user3", "user3@example.com")
         assertObservation(
             sqlId = "com.example.spring.r2dbc.UserRepository.rowUpdated",
@@ -116,7 +116,7 @@ class ObservationTest {
     }
 
     @Test
-    fun generatedValues() = runTest {
+    fun `generatedValues records an observation with sqlId and sql`() = runTest {
         userRepository.generatedValues("user3", "user3@example.com")
         assertObservation(
             sqlId = "com.example.spring.r2dbc.UserRepository.generatedValues",
@@ -161,11 +161,13 @@ class ObservationTest {
 
     @Test
     fun `stops the observation without error when the fetch is cancelled`() = runTest {
+        // given
         val neverClient = SpringR2dbcKueryClient.builder()
             .connectionFactory(NeverExecutingConnectionFactory(h2.connectionFactory))
             .observationRegistry(registry)
             .build()
 
+        // when
         // UNDISPATCHED runs the coroutine up to its first suspension point, so the fetch is
         // guaranteed to have subscribed (and the observation to have started) before we cancel.
         val job = launch(start = CoroutineStart.UNDISPATCHED) {
@@ -173,6 +175,7 @@ class ObservationTest {
         }
         job.cancelAndJoin()
 
+        // then
         TestObservationRegistryAssert.assertThat(registry)
             .doesNotHaveAnyRemainingCurrentObservation()
             .hasObservationWithNameEqualTo("kuery.client.fetches")

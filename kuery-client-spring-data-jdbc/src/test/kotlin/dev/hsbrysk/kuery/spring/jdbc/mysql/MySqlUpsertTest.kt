@@ -34,16 +34,20 @@ class MySqlUpsertTest {
 
     @Test
     fun `values followed by ON DUPLICATE KEY UPDATE with row alias`() {
+        // given
         val input = listOf(
             listOf(1, "new1@example.com"),
             listOf(2, "new2@example.com"),
         )
 
+        // when
         val rowsUpdated = kueryClient.sql {
             +"INSERT INTO upsert_users (user_id, email)"
             values(input)
             +"AS new ON DUPLICATE KEY UPDATE email = new.email"
         }.rowsUpdated()
+
+        // then
         // 2 for the updated row (user_id=1) + 1 for the inserted row (user_id=2)
         assertThat(rowsUpdated).isEqualTo(3L)
 
@@ -54,16 +58,21 @@ class MySqlUpsertTest {
     fun `values followed by ON DUPLICATE KEY UPDATE with VALUES function`() {
         // MySQL's VALUES(col) function (deprecated in 8.0.20 but widely used) shares its name
         // with the values() DSL; they must not interfere.
+
+        // given
         val input = listOf(
             listOf(1, "new1@example.com"),
             listOf(2, "new2@example.com"),
         )
 
+        // when
         val rowsUpdated = kueryClient.sql {
             +"INSERT INTO upsert_users (user_id, email)"
             values(input)
             +"ON DUPLICATE KEY UPDATE email = VALUES(email)"
         }.rowsUpdated()
+
+        // then
         assertThat(rowsUpdated).isEqualTo(3L)
 
         assertUpserted()

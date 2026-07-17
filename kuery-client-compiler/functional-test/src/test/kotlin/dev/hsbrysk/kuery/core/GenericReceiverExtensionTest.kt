@@ -24,11 +24,14 @@ private fun <T : SqlBuilder> T.paging(
 
 class GenericReceiverExtensionTest {
     @Test
-    fun `generic receiver helper using unaryPlus`() {
+    fun `a helper with a generic SqlBuilder receiver using unaryPlus binds its value`() {
+        // when
         val sql = Sql {
             +"SELECT * FROM users"
             whereUserId(1)
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """
@@ -41,11 +44,14 @@ class GenericReceiverExtensionTest {
     }
 
     @Test
-    fun `generic receiver helper using add`() {
+    fun `a helper with a generic SqlBuilder receiver using add binds its values`() {
+        // when
         val sql = Sql {
             +"SELECT * FROM users"
             paging(limit = 10, offset = 0)
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """
@@ -61,11 +67,14 @@ class GenericReceiverExtensionTest {
     }
 
     @Test
-    fun `chained generic receiver helpers`() {
+    fun `chained generic receiver helpers share one consecutive parameter numbering`() {
+        // when
         val sql = Sql {
             +"SELECT * FROM users"
             whereUserId(1).paging(limit = 10, offset = 0)
         }
+
+        // then
         assertThat(sql).isEqualTo(
             Sql(
                 """

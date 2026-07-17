@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test
 class RedundantTrimIndentCheckerTest {
     @Test
     fun `warn on an explicit trimIndent on a template passed to add`() {
+        // when
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -22,12 +23,15 @@ class RedundantTrimIndentCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn on an explicit trimIndent on a literal passed to unaryPlus`() {
+        // when
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -37,12 +41,15 @@ class RedundantTrimIndentCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn on an explicit trimIndent on a const val`() {
+        // when
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -54,12 +61,15 @@ class RedundantTrimIndentCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn on a trimIndent chained after trimMargin`() {
+        // when
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -69,12 +79,15 @@ class RedundantTrimIndentCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn on a doubled trimIndent`() {
+        // when
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -84,12 +97,15 @@ class RedundantTrimIndentCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
     fun `warn on a trimIndent inside an if branch`() {
+        // when
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -99,6 +115,8 @@ class RedundantTrimIndentCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
@@ -108,6 +126,7 @@ class RedundantTrimIndentCheckerTest {
         // The unsafe branch draws KUERY_UNSAFE_SQL_STRING on the whole argument, but the
         // redundant trim in the safe branch is still real: the runtime auto-trim wraps the
         // selected branch value regardless.
+        // when
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -124,6 +143,8 @@ class RedundantTrimIndentCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
         assertThat(result.messages).contains("KUERY_UNSAFE_SQL_STRING")
@@ -132,6 +153,7 @@ class RedundantTrimIndentCheckerTest {
     @Test
     fun `no warning for trimMargin`() {
         // autoTrimIndent does not remove margins, so an explicit trimMargin is not redundant.
+        // when
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -142,12 +164,15 @@ class RedundantTrimIndentCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
     @Test
     fun `no warning without an explicit trimIndent`() {
+        // when
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -158,12 +183,15 @@ class RedundantTrimIndentCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
 
     @Test
     fun `no warning when the option is off`() {
+        // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -174,6 +202,8 @@ class RedundantTrimIndentCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }
@@ -182,6 +212,7 @@ class RedundantTrimIndentCheckerTest {
     fun `a variable receiver gets both the unsafe and the redundant warning`() {
         // The two warnings state independent facts: the string cannot be verified at compile
         // time, and the explicit trim is redundant because the automatic one runs anyway.
+        // when
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -191,6 +222,8 @@ class RedundantTrimIndentCheckerTest {
             }
             """.trimIndent(),
         )
+
+        // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains("KUERY_UNSAFE_SQL_STRING")
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
@@ -198,6 +231,7 @@ class RedundantTrimIndentCheckerTest {
 
     @Test
     fun `warning can be suppressed by diagnostic name`() {
+        // when
         val result = compileWithAutoTrim(
             """
             import dev.hsbrysk.kuery.core.Sql
@@ -209,6 +243,8 @@ class RedundantTrimIndentCheckerTest {
             """.trimIndent(),
             allWarningsAsErrors = true,
         )
+
+        // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
     }

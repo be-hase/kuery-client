@@ -33,25 +33,30 @@ class TransactionTest {
 
     @Test
     fun `commit persists the changes`() = runTest {
+        // when
         transactionalOperator.executeAndAwait {
             kueryClient.sql { +"INSERT INTO converter (text) VALUES ('text1')" }.rowsUpdated()
         }
 
+        // then
         assertThat(count()).isEqualTo(1L)
     }
 
     @Test
     fun `setRollbackOnly discards the changes`() = runTest {
+        // when
         transactionalOperator.executeAndAwait { status ->
             kueryClient.sql { +"INSERT INTO converter (text) VALUES ('text1')" }.rowsUpdated()
             status.setRollbackOnly()
         }
 
+        // then
         assertThat(count()).isEqualTo(0L)
     }
 
     @Test
     fun `an exception rolls back the changes`() = runTest {
+        // when & then
         assertFailure {
             transactionalOperator.executeAndAwait<Nothing> {
                 kueryClient.sql { +"INSERT INTO converter (text) VALUES ('text1')" }.rowsUpdated()
@@ -59,6 +64,7 @@ class TransactionTest {
             }
         }.isInstanceOf(IllegalStateException::class)
 
+        // then
         assertThat(count()).isEqualTo(0L)
     }
 

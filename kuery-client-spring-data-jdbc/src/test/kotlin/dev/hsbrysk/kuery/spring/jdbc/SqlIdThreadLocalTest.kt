@@ -43,66 +43,66 @@ class SqlIdThreadLocalTest {
     }
 
     @AfterEach
-    fun testDown() {
+    fun tearDown() {
         h2.jdbcClient.sql("DROP TABLE users").update()
     }
 
     @Test
-    fun singleMap() {
+    fun `singleMap propagates the auto-generated sqlId to statement execution`() {
         userRepository.singleMap(1)
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.singleMap")
     }
 
     @Test
-    fun singleMapOrNull() {
+    fun `singleMapOrNull propagates the auto-generated sqlId to statement execution`() {
         userRepository.singleMapOrNull(1)
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.singleMapOrNull")
     }
 
     @Test
-    fun single() {
+    fun `single propagates the auto-generated sqlId to statement execution`() {
         userRepository.single(1)
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.single")
     }
 
     @Test
-    fun singleOrNull() {
+    fun `singleOrNull propagates the auto-generated sqlId to statement execution`() {
         userRepository.singleOrNull(1)
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.singleOrNull")
     }
 
     @Test
-    fun listMap() {
+    fun `listMap propagates the auto-generated sqlId to statement execution`() {
         userRepository.listMap()
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.listMap")
     }
 
     @Test
-    fun list() {
+    fun `list propagates the auto-generated sqlId to statement execution`() {
         userRepository.list()
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.list")
     }
 
     @Test
-    fun sequenceMap() {
+    fun `sequenceMap propagates the auto-generated sqlId to statement execution`() {
         userRepository.sequenceMap().use { it.toList() }
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.sequenceMap")
     }
 
     @Test
-    fun sequence() {
+    fun `sequence propagates the auto-generated sqlId to statement execution`() {
         userRepository.sequence().use { it.toList() }
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.sequence")
     }
 
     @Test
-    fun rowsUpdated() {
+    fun `rowsUpdated propagates the auto-generated sqlId to statement execution`() {
         userRepository.rowUpdated("user3", "user3@example.com")
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.rowUpdated")
     }
 
     @Test
-    fun generatedValues() {
+    fun `generatedValues propagates the auto-generated sqlId to statement execution`() {
         userRepository.generatedValues("user3", "user3@example.com")
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.generatedValues")
     }
