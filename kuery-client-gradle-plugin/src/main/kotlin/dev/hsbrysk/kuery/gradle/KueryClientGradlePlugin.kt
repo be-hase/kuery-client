@@ -17,16 +17,24 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
         val extension = kotlinCompilation.target.project.extensions.getByType(KueryClientExtension::class.java)
-        return extension.autoTrimIndent.zip(extension.sqlSyntaxCheck) { autoTrimIndent, sqlSyntaxCheck ->
-            // Only emit an option when it deviates from the compiler plugin's default, so a
-            // build whose compiler-plugin artifact resolves to an older kuery-client-compiler
-            // (which would reject the unknown option) keeps working as long as the feature is
-            // not enabled.
-            buildList {
-                if (autoTrimIndent) add(SubpluginOption("autoTrimIndent", "true"))
-                if (sqlSyntaxCheck) add(SubpluginOption("sqlSyntaxCheck", "true"))
+        return extension.autoTrimIndent
+            .zip(extension.sqlSyntaxCheck) { autoTrimIndent, sqlSyntaxCheck ->
+                // Only emit an option when it deviates from the compiler plugin's default, so a
+                // build whose compiler-plugin artifact resolves to an older kuery-client-compiler
+                // (which would reject the unknown option) keeps working as long as the feature is
+                // not enabled.
+                buildList {
+                    if (autoTrimIndent) add(SubpluginOption("autoTrimIndent", "true"))
+                    if (sqlSyntaxCheck) add(SubpluginOption("sqlSyntaxCheck", "true"))
+                }
             }
-        }
+            .zip(extension.sqlSyntaxCheckDialect.orElse("")) { options, dialect ->
+                if (dialect.isNotBlank()) {
+                    options + SubpluginOption("sqlSyntaxCheckDialect", dialect)
+                } else {
+                    options
+                }
+            }
     }
 
     override fun getCompilerPluginId(): String = "dev.hsbrysk.kuery-client"

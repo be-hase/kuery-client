@@ -1,5 +1,6 @@
 package dev.hsbrysk.kuery.compiler.fir
 
+import net.sf.jsqlparser.util.validation.feature.DatabaseType
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.ExpressionCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirFunctionCallChecker
@@ -9,10 +10,11 @@ import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
 class KueryClientFirExtensionRegistrar(
     private val autoTrimIndent: Boolean,
     private val sqlSyntaxCheck: Boolean,
+    private val sqlSyntaxCheckDialect: DatabaseType? = null,
 ) : FirExtensionRegistrar() {
     override fun ExtensionRegistrarContext.configurePlugin() {
         val checkersFactory: (FirSession) -> KueryClientFirCheckersExtension = { session ->
-            KueryClientFirCheckersExtension(session, autoTrimIndent, sqlSyntaxCheck)
+            KueryClientFirCheckersExtension(session, autoTrimIndent, sqlSyntaxCheck, sqlSyntaxCheckDialect)
         }
         +checkersFactory
         registerDiagnosticContainers(KueryClientDiagnostics)
@@ -23,6 +25,7 @@ internal class KueryClientFirCheckersExtension(
     session: FirSession,
     autoTrimIndent: Boolean,
     sqlSyntaxCheck: Boolean,
+    sqlSyntaxCheckDialect: DatabaseType?,
 ) : FirAdditionalCheckersExtension(session) {
     override val expressionCheckers: ExpressionCheckers = object : ExpressionCheckers() {
         override val functionCallCheckers: Set<FirFunctionCallChecker> = buildSet {
@@ -35,7 +38,7 @@ internal class KueryClientFirCheckersExtension(
             }
             // Opt-in; the checker must know autoTrimIndent to reconstruct the runtime SQL text.
             if (sqlSyntaxCheck) {
-                add(SqlSyntaxChecker(autoTrimIndent))
+                add(SqlSyntaxChecker(autoTrimIndent, sqlSyntaxCheckDialect))
             }
         }
     }

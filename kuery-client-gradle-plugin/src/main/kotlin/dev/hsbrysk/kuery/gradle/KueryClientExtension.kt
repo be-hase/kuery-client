@@ -22,4 +22,14 @@ interface KueryClientExtension {
      * false positive — suppress with `@Suppress("KUERY_SQL_SYNTAX")`. Default: false.
      */
     val sqlSyntaxCheck: Property<Boolean>
+
+    /**
+     * Additionally checks statements that pass the syntax check against this dialect's feature
+     * set (JSqlParser's validation framework) and reports a `KUERY_SQL_DIALECT` warning on
+     * violations — e.g. `ON DUPLICATE KEY UPDATE` when the dialect is `postgresql`. One of
+     * `ansi`, `oracle`, `mysql`, `sqlserver`, `mariadb`, `postgresql`, `h2`. Setting a dialect
+     * implies [sqlSyntaxCheck]. The check is a feature-level allow-list, not a full dialect
+     * grammar; suppress false positives with `@Suppress("KUERY_SQL_DIALECT")`. Default: unset.
+     */
+    val sqlSyntaxCheckDialect: Property<String>
 }

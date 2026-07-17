@@ -2,6 +2,8 @@ package dev.hsbrysk.kuery.compiler.fir
 
 import net.sf.jsqlparser.JSQLParserException
 import net.sf.jsqlparser.parser.CCJSqlParserUtil
+import net.sf.jsqlparser.util.validation.Validation
+import net.sf.jsqlparser.util.validation.feature.DatabaseType
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
@@ -34,8 +36,17 @@ import org.jetbrains.kotlin.name.Name
  * [KueryClientDiagnostics.KUERY_SQL_SYNTAX] warning, anchored to the add call the failing line
  * belongs to. JSqlParser is deliberately lenient, so this check trades detection power for a
  * low false-positive rate; any parser crash other than a parse failure fails open.
+ *
+ * When a [dialect] is configured, a statement that parses is additionally checked against that
+ * dialect's feature allow-list (JSqlParser's validation framework) and violations are reported
+ * as [KueryClientDiagnostics.KUERY_SQL_DIALECT] — e.g. `ON DUPLICATE KEY UPDATE` under
+ * `postgresql`. This is feature-level, not a full dialect grammar: some cross-dialect syntax
+ * still passes, which keeps the failure mode on the false-negative side.
  */
-internal class SqlSyntaxChecker(private val autoTrimIndent: Boolean) : FirFunctionCallChecker(MppCheckerKind.Common) {
+internal class SqlSyntaxChecker(
+    private val autoTrimIndent: Boolean,
+    private val dialect: DatabaseType?,
+) : FirFunctionCallChecker(MppCheckerKind.Common) {
     private class Part(
         val text: String,
         val source: KtSourceElement?,
@@ -47,13 +58,29 @@ internal class SqlSyntaxChecker(private val autoTrimIndent: Boolean) : FirFuncti
         val parts = reconstructedPartsOrNull(block) ?: return
         val sql = parts.joinToString("\n") { it.text }
         if (sql.isBlank()) return
+        reportFailures(expression, parts, sql)
+    }
 
-        val reason = parseFailureOrNull(sql) ?: return
-        reporter.reportOn(
-            anchorSource(parts, reason) ?: expression.source,
-            KueryClientDiagnostics.KUERY_SQL_SYNTAX,
-            reason,
-        )
+    context(context: CheckerContext, reporter: DiagnosticReporter)
+    private fun reportFailures(
+        expression: FirFunctionCall,
+        parts: List<Part>,
+        sql: String,
+    ) {
+        val reason = parseFailureOrNull(sql)
+        if (reason != null) {
+            reporter.reportOn(
+                anchorSource(parts, reason) ?: expression.source,
+                KueryClientDiagnostics.KUERY_SQL_SYNTAX,
+                reason,
+            )
+            return
+        }
+
+        // Only a statement that parses is feature-checked; a broken one already drew the
+        // syntax warning above.
+        val dialectReason = dialect?.let { dialectFailureOrNull(sql, it) } ?: return
+        reporter.reportOn(expression.source, KueryClientDiagnostics.KUERY_SQL_DIALECT, dialectReason)
     }
 
     // The texts of the block's statements if every one of them is an add/unaryPlus call with a
@@ -137,5 +164,25 @@ internal class SqlSyntaxChecker(private val autoTrimIndent: Boolean) : FirFuncti
             .joinToString(" ")
             .trim()
             .replace(Regex("""\s+"""), " ")
+
+        // The dialect feature violations (e.g. "insertUseDuplicateKeyUpdate not supported."),
+        // or null when the statement fits the dialect. Fails open like parseFailureOrNull.
+        @Suppress("TooGenericExceptionCaught", "SwallowedException")
+        private fun dialectFailureOrNull(
+            sql: String,
+            dialect: DatabaseType,
+        ): String? = try {
+            val messages = Validation(listOf(dialect), sql)
+                .validate()
+                .flatMap { it.errors }
+                .mapNotNull { it.message }
+            if (messages.isEmpty()) {
+                null
+            } else {
+                "${messages.joinToString(" ")} (dialect: ${dialect.name.lowercase()})"
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 }

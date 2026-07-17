@@ -203,7 +203,89 @@ class SqlSyntaxCheckerTest {
         assertThat(result.messages).contains("Sample.kt:7")
     }
 
+    @Test
+    fun `warn when the SQL uses a feature the configured dialect does not support`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int, name: String) {
+                Sql { +"INSERT INTO users (id, name) VALUES (${'$'}id, ${'$'}name) ON DUPLICATE KEY UPDATE name = ${'$'}name" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption(), sqlSyntaxCheckDialectOption("postgresql")),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIALECT_DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `no warning when the SQL matches the configured dialect`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int, name: String) {
+                Sql { +"SELECT `order` FROM `users` WHERE id = ${'$'}id FOR UPDATE" }
+                Sql { +"INSERT INTO users (id, name) VALUES (${'$'}id, ${'$'}name) ON DUPLICATE KEY UPDATE name = ${'$'}name" }
+                Sql { +"SELECT * FROM users WHERE name LIKE ${'$'}name LIMIT ${'$'}id OFFSET ${'$'}id" }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption(), sqlSyntaxCheckDialectOption("mysql")),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIALECT_DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `the dialect option alone enables the syntax check`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { +"SELCT * FROM users" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckDialectOption("mysql")),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `dialect warning can be suppressed by diagnostic name`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            @Suppress("$DIALECT_DIAGNOSTIC_NAME")
+            fun query(id: Int, name: String) {
+                Sql { +"INSERT INTO users (id, name) VALUES (${'$'}id, ${'$'}name) ON DUPLICATE KEY UPDATE name = ${'$'}name" }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption(), sqlSyntaxCheckDialectOption("postgresql")),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIALECT_DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
     companion object {
         private const val DIAGNOSTIC_NAME = "KUERY_SQL_SYNTAX"
+        private const val DIALECT_DIAGNOSTIC_NAME = "KUERY_SQL_DIALECT"
     }
 }

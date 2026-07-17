@@ -19,6 +19,12 @@ internal fun sqlSyntaxCheckOption(value: String = "true"): PluginOption = Plugin
     value,
 )
 
+internal fun sqlSyntaxCheckDialectOption(value: String): PluginOption = PluginOption(
+    KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
+    KueryClientCompilerCommandLineProcessor.SQL_SYNTAX_CHECK_DIALECT_OPTION_NAME,
+    value,
+)
+
 // Single kotlin-compile-testing harness with the kuery-client plugin applied, shared by every
 // test that compiles a snippet, so the registrar/processor wiring lives in one place.
 @OptIn(ExperimentalCompilerApi::class)

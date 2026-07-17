@@ -15,6 +15,7 @@ internal object KueryClientDiagnostics : KtDiagnosticsContainer() {
     val KUERY_BIND_CALL_IN_SQL_TEMPLATE by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
     val KUERY_REDUNDANT_TRIM_INDENT by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
     val KUERY_SQL_SYNTAX by warning1<KtExpression, String>(SourceElementPositioningStrategies.DEFAULT)
+    val KUERY_SQL_DIALECT by warning1<KtExpression, String>(SourceElementPositioningStrategies.DEFAULT)
 
     override fun getRendererFactory(): BaseDiagnosticRendererFactory = KueryClientDiagnosticRenderers
 }
@@ -55,6 +56,14 @@ internal object KueryClientDiagnosticRenderers : BaseDiagnosticRendererFactory()
                 "(JSqlParser), which does not know every vendor-specific syntax, so this may be a false " +
                 "positive. If the SQL is valid, annotate the enclosing declaration with " +
                 "@Suppress(\"KUERY_SQL_SYNTAX\").",
+            CommonRenderers.STRING,
+        )
+        map.put(
+            KueryClientDiagnostics.KUERY_SQL_DIALECT,
+            "The SQL assembled from this block uses a feature the configured dialect does not support: {0} " +
+                "The dialect check is a feature-level allow-list (JSqlParser), so this may be a false " +
+                "positive. If the SQL is valid for your database, annotate the enclosing declaration with " +
+                "@Suppress(\"KUERY_SQL_DIALECT\").",
             CommonRenderers.STRING,
         )
     }

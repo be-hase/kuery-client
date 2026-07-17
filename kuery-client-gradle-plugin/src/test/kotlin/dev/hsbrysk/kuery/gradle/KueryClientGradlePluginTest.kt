@@ -71,6 +71,20 @@ class KueryClientGradlePluginTest {
         assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheck=true")
     }
 
+    @Test
+    fun `sqlSyntaxCheckDialect is passed through when set`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheckDialect.set("postgresql")
+
+        // when
+        val options = plugin.applyToCompilation(compilation(project)).get()
+
+        // then
+        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheckDialect=postgresql")
+    }
+
     private fun compilation(platformType: KotlinPlatformType): KotlinCompilation<*> = mockk {
         every { target.platformType } returns platformType
     }

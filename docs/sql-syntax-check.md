@@ -48,6 +48,34 @@ This mirrors how compile-time-checked SQL works elsewhere (e.g. Rust's sqlx): st
 are fully known are verified, dynamically assembled ones are not — no false alarms on dynamic
 SQL.
 
+## Dialect-aware feature check
+
+JSqlParser parses a superset of all dialects, so by default a MySQL-only construct passes even
+in a PostgreSQL project. If you specify your dialect, statements that pass the syntax check are
+additionally validated against that dialect's feature set:
+
+```kotlin
+kueryClient {
+    sqlSyntaxCheckDialect = "postgresql" // implies sqlSyntaxCheck = true
+}
+```
+
+Supported values: `ansi`, `oracle`, `mysql`, `sqlserver`, `mariadb`, `postgresql`, `h2`.
+
+A violation is reported as a separate `KUERY_SQL_DIALECT` warning:
+
+```kotlin
+kueryClient.sql {
+    // KUERY_SQL_DIALECT: insertUseDuplicateKeyUpdate not supported. (dialect: postgresql)
+    +"INSERT INTO users (id, name) VALUES ($id, $name) ON DUPLICATE KEY UPDATE name = $name"
+}
+```
+
+This uses JSqlParser's validation framework, which is a **feature-level allow-list, not a full
+dialect grammar**: it catches whole features the database does not have (upserts, `RETURNING`,
+...), but some cross-dialect syntax still passes, and an incomplete allow-list can produce a
+false positive — suppress those with `@Suppress("KUERY_SQL_DIALECT")`.
+
 ## False positives and limitations
 
 The check uses [JSqlParser](https://github.com/JSQLParser/JSqlParser), a generic multi-dialect
