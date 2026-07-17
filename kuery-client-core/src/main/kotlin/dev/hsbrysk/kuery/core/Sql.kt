@@ -2,14 +2,19 @@ package dev.hsbrysk.kuery.core
 
 import dev.hsbrysk.kuery.core.internal.DefaultSql
 
+/**
+ * An immutable SQL statement built by [SqlBuilder]: the SQL text with named placeholders and
+ * the parameters bound to them.
+ */
 public interface Sql {
     /**
-     * SQL body
+     * The SQL text, containing named placeholders (e.g. `:p0`) instead of the interpolated
+     * values.
      */
     public val body: String
 
     /**
-     * SQL parameters
+     * The parameters bound to the placeholders in [body].
      */
     public val parameters: List<NamedSqlParameter>
 
@@ -17,7 +22,7 @@ public interface Sql {
 }
 
 /**
- * Create [Sql]
+ * Creates a [Sql] from the given [body] and [parameters].
  */
 public fun Sql(
     body: String,
@@ -25,7 +30,11 @@ public fun Sql(
 ): Sql = DefaultSql(body, parameters.toList())
 
 /**
- * Create [Sql] using [SqlBuilder]
+ * Creates a [Sql] by running the given [SqlBuilder] block.
+ *
+ * ```kotlin
+ * val sql = Sql { +"SELECT * FROM users WHERE user_id = $userId" }
+ * ```
  */
 public fun Sql(block: SqlBuilder.() -> Unit): Sql {
     val builder = DefaultSqlBuilder()
