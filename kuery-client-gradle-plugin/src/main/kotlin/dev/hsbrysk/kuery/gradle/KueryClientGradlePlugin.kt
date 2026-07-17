@@ -1,5 +1,6 @@
 package dev.hsbrysk.kuery.gradle
 
+import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Project
 import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
@@ -29,10 +30,18 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
                 }
             }
             .zip(extension.sqlSyntaxCheckDialect.orElse("")) { options, dialect ->
-                if (dialect.isNotBlank()) {
-                    options + SubpluginOption("sqlSyntaxCheckDialect", dialect)
-                } else {
+                if (dialect.isBlank()) {
                     options
+                } else {
+                    // Fail fast at configuration time with a clear message instead of deferring
+                    // to a compiler-plugin error during compilation.
+                    if (SUPPORTED_DIALECTS.none { it.equals(dialect, ignoreCase = true) }) {
+                        throw InvalidUserDataException(
+                            "kueryClient.sqlSyntaxCheckDialect must be one of " +
+                                "${SUPPORTED_DIALECTS.joinToString(", ")}, but was '$dialect'",
+                        )
+                    }
+                    options + SubpluginOption("sqlSyntaxCheckDialect", dialect)
                 }
             }
     }
@@ -56,5 +65,11 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     companion object {
         private const val EXTENSION_NAME = "kueryClient"
+
+        // The dialect vocabulary accepted by sqlSyntaxCheckDialect. This module cannot depend on
+        // kuery-client-compiler (that would drag the Kotlin compiler onto the Gradle classpath),
+        // so this mirrors the SqlDialect enum there — keep the two in sync.
+        private val SUPPORTED_DIALECTS =
+            listOf("ansi", "oracle", "mysql", "sqlserver", "mariadb", "postgresql", "h2")
     }
 }

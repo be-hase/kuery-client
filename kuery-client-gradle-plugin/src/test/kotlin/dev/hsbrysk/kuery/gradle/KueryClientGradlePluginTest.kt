@@ -1,10 +1,14 @@
 package dev.hsbrysk.kuery.gradle
 
+import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
+import assertk.assertions.message
 import io.mockk.every
 import io.mockk.mockk
 import org.gradle.testfixtures.ProjectBuilder
@@ -83,6 +87,36 @@ class KueryClientGradlePluginTest {
 
         // then
         assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheckDialect=postgresql")
+    }
+
+    @Test
+    fun `a mixed-case sqlSyntaxCheckDialect is accepted and passed through verbatim`() {
+        // The compiler resolves the dialect case-insensitively, so the plugin must not reject a
+        // valid value on case alone.
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheckDialect.set("MySQL")
+
+        // when
+        val options = plugin.applyToCompilation(compilation(project)).get()
+
+        // then
+        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheckDialect=MySQL")
+    }
+
+    @Test
+    fun `an invalid sqlSyntaxCheckDialect is rejected with the supported values`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheckDialect.set("db2")
+
+        // when & then
+        assertFailure { plugin.applyToCompilation(compilation(project)).get() }
+            .message()
+            .isNotNull()
+            .contains("must be one of ansi, oracle, mysql, sqlserver, mariadb, postgresql, h2, but was 'db2'")
     }
 
     private fun compilation(platformType: KotlinPlatformType): KotlinCompilation<*> = mockk {
