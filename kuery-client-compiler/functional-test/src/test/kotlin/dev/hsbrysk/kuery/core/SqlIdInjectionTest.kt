@@ -2,6 +2,8 @@ package dev.hsbrysk.kuery.core
 
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import dev.hsbrysk.kuery.core.internal.SqlIds.id
+import io.mockk.mockk
 import org.junit.jupiter.api.Test
 
 /**
@@ -11,7 +13,7 @@ import org.junit.jupiter.api.Test
  * SqlIdInjectionTest; this covers the representative shapes end to end.
  */
 class SqlIdInjectionTest {
-    private val client = RecordingKueryBlockingClient()
+    private val client = RecordingClient()
 
     @Test
     fun `a call in a class method uses the enclosing method's FQN`() {
@@ -54,6 +56,25 @@ class SqlIdInjectionTest {
         // then
         assertThat(client.sqlIds).containsExactly("my-explicit-id")
     }
+}
+
+/**
+ * Records the sqlId of every `sql` call. The terminal operations are irrelevant here, so the
+ * returned FetchSpec is a bare mockk stub.
+ */
+@OptIn(KueryClientInternalApi::class)
+private class RecordingClient : KueryBlockingClient {
+    val sqlIds = mutableListOf<String>()
+
+    override fun sql(
+        sqlId: String,
+        block: SqlBuilder.() -> Unit,
+    ): KueryBlockingClient.FetchSpec {
+        sqlIds += sqlId
+        return mockk()
+    }
+
+    override fun sql(block: SqlBuilder.() -> Unit): KueryBlockingClient.FetchSpec = sql(block.id(), block)
 }
 
 private class UserRepository(private val client: KueryBlockingClient) {
