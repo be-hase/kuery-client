@@ -6,7 +6,12 @@ import dev.hsbrysk.kuery.core.Sql
 import io.micrometer.observation.Observation
 
 /**
- * [Observation.Context] for [KueryClient] and [KueryBlockingClient]
+ * [Observation.Context] for the fetch observations recorded by [KueryClient] and
+ * [KueryBlockingClient].
+ *
+ * @property sqlId the ID that identifies the executed query
+ * @property sql the executed SQL (with named placeholders; bound values are held separately
+ * in [Sql.parameters])
  */
 public class KueryClientFetchContext(
     public val sqlId: String,

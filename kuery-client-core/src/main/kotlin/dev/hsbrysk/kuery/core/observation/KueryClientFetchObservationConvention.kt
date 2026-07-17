@@ -7,7 +7,11 @@ import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationConvention
 
 /**
- * [ObservationConvention] for [KueryClient] and [KueryBlockingClient]
+ * [ObservationConvention] for the fetch observations recorded by [KueryClient] and
+ * [KueryBlockingClient].
+ *
+ * Implement this and pass it to the client builder's `observationConvention(...)` to customize
+ * the observation name (`kuery.client.fetches` by default) or the recorded tags.
  */
 public interface KueryClientFetchObservationConvention : ObservationConvention<KueryClientFetchContext> {
     override fun getName(): String = "kuery.client.fetches"
@@ -15,6 +19,10 @@ public interface KueryClientFetchObservationConvention : ObservationConvention<K
     override fun supportsContext(context: Observation.Context): Boolean = context is KueryClientFetchContext
 
     public companion object {
+        /**
+         * Returns the default convention, which tags each observation with `sql.id`
+         * (low cardinality) and `sql` (high cardinality).
+         */
         public fun default(): KueryClientFetchObservationConvention = DefaultKueryClientFetchObservationConvention()
     }
 }

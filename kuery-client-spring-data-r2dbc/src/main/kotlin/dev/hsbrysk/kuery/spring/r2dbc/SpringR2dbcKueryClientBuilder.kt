@@ -5,31 +5,41 @@ import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import io.micrometer.observation.ObservationRegistry
 import io.r2dbc.spi.ConnectionFactory
 
+/**
+ * Builder for a [KueryClient] backed by Spring Data R2DBC.
+ *
+ * Obtain an instance via [SpringR2dbcKueryClient.builder]. [connectionFactory] is required;
+ * everything else is optional.
+ */
 public interface SpringR2dbcKueryClientBuilder {
     /**
-     * Set [ConnectionFactory]
+     * Sets the [ConnectionFactory] to execute SQL against. Required.
      */
     public fun connectionFactory(connectionFactory: ConnectionFactory): SpringR2dbcKueryClientBuilder
 
     /**
-     * Set converters
+     * Sets custom converters used for both binding parameters and mapping rows, typically
+     * Spring `Converter`s annotated with `@WritingConverter` / `@ReadingConverter`.
      */
     public fun converters(converters: List<Any>): SpringR2dbcKueryClientBuilder
 
     /**
-     * Set [ObservationRegistry]
+     * Sets the [ObservationRegistry], enabling Micrometer Observation instrumentation
+     * (metrics/tracing) for each fetch.
      */
     public fun observationRegistry(observationRegistry: ObservationRegistry): SpringR2dbcKueryClientBuilder
 
     /**
-     * Set [KueryClientFetchObservationConvention]
+     * Sets the [KueryClientFetchObservationConvention] used to customize the observation name
+     * and tags. When not set, [KueryClientFetchObservationConvention.default] is used.
      */
     public fun observationConvention(
         observationConvention: KueryClientFetchObservationConvention,
     ): SpringR2dbcKueryClientBuilder
 
     /**
-     * It is a flag to automatically generate a sqlId for metrics.
+     * Sets whether to automatically generate a sqlId for metrics when `sql { ... }` is called
+     * without an explicit sqlId.
      * When [observationRegistry] is specified, the default is true; otherwise, the default is false.
      *
      * The sqlId is derived from the call site of the first invocation and cached per SQL block.
@@ -40,7 +50,9 @@ public interface SpringR2dbcKueryClientBuilder {
     public fun enableAutoSqlIdGeneration(enableAutoSqlIdGeneration: Boolean): SpringR2dbcKueryClientBuilder
 
     /**
-     * Build [KueryClient]
+     * Builds the [KueryClient].
+     *
+     * @throws IllegalArgumentException if [connectionFactory] has not been set
      */
     public fun build(): KueryClient
 }

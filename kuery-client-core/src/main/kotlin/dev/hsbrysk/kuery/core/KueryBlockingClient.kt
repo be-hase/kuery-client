@@ -3,12 +3,33 @@ package dev.hsbrysk.kuery.core
 import dev.hsbrysk.kuery.core.KueryBlockingClient.FetchSpec
 import kotlin.reflect.KClass
 
+/**
+ * A blocking SQL client.
+ *
+ * SQL is written with plain Kotlin string interpolation inside the [sql] block; the Kuery Client
+ * compiler plugin rewrites every interpolated value into a named bind parameter, so values are
+ * never concatenated into the SQL text.
+ *
+ * ```kotlin
+ * val user: User = client.sql { +"SELECT * FROM users WHERE user_id = $userId" }.single()
+ * ```
+ *
+ * Implementations are expected to be thread-safe; a single instance can be shared across the
+ * whole application.
+ *
+ * For a coroutine-based (R2DBC) counterpart, see [KueryClient].
+ */
 public interface KueryBlockingClient {
     /**
-     * Returns a [FetchSpec] to obtain the execution results based on the received [SqlBuilder].
+     * Builds SQL using the received [SqlBuilder] block and returns a [FetchSpec] to obtain the
+     * execution results.
      *
-     * @param sqlId An ID that uniquely identifies the query. It is used for purposes such as metrics.
-     * @param block [SqlBuilder] for constructing SQL.
+     * Note that the statement is not executed until one of the terminal operations on
+     * [FetchSpec] is invoked.
+     *
+     * @param sqlId an ID that uniquely identifies the query, used for purposes such as metrics
+     * @param block [SqlBuilder] block that constructs the SQL
+     * @return a [FetchSpec] for retrieving the execution results
      */
     public fun sql(
         sqlId: String,
@@ -16,56 +37,92 @@ public interface KueryBlockingClient {
     ): FetchSpec
 
     /**
-     * Returns a [FetchSpec] to obtain the execution results based on the received [SqlBuilder].
+     * Builds SQL using the received [SqlBuilder] block and returns a [FetchSpec] to obtain the
+     * execution results.
      *
-     * @param block [SqlBuilder] for constructing SQL.
+     * Note that the statement is not executed until one of the terminal operations on
+     * [FetchSpec] is invoked.
+     *
+     * The sqlId is generated automatically from the call site when auto sqlId generation is
+     * enabled; otherwise `"NONE"` is used.
+     *
+     * @param block [SqlBuilder] block that constructs the SQL
+     * @return a [FetchSpec] for retrieving the execution results
      */
     public fun sql(block: SqlBuilder.() -> Unit): FetchSpec
 
+    /**
+     * Specifies how to execute the built SQL and retrieve the results.
+     *
+     * Each terminal operation ([singleMap], [single], [list], [sequence], [rowsUpdated],
+     * [generatedValues], ...) executes the statement when invoked.
+     *
+     * Rows are mapped to the specified type as follows: simple scalar types (numbers, strings,
+     * date/time types, ...) are read from the first column of the row, while other types
+     * (e.g. data classes) are mapped by matching column names to constructor parameters.
+     */
     @Suppress("TooManyFunctions")
     public interface FetchSpec {
         /**
-         * Set the fetch size to use when executing this query.
+         * Sets the fetch size (the number of rows fetched from the database at a time) to use
+         * when executing this query.
+         *
+         * @return a new [FetchSpec] with the given fetch size applied
          */
         public fun fetchSize(fetchSize: Int): FetchSpec
 
         /**
-         * Set the maximum number of rows to return from this query.
+         * Sets the maximum number of rows to return from this query.
+         *
+         * @return a new [FetchSpec] with the given limit applied
          */
         public fun maxRows(maxRows: Int): FetchSpec
 
         /**
-         * Set the query timeout (in seconds) for this query.
+         * Sets the query timeout (in seconds) for this query.
+         *
+         * @return a new [FetchSpec] with the given timeout applied
          */
         public fun queryTimeoutSeconds(queryTimeoutSeconds: Int): FetchSpec
 
         /**
-         * Receives the results as a map.
+         * Executes the query and returns exactly one row as a map keyed by column name.
+         *
+         * Fails with an exception if the query returns no rows or more than one row.
          */
         public fun singleMap(): Map<String, Any?>
 
         /**
-         * Receives the results as a map.
+         * Executes the query and returns at most one row as a map keyed by column name, or
+         * `null` if the query returns no rows.
+         *
+         * Fails with an exception if the query returns more than one row.
          */
         public fun singleMapOrNull(): Map<String, Any?>?
 
         /**
-         * Receives the results converted to the specified type.
+         * Executes the query and returns exactly one row converted to [returnType].
+         *
+         * Fails with an exception if the query returns no rows, more than one row, or a single
+         * scalar value that is SQL NULL.
          */
         public fun <T : Any> single(returnType: KClass<T>): T
 
         /**
-         * Receives the results converted to the specified type.
+         * Executes the query and returns at most one row converted to [returnType], or `null`
+         * if the query returns no rows.
+         *
+         * Fails with an exception if the query returns more than one row.
          */
         public fun <T : Any> singleOrNull(returnType: KClass<T>): T?
 
         /**
-         * Receives the results of multiple rows as a map.
+         * Executes the query and returns all rows as a list of maps keyed by column name.
          */
         public fun listMap(): List<Map<String, Any?>>
 
         /**
-         * Receives the results of multiple rows converted to the specified type.
+         * Executes the query and returns all rows converted to [returnType].
          *
          * When fetching a simple scalar type from a single-column query, SQL NULL is kept as a null
          * element even though this cannot be expressed in the `List<T>` type.
@@ -73,20 +130,26 @@ public interface KueryBlockingClient {
         public fun <T : Any> list(returnType: KClass<T>): List<T>
 
         /**
-         * Receives the results of multiple rows as a sequence of maps.
-         * The returned sequence is backed by an open JDBC ResultSet; iterate it within an active transaction.
-         * It is closed automatically when fully iterated or when fetching the next element throws; exceptions
-         * thrown by your own processing code do not close it. Unless you fully iterate the sequence, close it
-         * explicitly (e.g., with [use]). It can be iterated only once. See [CloseableSequence].
+         * Executes the query and returns each row as a map keyed by column name, as a sequence
+         * that streams rows without accumulating them all in memory.
+         *
+         * The returned sequence is backed by an open JDBC ResultSet; iterate it within an active
+         * transaction. It is closed automatically when fully iterated or when fetching the next
+         * element throws; exceptions thrown by your own processing code do not close it. Unless
+         * you fully iterate the sequence, close it explicitly (e.g., with [use]). It can be
+         * iterated only once. See [CloseableSequence].
          */
         public fun sequenceMap(): CloseableSequence<Map<String, Any?>>
 
         /**
-         * Receives the results of multiple rows converted to the specified type as a sequence.
-         * The returned sequence is backed by an open JDBC ResultSet; iterate it within an active transaction.
-         * It is closed automatically when fully iterated or when fetching the next element throws; exceptions
-         * thrown by your own processing code do not close it. Unless you fully iterate the sequence, close it
-         * explicitly (e.g., with [use]). It can be iterated only once. See [CloseableSequence].
+         * Executes the query and returns each row converted to [returnType], as a sequence that
+         * streams rows without accumulating them all in memory.
+         *
+         * The returned sequence is backed by an open JDBC ResultSet; iterate it within an active
+         * transaction. It is closed automatically when fully iterated or when fetching the next
+         * element throws; exceptions thrown by your own processing code do not close it. Unless
+         * you fully iterate the sequence, close it explicitly (e.g., with [use]). It can be
+         * iterated only once. See [CloseableSequence].
          *
          * When fetching a simple scalar type from a single-column query, SQL NULL is kept as a null
          * element even though this cannot be expressed in the `CloseableSequence<T>` type.
@@ -94,34 +157,48 @@ public interface KueryBlockingClient {
         public fun <T : Any> sequence(returnType: KClass<T>): CloseableSequence<T>
 
         /**
-         * Contract for fetching the number of affected rows
+         * Executes the statement (typically `INSERT`, `UPDATE`, or `DELETE`) and returns the
+         * number of affected rows.
          */
         public fun rowsUpdated(): Long
 
         /**
-         * Receives the values generated on the database side.
-         * For example, an auto increment value.
+         * Executes the statement and returns the values generated on the database side, such as
+         * an auto-increment ID, as a map keyed by column name.
+         *
+         * @param columns the names of the generated columns to return; when empty, the
+         * driver's default set of generated values is returned
          */
         public fun generatedValues(vararg columns: String): Map<String, Any>
     }
 }
 
 /**
- * Receives the results converted to the specified type.
+ * Executes the query and returns exactly one row converted to [T].
+ *
+ * A reified shortcut for [FetchSpec.single].
  */
 public inline fun <reified T : Any> FetchSpec.single(): T = single(T::class)
 
 /**
- * Receives the results converted to the specified type.
+ * Executes the query and returns at most one row converted to [T], or `null` if the query
+ * returns no rows.
+ *
+ * A reified shortcut for [FetchSpec.singleOrNull].
  */
 public inline fun <reified T : Any> FetchSpec.singleOrNull(): T? = singleOrNull(T::class)
 
 /**
- * Receives the results of multiple rows converted to the specified type.
+ * Executes the query and returns all rows converted to [T].
+ *
+ * A reified shortcut for [FetchSpec.list].
  */
 public inline fun <reified T : Any> FetchSpec.list(): List<T> = list(T::class)
 
 /**
- * Receives the results of multiple rows converted to the specified type as a sequence.
+ * Executes the query and returns each row converted to [T], as a sequence that streams rows
+ * without accumulating them all in memory.
+ *
+ * A reified shortcut for [FetchSpec.sequence]; see it for the resource-handling caveats.
  */
 public inline fun <reified T : Any> FetchSpec.sequence(): CloseableSequence<T> = sequence(T::class)

@@ -1,5 +1,13 @@
 package dev.hsbrysk.kuery.core
 
+/**
+ * Marks declarations that bypass the safety mechanisms of Kuery Client (e.g.
+ * [SqlBuilder.addUnsafe], which skips the compiler plugin's automatic parameter binding) and can
+ * introduce SQL injection when misused.
+ *
+ * Such APIs are still needed for dynamic SQL that the compiler plugin cannot handle, but make
+ * sure you fully read and understand the documentation of the declaration before opting in.
+ */
 @MustBeDocumented
 @Retention(value = AnnotationRetention.BINARY)
 @RequiresOptIn(

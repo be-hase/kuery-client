@@ -5,6 +5,21 @@ import org.intellij.lang.annotations.Language
 /**
  * DSL scope for building SQL.
  *
+ * Add SQL fragments with [add] or [String.unaryPlus]; the fragments are joined with line breaks
+ * to form the final statement. Thanks to the Kuery Client compiler plugin, any value interpolated
+ * into those fragments (`$value`) is bound as a named parameter instead of being embedded in the
+ * SQL text, which prevents SQL injection.
+ *
+ * ```kotlin
+ * client.sql {
+ *     +"SELECT * FROM users"
+ *     +"WHERE user_id = $userId"
+ * }
+ * ```
+ *
+ * For dynamic SQL that cannot go through the compiler plugin (e.g. helper extension functions
+ * that assemble fragments programmatically), use [addUnsafe] together with [bind].
+ *
  * This interface is sealed because the compiler plugin assumes the receiver is the library's
  * internal implementation; a user implementation (e.g. a test fake) would fail with
  * [ClassCastException] at runtime.
@@ -12,35 +27,38 @@ import org.intellij.lang.annotations.Language
 @SqlBuilderMarker
 public sealed interface SqlBuilder {
     /**
-     * Specify the sql you want to execute. Appended to the internally held [StringBuilder].
-     * Due to the Kotlin compiler plugin, the string interpolation within the string template passed to
-     * this method will be expanded using placeholders.
+     * Adds a SQL fragment to the statement being built.
      *
-     * e.g.
-     * ```
+     * Due to the Kotlin compiler plugin, every value interpolated into [sql] is expanded into a
+     * named placeholder and bound as a parameter.
+     *
+     * ```kotlin
      * add("SELECT * FROM users WHERE user_id = $userId")
      * ```
      */
     public fun add(@Language("sql") sql: String)
 
     /**
-     * Specify the sql you want to execute. Appended to the internally held [StringBuilder].
-     * Due to the Kotlin compiler plugin, the string interpolation within the string template passed to
-     * this method will be expanded using placeholders.
+     * Adds a SQL fragment to the statement being built. Operator shorthand for [add].
      *
-     * e.g.
-     * ```
+     * Due to the Kotlin compiler plugin, every value interpolated into the receiver string is
+     * expanded into a named placeholder and bound as a parameter.
+     *
+     * ```kotlin
      * +"SELECT * FROM users WHERE user_id = $userId"
      * ```
      */
     public operator fun String.unaryPlus()
 
     /**
-     * Specify the sql you want to execute. Appended to the internally held [StringBuilder].
-     * Please note that string interpolation using placeholders will not be performed in this method.
+     * Adds a SQL fragment to the statement being built, WITHOUT rewriting string interpolation
+     * into bind parameters.
      *
-     * If you want to insert dynamic values using addUnsafe, please use bind.
-     * ```
+     * Any value interpolated into [sql] is embedded in the SQL text as-is, so passing
+     * user-controlled input directly can lead to SQL injection. To include dynamic values
+     * safely, bind them with [bind]:
+     *
+     * ```kotlin
      * addUnsafe("user_id = ${bind(userId)}")
      * ```
      */
@@ -48,8 +66,11 @@ public sealed interface SqlBuilder {
     public fun addUnsafe(@Language("sql") sql: String)
 
     /**
-     * Bind variables to SQL
-     * It is intended to be used together with addUnsafe.
+     * Binds [parameter] as a named parameter and returns the placeholder string (e.g. `:p0`)
+     * to embed in the SQL fragment.
+     *
+     * It is intended to be used together with [addUnsafe]; fragments passed to [add] /
+     * [String.unaryPlus] bind interpolated values automatically.
      */
     @DelicateKueryClientApi
     public fun bind(parameter: Any?): String
