@@ -1,5 +1,5 @@
 ---
-description: "How query results are mapped to Kotlin types: single-column scalars, data classes via constructor mapping (snake_case to camelCase), enums, nullability, and raw maps."
+description: "How query results are mapped to Kotlin types: single-column scalars, data classes via constructor mapping (snake_case to camelCase), enums, nullability, value class limitations, and raw maps."
 ---
 
 # Row Mapping
@@ -86,6 +86,27 @@ registered converters. So a custom type as the return type (e.g. `single<StringW
 your `@ReadingConverter` — it goes down the constructor-mapping path and fails unless the column names happen to
 match. Receive custom types as properties of a data class instead.
 :::
+
+## Value classes
+
+Kotlin value classes are not supported on the fetch side, in either position:
+
+- As the return type itself (e.g. `single<UserName>()`): `DataClassRowMapper` cannot resolve the
+  parameter names of the value class's constructor and fails at runtime.
+- As a data class property: instantiation fails because the enclosing class's JVM constructor takes
+  the unboxed underlying type. Registering a `@ReadingConverter` for the value class does not help.
+
+```kotlin
+@JvmInline
+value class UserName(val value: String)
+
+data class User(
+    val userId: Int,
+    val username: UserName, // NG: fails at runtime
+)
+```
+
+Fetch the underlying type (or a regular data class) and wrap it yourself.
 
 ## Raw maps
 
