@@ -40,20 +40,22 @@ class KueryClientCompilerCommandLineProcessor : CommandLineProcessor {
     ): Boolean = value.toBooleanStrictOrNull()
         ?: throw CliOptionProcessingException("$optionName must be 'true' or 'false', but was '$value'")
 
-    private fun parseDatabaseType(value: String): DatabaseType {
-        val enumName = if (value.equals("ansi", ignoreCase = true)) "ANSI_SQL" else value.uppercase()
-        return DatabaseType.entries.find { it.name == enumName }
+    private fun parseDatabaseType(value: String): DatabaseType =
+        DatabaseType.entries.find { it.optionValue().equals(value, ignoreCase = true) }
             ?: throw CliOptionProcessingException(
                 "$SQL_SYNTAX_CHECK_DIALECT_OPTION_NAME must be one of $SUPPORTED_DIALECTS, but was '$value'",
             )
-    }
 
     companion object {
         const val PLUGIN_ID = "dev.hsbrysk.kuery-client"
         const val AUTO_TRIM_INDENT_OPTION_NAME = "autoTrimIndent"
         const val SQL_SYNTAX_CHECK_OPTION_NAME = "sqlSyntaxCheck"
         const val SQL_SYNTAX_CHECK_DIALECT_OPTION_NAME = "sqlSyntaxCheckDialect"
-        const val SUPPORTED_DIALECTS = "ansi, oracle, mysql, sqlserver, mariadb, postgresql, h2"
+
+        private fun DatabaseType.optionValue(): String = if (this == DatabaseType.ANSI_SQL) "ansi" else name.lowercase()
+
+        // Derived from the enum so the accepted and the advertised value sets cannot drift.
+        val SUPPORTED_DIALECTS: String = DatabaseType.entries.joinToString(", ") { it.optionValue() }
 
         val AUTO_TRIM_INDENT_KEY: CompilerConfigurationKey<Boolean> =
             CompilerConfigurationKey.create("auto trimIndent")

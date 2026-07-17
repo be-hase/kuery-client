@@ -41,7 +41,8 @@ at compile time:
 
 - Conditionals or loops inside the block (`if`, `when`, `for`, `?.let { ... }`)
 - Calls to helper functions that append fragments
-- `addUnsafe()` or non-literal arguments (those already draw
+- `addUnsafe()` (dynamic SQL is out of the check's scope by design)
+- Non-literal `add()` arguments such as variables (those already draw
   [`KUERY_UNSAFE_SQL_STRING`](/compiler-safety-check))
 
 This mirrors how compile-time-checked SQL works elsewhere (e.g. Rust's sqlx): statements that

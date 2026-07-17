@@ -22,6 +22,8 @@ import org.jetbrains.kotlin.types.ConstantValueKind
  *
  * Returns null for any shape whose text is not fully determined at compile time (variables,
  * if/when results, non-literal const initializers, ...); callers treat null as "skip the check".
+ * The reconstructable shapes are therefore a strict subset of
+ * [CompileTimeSafeSqlStrings.isCompileTimeSafe] — when extending one, revisit the other.
  */
 internal object SqlTextReconstruction {
     /** Mirrors the per-builder `p0, p1, ...` numbering of `DefaultSqlBuilder.bind`. */
@@ -36,22 +38,32 @@ internal object SqlTextReconstruction {
         numbering: ParameterNumbering,
     ): String? = when (expression) {
         is FirLiteralExpression -> expression.textOrNull()
-        is FirStringConcatenationCall ->
-            expression.argumentList.arguments.joinToString("") { argument ->
-                fragmentTextOrNull(argument.unwrapArgument()) ?: numbering.nextPlaceholder()
-            }
-        is FirPropertyAccessExpression -> expression.constValueTextOrNull()
+        is FirStringConcatenationCall -> expression.templateTextOrNull(numbering)
+        is FirPropertyAccessExpression -> expression.constPropertySymbolOrNull()?.literalInitializerTextOrNull()
         is FirFunctionCall -> expression.trimmedTextOrNull(numbering)
         else -> null
     }
 
-    // A string-template argument that contributes SQL text rather than a bind parameter. Keep in
-    // sync with StringConcatenationProcessor.fragmentTextOrNull (String/Char constants) plus the
-    // const-val inlining performed by FIR2IR.
-    private fun fragmentTextOrNull(expression: FirExpression): String? = when (expression) {
-        is FirLiteralExpression -> expression.textOrNull()
-        is FirPropertyAccessExpression -> expression.constValueTextOrNull()
-        else -> null
+    // Each template argument is one of three things — SQL text, a bind value (:pN), or unknown.
+    // Keep in sync with StringConcatenationProcessor.fragmentTextOrNull (String/Char constants
+    // become text) plus the const-val inlining performed by FIR2IR: a const reference is ALWAYS
+    // inlined as text at runtime, so when its value cannot be computed here (a constant
+    // expression rather than a single literal) the whole reconstruction must bail — substituting
+    // a placeholder would diverge from the runtime SQL and produce false positives.
+    private fun FirStringConcatenationCall.templateTextOrNull(numbering: ParameterNumbering): String? {
+        val text = StringBuilder()
+        for (argument in argumentList.arguments) {
+            val unwrapped = argument.unwrapArgument()
+            val constSymbol = unwrapped.constPropertySymbolOrNull()
+            when {
+                unwrapped is FirLiteralExpression ->
+                    text.append(unwrapped.textOrNull() ?: numbering.nextPlaceholder())
+                constSymbol != null ->
+                    text.append(constSymbol.literalInitializerTextOrNull() ?: return null)
+                else -> text.append(numbering.nextPlaceholder())
+            }
+        }
+        return text.toString()
     }
 
     private fun FirLiteralExpression.textOrNull(): String? = when (kind) {
@@ -59,11 +71,12 @@ internal object SqlTextReconstruction {
         else -> null
     }
 
-    private fun FirPropertyAccessExpression.constValueTextOrNull(): String? {
-        val symbol = calleeReference.toResolvedCallableSymbol() as? FirPropertySymbol ?: return null
-        if (!symbol.isConst) return null
-        return (symbol.resolvedInitializer as? FirLiteralExpression)?.textOrNull()
-    }
+    private fun FirExpression.constPropertySymbolOrNull(): FirPropertySymbol? =
+        ((this as? FirPropertyAccessExpression)?.calleeReference?.toResolvedCallableSymbol() as? FirPropertySymbol)
+            ?.takeIf { it.isConst }
+
+    private fun FirPropertySymbol.literalInitializerTextOrNull(): String? =
+        (resolvedInitializer as? FirLiteralExpression)?.textOrNull()
 
     // "...".trimIndent() / "...".trimMargin(<literal>): reconstruct the receiver, then apply the
     // trim to the placeholder-substituted text (equivalent to the runtime order, where the trim

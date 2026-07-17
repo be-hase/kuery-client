@@ -204,6 +204,124 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
+    fun `no warning when a const val initializer is not a single literal`() {
+        // FIR2IR constant-folds such consts into SQL text, but the checker cannot compute the
+        // value at FIR time, so the block must be skipped instead of guessing a placeholder.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            const val USERS = "users"
+            const val TABLE = "app_" + USERS
+            const val ALIAS = USERS
+
+            fun query(id: Int) {
+                Sql { +"SELECT * FROM ${'$'}TABLE WHERE id = ${'$'}id" }
+                Sql { +"SELECT * FROM ${'$'}ALIAS WHERE id = ${'$'}id" }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `no warning when the block adds to a different builder`() {
+        // `other.add(...)` contributes to another statement at runtime, so this block's SQL is
+        // not statically known and must be skipped.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+            import dev.hsbrysk.kuery.core.SqlBuilder
+
+            fun query(other: SqlBuilder) {
+                Sql {
+                    other.add("WHERE deleted = false")
+                    +"SELECT * FROM users"
+                }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `warn when the block is passed as a named argument`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.KueryClient
+
+            fun query(client: KueryClient) {
+                client.sql(block = { +"SELCT * FROM users" }, sqlId = "listUsers")
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `warn for sql calls through a subtype of the client interfaces`() {
+        // Both a sub-interface (fake override) and a delegating class (real override) must be
+        // recognized as entry points.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.KueryClient
+            import dev.hsbrysk.kuery.core.Sql
+
+            interface MyClient : KueryClient
+
+            class Decorated(delegate: KueryClient) : KueryClient by delegate
+
+            fun query(myClient: MyClient, decorated: Decorated) {
+                myClient.sql { +"SELCT * FROM users" }
+                decorated.sql { +"SELCT * FROM users" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(Regex(DIAGNOSTIC_NAME).findAll(result.messages).count()).isEqualTo(2)
+    }
+
+    @Test
+    fun `the warning message contains the parser reason without exception class names`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { +"SELCT * FROM users" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).contains("Encountered unexpected token")
+        assertThat(result.messages).doesNotContain("net.sf.jsqlparser")
+    }
+
+    @Test
     fun `warn when the SQL uses a feature the configured dialect does not support`() {
         // when
         val result = compile(
