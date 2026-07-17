@@ -124,13 +124,13 @@ class ObservationTest {
 
     @Test
     fun `sequenceMap does not record an observation`() {
-        userRepository.sequenceMap().use { it.toList() }
+        userRepository.sequenceMap().toList()
         TestObservationRegistryAssert.assertThat(registry).doesNotHaveAnyObservation()
     }
 
     @Test
     fun `sequence does not record an observation`() {
-        userRepository.sequence().use { it.toList() }
+        userRepository.sequence().toList()
         TestObservationRegistryAssert.assertThat(registry).doesNotHaveAnyObservation()
     }
 

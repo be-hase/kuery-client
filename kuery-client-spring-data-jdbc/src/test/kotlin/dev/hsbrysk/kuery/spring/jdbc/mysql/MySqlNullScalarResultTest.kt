@@ -97,7 +97,7 @@ class MySqlNullScalarResultTest {
         // when
         val ages: List<Int?> = kueryClient.sql { +"SELECT age FROM users ORDER BY user_id" }
             .sequence(Int::class)
-            .use { it.toList() }
+            .toList()
 
         // then
         assertThat(ages).isEqualTo(listOf(20, null))

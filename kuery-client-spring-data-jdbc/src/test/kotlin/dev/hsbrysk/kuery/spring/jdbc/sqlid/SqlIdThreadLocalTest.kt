@@ -81,13 +81,13 @@ class SqlIdThreadLocalTest {
 
     @Test
     fun `sequenceMap propagates the auto-generated sqlId to statement execution`() {
-        userRepository.sequenceMap().use { it.toList() }
+        userRepository.sequenceMap().toList()
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.sequenceMap")
     }
 
     @Test
     fun `sequence propagates the auto-generated sqlId to statement execution`() {
-        userRepository.sequence().use { it.toList() }
+        userRepository.sequence().toList()
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.sequence")
     }
 

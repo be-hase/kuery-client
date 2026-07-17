@@ -70,7 +70,7 @@ class StatementOptionsTest {
         val result = kueryClient.sql { +"SELECT * FROM users" }
             .fetchSize(3)
             .sequenceMap()
-            .use { it.toList() }
+            .toList()
         assertThat(result).hasSize(10)
     }
 
@@ -79,7 +79,7 @@ class StatementOptionsTest {
         val result = kueryClient.sql { +"SELECT * FROM users" }
             .maxRows(5)
             .sequenceMap()
-            .use { it.toList() }
+            .toList()
         assertThat(result).hasSize(5)
     }
 
@@ -88,7 +88,7 @@ class StatementOptionsTest {
         val result = kueryClient.sql { +"SELECT * FROM users" }
             .queryTimeoutSeconds(10)
             .sequenceMap()
-            .use { it.toList() }
+            .toList()
         assertThat(result).hasSize(10)
     }
 
@@ -99,7 +99,7 @@ class StatementOptionsTest {
             .maxRows(4)
             .queryTimeoutSeconds(10)
             .sequenceMap()
-            .use { it.toList() }
+            .toList()
         assertThat(result).hasSize(4)
     }
 
