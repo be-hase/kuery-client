@@ -22,7 +22,7 @@ Kuery Client is a Kotlin SQL client library that enables writing raw SQL using K
 ./gradlew :kuery-client-compiler:test
 
 # Run a single test class
-./gradlew :kuery-client-spring-data-r2dbc:test --tests "dev.hsbrysk.kuery.spring.r2dbc.BasicUsageTest"
+./gradlew :kuery-client-spring-data-r2dbc:test --tests "dev.hsbrysk.kuery.spring.r2dbc.usage.BasicUsageTest"
 
 # Lint (ktlint + detekt)
 ./gradlew ktlintCheck
