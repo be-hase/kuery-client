@@ -337,6 +337,29 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
+    fun `a blank trimMargin prefix does not crash the compiler`() {
+        // trimMargin("") throws IllegalArgumentException; the reconstruction must skip such a
+        // block instead of letting the exception escape the checker as an INTERNAL_ERROR. (The
+        // user code also throws at runtime — Kotlin itself warns about the blank prefix — so
+        // there is no SQL to validate anyway.)
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { add("SELECT 1".trimMargin("")) }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
     fun `no warning when an add argument is an if expression`() {
         // An if/when result is compile-time-safe but not reconstructable, so the block is skipped
         // even when a branch is broken.
@@ -605,6 +628,25 @@ class SqlSyntaxCheckerTest {
         // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(Regex(DIAGNOSTIC_NAME).findAll(result.messages).count()).isEqualTo(2)
+    }
+
+    @Test
+    fun `warn for sql calls through a type parameter bounded by a client interface`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.KueryClient
+
+            fun <T : KueryClient> query(client: T) {
+                client.sql { +"SELCT * FROM users" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test

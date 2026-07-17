@@ -94,6 +94,9 @@ internal object SqlTextReconstruction {
                     null -> "|"
                     else -> (argument as? FirLiteralExpression)?.value as? String ?: return null
                 }
+                // trimMargin(blank) throws at runtime, so the block never yields SQL — and the
+                // same exception must certainly not be thrown here inside the checker.
+                if (prefix.isBlank()) return null
                 receiverText()?.trimMargin(prefix)
             }
             else -> null

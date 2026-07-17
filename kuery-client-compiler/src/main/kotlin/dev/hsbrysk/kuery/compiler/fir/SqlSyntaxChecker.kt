@@ -35,7 +35,13 @@ import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
+import org.jetbrains.kotlin.fir.types.ConeDefinitelyNotNullType
+import org.jetbrains.kotlin.fir.types.ConeIntersectionType
+import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.classId
+import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.resolvedType
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
@@ -83,10 +89,20 @@ internal class SqlSyntaxChecker(
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(expression: FirFunctionCall) {
         val block = sqlBlockOrNull(expression, context.session) ?: return
-        val parts = reconstructedPartsOrNull(block) ?: return
+        val parts = reconstructedPartsFailSafe(block) ?: return
         val sql = parts.joinToString("\n") { it.text }
         if (sql.isBlank()) return
         reportFailures(expression, parts, sql)
+    }
+
+    // A bug in the reconstruction must never escape the checker: it would fail the user's whole
+    // compilation with an internal error. Unexpected failures skip the block, like the parser's
+    // own fail-open path.
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    private fun reconstructedPartsFailSafe(block: FirAnonymousFunction): List<Part>? = try {
+        reconstructedPartsOrNull(block)
+    } catch (e: Exception) {
+        null
     }
 
     context(context: CheckerContext, reporter: DiagnosticReporter)
@@ -257,11 +273,33 @@ internal class SqlSyntaxChecker(
         // compiler API and falsely flags the elvis-return chain as unreachable.
         @Suppress("UnreachableCode")
         private fun FirFunctionCall.isClientSqlCall(session: FirSession): Boolean {
-            val receiverType = dispatchReceiver?.resolvedType?.fullyExpandedType(session) ?: return false
-            val classSymbol = receiverType.toRegularClassSymbol(session) ?: return false
-            if (classSymbol.classId in ClassIds.SQL_CLIENTS) return true
-            return lookupSuperTypes(classSymbol, lookupInterfaces = true, deep = true, useSiteSession = session)
-                .any { it.classId in ClassIds.SQL_CLIENTS }
+            val receiverType = dispatchReceiver?.resolvedType ?: return false
+            return receiverType.isClientType(session, visitedTypeParameters = mutableSetOf())
+        }
+
+        // Also recognizes generic receivers (`fun <T : KueryClient> ...`) via type-parameter
+        // upper bounds, and the intersection / definitely-non-null types smart casts produce.
+        // The visited set guards against (illegal but representable) cyclic bounds.
+        private fun ConeKotlinType.isClientType(
+            session: FirSession,
+            visitedTypeParameters: MutableSet<FirTypeParameterSymbol>,
+        ): Boolean = when (val expanded = fullyExpandedType(session)) {
+            is ConeDefinitelyNotNullType -> expanded.original.isClientType(session, visitedTypeParameters)
+            is ConeIntersectionType ->
+                expanded.intersectedTypes.any { it.isClientType(session, visitedTypeParameters) }
+            is ConeTypeParameterType -> {
+                val symbol = expanded.lookupTag.typeParameterSymbol
+                visitedTypeParameters.add(symbol) &&
+                    symbol.resolvedBounds.any { it.coneType.isClientType(session, visitedTypeParameters) }
+            }
+            else -> {
+                val classSymbol = expanded.toRegularClassSymbol(session)
+                classSymbol != null && (
+                    classSymbol.classId in ClassIds.SQL_CLIENTS ||
+                        lookupSuperTypes(classSymbol, lookupInterfaces = true, deep = true, useSiteSession = session)
+                            .any { it.classId in ClassIds.SQL_CLIENTS }
+                    )
+            }
         }
 
         private const val MAX_HELPER_DEPTH = 10
@@ -332,19 +370,6 @@ internal class SqlSyntaxChecker(
             null
         }
 
-        // The only place the vendor enum appears: our public check vocabulary mapped onto the
-        // parser currently backing the check. GENERIC parses without any feature validation.
-        private fun SqlSyntaxCheck.toDatabaseTypeOrNull(): DatabaseType? = when (this) {
-            SqlSyntaxCheck.GENERIC -> null
-            SqlSyntaxCheck.ANSI -> DatabaseType.ANSI_SQL
-            SqlSyntaxCheck.ORACLE -> DatabaseType.ORACLE
-            SqlSyntaxCheck.MYSQL -> DatabaseType.MYSQL
-            SqlSyntaxCheck.SQLSERVER -> DatabaseType.SQLSERVER
-            SqlSyntaxCheck.MARIADB -> DatabaseType.MARIADB
-            SqlSyntaxCheck.POSTGRESQL -> DatabaseType.POSTGRESQL
-            SqlSyntaxCheck.H2 -> DatabaseType.H2
-        }
-
         // JSqlParser messages start with "Encountered ... at line N, column M." and then list
         // every expected token over many lines; keep only the useful first part.
         private fun firstSentenceOf(message: String): String = message
@@ -354,4 +379,17 @@ internal class SqlSyntaxChecker(
             .trim()
             .replace(WHITESPACE_REGEX, " ")
     }
+}
+
+// The only place the vendor enum appears: our public check vocabulary mapped onto the parser
+// currently backing the check. GENERIC parses without any feature validation.
+private fun SqlSyntaxCheck.toDatabaseTypeOrNull(): DatabaseType? = when (this) {
+    SqlSyntaxCheck.GENERIC -> null
+    SqlSyntaxCheck.ANSI -> DatabaseType.ANSI_SQL
+    SqlSyntaxCheck.ORACLE -> DatabaseType.ORACLE
+    SqlSyntaxCheck.MYSQL -> DatabaseType.MYSQL
+    SqlSyntaxCheck.SQLSERVER -> DatabaseType.SQLSERVER
+    SqlSyntaxCheck.MARIADB -> DatabaseType.MARIADB
+    SqlSyntaxCheck.POSTGRESQL -> DatabaseType.POSTGRESQL
+    SqlSyntaxCheck.H2 -> DatabaseType.H2
 }
