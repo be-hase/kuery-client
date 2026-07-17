@@ -116,16 +116,31 @@ As shown above, the `sql_id` label is automatically derived from the repository 
 
 ## `sql_id`
 
-Auto-generation of the `sql_id` is controlled by the builder's `enableAutoSqlIdGeneration(...)` flag. It
-defaults to `true` when an `ObservationRegistry` is specified, and `false` otherwise — in which case the fixed
-id `NONE` is used.
+The id is derived at compile time by the compiler plugin: every `sql { ... }` call site is rewritten to carry
+the fully qualified name of its enclosing declaration (e.g. `com.example.UserRepository.selectByUserId`), so no
+stack inspection happens at runtime and a given call site always produces the same id. Calls inside lambdas
+fold into the enclosing named method.
+
+The id is attached only when the block is written literally at the call site — a lambda or a function
+reference. Everything else resolves to the fixed id `NONE`: a block passed via a variable, a function
+reference that needs adaptation (the referenced function declares default arguments or varargs), call sites
+that are not compiled with the compiler plugin (e.g. Java callers or reflective invocations), and so on.
+Specify the id explicitly in such cases.
+
+A few sharing rules follow from "the id is the enclosing declaration's FQN": overloads of the same method
+share one id, as do same-named top-level functions in different files of the same package; and a call inside
+an `inline` function uses the inline function's own FQN, not its caller's.
+
+Whether the derived id is actually used is controlled by the builder's `enableAutoSqlIdGeneration(...)` flag.
+It defaults to `true` when an `ObservationRegistry` is specified, and `false` otherwise — in which case the
+fixed id `NONE` is used.
 
 You can also set the id explicitly per query: `sql("my-sql-id") { ... }`.
 
-### Same method, same id
+### Multiple calls in one method
 
-If you have multiple `kueryClient.sql {...}` calls within the same method, the same `sql_id`
-will be used. Therefore, it is recommended to implement one SQL per method in the repository.
+If a single method contains multiple `kueryClient.sql {...}` calls, each call site gets its own id: a `#N`
+suffix is appended in source order.
 
 ```kotlin
 @Repository
@@ -133,11 +148,13 @@ class UserRepository(private val kueryClient: KueryClient) {
     suspend fun selectByUserId(userId: Int): UserAndDetail {
         val user: User = kueryClient
             .sql {
+                // sql_id: com.example.UserRepository.selectByUserId#1
                 +"SELECT * FROM users WHERE user_id = $userId"
             }
             .single()
         val userDetail: UserDetail = kueryClient
             .sql {
+                // sql_id: com.example.UserRepository.selectByUserId#2
                 +"SELECT * FROM user_details WHERE user_id = $userId"
             }
             .single()
@@ -146,26 +163,21 @@ class UserRepository(private val kueryClient: KueryClient) {
 }
 ```
 
-If you absolutely need to make multiple calls in a repository method, you can avoid this by specifying the `sql_id`
-yourself.
+A method with a single call keeps the plain id without the suffix. Note that this means adding a second call
+to a method changes the first call's id from `...selectByUserId` to `...selectByUserId#1`; specify the
+`sql_id` explicitly if you want ids that are independent of such refactorings.
+
+The suffix is an ordinal among the auto-generated ids that would otherwise collide — not the call's position
+in the method. Calls with an explicit `sql("...")` id neither receive nor shift numbers: in a method with one
+explicit-id call followed by one auto-id call, the auto id stays plain (no `#2`), exactly as if the explicit
+call were not there.
 
 ```kotlin
-@Repository
-class UserRepository(private val kueryClient: KueryClient) {
-    suspend fun selectByUserId(userId: Int): UserAndDetail {
-        val user: User = kueryClient
-            .sql("my_sql_id_1") {
-                +"SELECT * FROM users WHERE user_id = $userId"
-            }
-            .single()
-        val userDetail: UserDetail = kueryClient
-            .sql("my_sql_id_2") {
-                +"SELECT * FROM user_details WHERE user_id = $userId"
-            }
-            .single()
-        return UserAndDetail(user, userDetail)
+val user: User = kueryClient
+    .sql("my_sql_id_1") {
+        +"SELECT * FROM users WHERE user_id = $userId"
     }
-}
+    .single()
 ```
 
 ## Streaming operations are not observed

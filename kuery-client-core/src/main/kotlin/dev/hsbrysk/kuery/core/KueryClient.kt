@@ -44,8 +44,10 @@ public interface KueryClient {
      * Note that the statement is not executed until one of the terminal operations on
      * [FetchSpec] is invoked.
      *
-     * The sqlId is generated automatically from the call site when auto sqlId generation is
-     * enabled; otherwise `"NONE"` is used.
+     * The sqlId is derived from the enclosing declaration of the call site at compile time by
+     * the compiler plugin and used when auto sqlId generation is enabled. `"NONE"` is used when
+     * auto sqlId generation is disabled or when the call site was not compiled with the
+     * compiler plugin.
      *
      * @param block [SqlBuilder] block that constructs the SQL
      * @return a [FetchSpec] for retrieving the execution results

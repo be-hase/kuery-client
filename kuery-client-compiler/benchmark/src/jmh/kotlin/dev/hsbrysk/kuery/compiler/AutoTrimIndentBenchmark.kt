@@ -22,8 +22,8 @@ AutoTrimIndentBenchmark.untrimmedBaseline                  thrpt    2  7433947.9
  * Measures what `autoTrimIndent` saves: building the same multi-line UPDATE (4 bind values)
  * from a module compiled with the option on (trim folded at compile time) versus the status quo
  * of an explicit `.trimIndent()` running at runtime, with the untrimmed template as the floor.
- * Like core's MockKueryClient benchmarks, no database is involved — `Sql { }` is exactly the
- * SQL-building work a client performs per execution.
+ * No database is involved — `Sql { }` is exactly the SQL-building work a client performs per
+ * execution.
  */
 @State(Scope.Benchmark)
 open class AutoTrimIndentBenchmark {

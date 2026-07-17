@@ -52,4 +52,10 @@ class UserRepository(private val kueryClient: KueryBlockingClient) {
             +"INSERT INTO users (username, email) VALUES ($username, $email)"
         }
         .generatedValues("user_id")
+
+    fun userAndCount(id: Int): Pair<User, Long> {
+        val user: User = kueryClient.sql { +"SELECT * FROM users WHERE user_id = $id" }.single()
+        val count: Long = kueryClient.sql { +"SELECT COUNT(*) FROM users" }.single()
+        return user to count
+    }
 }

@@ -9,6 +9,9 @@ description = "Kuery client's compiler functional test module with autoTrimInden
 dependencies {
     implementation(projects.kueryClientCore)
     kotlinCompilerPluginClasspath(projects.kueryClientCompiler)
+    // core exposes coroutines as compileOnly; implementing KueryClient (Flow in its signatures)
+    // and driving suspend call sites (runBlocking) in tests needs it on the test classpath.
+    testImplementation(libs.kotlin.coroutines.core)
 }
 
 kotlin {

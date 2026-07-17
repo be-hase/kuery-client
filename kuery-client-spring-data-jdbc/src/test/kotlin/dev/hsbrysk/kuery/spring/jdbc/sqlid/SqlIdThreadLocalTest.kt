@@ -109,6 +109,15 @@ class SqlIdThreadLocalTest {
         assertThat(capturedSqlIds).containsExactly("com.example.spring.jdbc.UserRepository.generatedValues")
     }
 
+    @Test
+    fun `multiple calls in one method are disambiguated with a numbered suffix in source order`() {
+        userRepository.userAndCount(1)
+        assertThat(capturedSqlIds).containsExactly(
+            "com.example.spring.jdbc.UserRepository.userAndCount#1",
+            "com.example.spring.jdbc.UserRepository.userAndCount#2",
+        )
+    }
+
     private class SqlIdCapturingDataSource(
         private val delegate: DataSource,
         private val captured: MutableList<String?>,

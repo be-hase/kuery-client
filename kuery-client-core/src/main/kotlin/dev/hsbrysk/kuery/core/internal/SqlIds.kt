@@ -5,71 +5,34 @@ import dev.hsbrysk.kuery.core.SqlBuilder
 
 @KueryClientInternalApi
 public object SqlIds {
-    private val NUMBER_REGEX = "^[0-9]+$".toRegex()
-
-    // ClassValue stores the computed id on the block's Class itself instead of referencing
-    // the Class from a static map, so the Class and its ClassLoader remain garbage collectable
-    // (e.g. with hot-reload class loaders such as Spring DevTools).
-    private val CACHE = object : ClassValue<String>() {
-        override fun computeValue(type: Class<*>): String = callerId()
-    }
-
-    private val SUFFIXES = listOf(
-        ".invokeSuspend",
-        "${'$'}suspendImpl",
-        // for lambdas compiled as classes (e.g. -Xlambdas=class)
-        ".invoke",
-    )
-
-    // Lambdas are compiled via invokedynamic into synthetic methods named `foo$lambda$0`
-    // (nested lambdas repeat the pattern).
-    private val LAMBDA_METHOD_SUFFIX_REGEX = "(\\\$lambda\\\$[0-9]+)+$".toRegex()
-
     /**
-     * Uses StackWalker to retrieve the caller.
-     *
-     * The id is computed once per block class from the call site of the first invocation and
-     * then cached. Therefore, if the same block (e.g. one stored in a property) is passed from
-     * multiple call sites, all of them observe the id of whichever call site ran first.
-     * Define blocks inline if each call site should get its own id.
+     * Returns the sqlId that the compiler plugin attached to this block at the call site, or
+     * `"NONE"` if the call site was not compiled with the compiler plugin (e.g. Java callers
+     * or reflective invocations).
      */
-    public fun (SqlBuilder.() -> Unit).id(): String = CACHE.get(this.javaClass)
+    public fun (SqlBuilder.() -> Unit).id(): String = if (this is SqlIdProvidingBlock) sqlId else "NONE"
+}
 
-    private fun callerId(): String {
-        val name = StackWalker.getInstance().walk { frames ->
-            frames
-                .filter {
-                    !it.className.startsWith("java.lang.ClassValue")
-                }
-                .filter {
-                    !it.className.startsWith("dev.hsbrysk.kuery")
-                }
-                .findFirst()
-                .map { "${it.className}.${it.methodName}" }
-                .orElse(null)
-        }
-        if (name == null) {
-            return "UNKNOWN"
-        }
+/**
+ * Wraps a `sql { ... }` block together with the sqlId derived from its call site.
+ *
+ * Only referenced by code the compiler plugin generates: calls to the sqlId-less
+ * `KueryClient.sql(block)` / `KueryBlockingClient.sql(block)` overloads are rewritten into
+ * `sql(sqlIdProvidingBlock("<enclosing declaration>", block))` at compile time.
+ */
+@KueryClientInternalApi
+public fun sqlIdProvidingBlock(
+    sqlId: String,
+    block: SqlBuilder.() -> Unit,
+): SqlBuilder.() -> Unit = SqlIdProvidingBlock(sqlId, block)
 
-        val parts = name
-            .replace(LAMBDA_METHOD_SUFFIX_REGEX, "")
-            .removeSuffixes(SUFFIXES)
-            .split("$", ".")
-            .filterNot { it.matches(NUMBER_REGEX) }
-        return if (parts.isEmpty()) {
-            "UNKNOWN"
-        } else {
-            parts.joinToString(".")
-        }
-    }
-
-    internal fun String.removeSuffixes(suffixes: List<String>): String {
-        suffixes.forEach { suffix ->
-            if (this.endsWith(suffix)) {
-                return this.removeSuffix(suffix)
-            }
-        }
-        return this
+// An extension function type is not allowed as a supertype, so implement the plain function
+// type instead; non-literal values of the two are interchangeable.
+internal class SqlIdProvidingBlock(
+    @JvmField val sqlId: String,
+    private val delegate: SqlBuilder.() -> Unit,
+) : (SqlBuilder) -> Unit {
+    override fun invoke(p1: SqlBuilder) {
+        delegate(p1)
     }
 }
