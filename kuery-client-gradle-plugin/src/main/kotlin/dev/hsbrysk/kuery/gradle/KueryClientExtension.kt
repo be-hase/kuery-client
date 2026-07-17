@@ -24,9 +24,10 @@ interface KueryClientExtension {
      *   `KUERY_SQL_DIALECT` warning (e.g. `ON DUPLICATE KEY UPDATE` under `postgresql`).
      *
      * Only blocks whose complete statement is statically known are checked (every statement an
-     * `add`/`unaryPlus` with a literal/template/const argument); dynamically assembled blocks are
-     * skipped. The checks are lenient and may occasionally produce a false positive — suppress
-     * with `@Suppress("KUERY_SQL_SYNTAX")` / `@Suppress("KUERY_SQL_DIALECT")`.
+     * `add`/`unaryPlus` with a literal/template/const argument, or a call to a static same-module
+     * `SqlBuilder` extension helper, which is inlined); dynamically assembled blocks are skipped.
+     * The checks are lenient and may occasionally produce a false positive — suppress with
+     * `@Suppress("KUERY_SQL_SYNTAX")` / `@Suppress("KUERY_SQL_DIALECT")`.
      */
     val sqlSyntaxCheck: Property<String>
 }

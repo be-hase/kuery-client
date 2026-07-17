@@ -38,11 +38,27 @@ reference, or `trimIndent()` / `trimMargin()` on one. The statement texts are as
 like at runtime — joined with newlines, every interpolated `$value` replaced by its `:pN` bind
 placeholder — and parsed.
 
+Calls to your own **static helper functions** are inlined into the reconstruction: a final
+`SqlBuilder` extension in the same module whose body is itself only static `add()` / `+"..."`
+statements (or further such helpers). Its interpolated parameters become the same `:pN` binds
+they are at runtime, so this works regardless of the arguments:
+
+```kotlin
+fun SqlBuilder.paging(limit: Int, offset: Int) {
+    add("LIMIT $limit OFFSET $offset")
+}
+
+kueryClient.sql {
+    +"SELECT * FROM users WHERE id = $id"
+    paging(10, 0)                 // checked as "... LIMIT :p1 OFFSET :p2"
+}
+```
+
 Anything else makes the whole block **silently skipped**, because the final SQL cannot be known
 at compile time:
 
 - Conditionals or loops inside the block (`if`, `when`, `for`, `?.let { ... }`)
-- Calls to helper functions that append fragments
+- Helper functions that are dynamic inside, overridable, or compiled in another module
 - `addUnsafe()` (dynamic SQL is out of the check's scope by design)
 - Non-literal `add()` arguments such as variables (those already draw
   [`KUERY_UNSAFE_SQL_STRING`](/compiler-safety-check))

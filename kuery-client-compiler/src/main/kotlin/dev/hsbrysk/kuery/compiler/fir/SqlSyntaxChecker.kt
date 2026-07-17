@@ -12,6 +12,7 @@ import net.sf.jsqlparser.statement.Statement
 import net.sf.jsqlparser.util.validation.Validation
 import net.sf.jsqlparser.util.validation.feature.DatabaseType
 import org.jetbrains.kotlin.KtSourceElement
+import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.FirSession
@@ -19,7 +20,9 @@ import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirFunctionCallChecker
 import org.jetbrains.kotlin.fir.declarations.FirAnonymousFunction
+import org.jetbrains.kotlin.fir.declarations.FirNamedFunction
 import org.jetbrains.kotlin.fir.expressions.FirAnonymousFunctionExpression
+import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirReturnExpression
 import org.jetbrains.kotlin.fir.expressions.FirStatement
@@ -29,6 +32,9 @@ import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
 import org.jetbrains.kotlin.fir.resolve.lookupSuperTypes
 import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
+import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
+import org.jetbrains.kotlin.fir.symbols.SymbolInternals
+import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.types.classId
 import org.jetbrains.kotlin.fir.types.resolvedType
 import org.jetbrains.kotlin.name.CallableId
@@ -42,9 +48,11 @@ import java.util.concurrent.Executors
  * Validates the SQL syntax of a `sql { ... }` / `Sql { ... }` block at compile time, only when
  * the complete statement is statically known: every statement of the block must be an
  * add/unaryPlus call on the block's own builder whose text [SqlTextReconstruction] can
- * reconstruct. Blocks containing anything else (conditionals, helper calls, addUnsafe,
- * variables, calls on another builder, ...) are silently skipped — a dynamically assembled
- * statement cannot be reconstructed, and guessing would produce false positives.
+ * reconstruct, or a call to a static same-module helper that is inlined (see
+ * [inlinedHelperTextOrNull]). Blocks containing anything else (conditionals, dynamic or
+ * compiled helpers, addUnsafe, variables, calls on another builder, ...) are silently skipped —
+ * a dynamically assembled statement cannot be reconstructed, and guessing would produce false
+ * positives.
  *
  * The reconstructed texts are joined with newlines exactly like `DefaultSqlBuilder.addUnsafe`
  * accumulates them, then parsed with JSqlParser. A parse failure is reported as the
@@ -108,25 +116,76 @@ internal class SqlSyntaxChecker(
     }
 
     // The texts of the block's statements if every one of them is an add/unaryPlus call on the
-    // block's own builder with a statically reconstructable argument, otherwise null.
+    // block's own builder with a statically reconstructable argument, or an inlinable helper
+    // call, otherwise null.
     private fun reconstructedPartsOrNull(block: FirAnonymousFunction): List<Part>? {
         val statements = block.body?.statements ?: return null
         val numbering = SqlTextReconstruction.ParameterNumbering()
-        return statements.map { partOrNull(it, block, numbering) ?: return null }
+        val owners = thisOwnersOf(block.symbol, block.receiverParameter?.symbol)
+        return statements.map { partOrNull(it, owners, numbering) ?: return null }
     }
 
     private fun partOrNull(
         statement: FirStatement,
-        block: FirAnonymousFunction,
+        owners: Set<FirBasedSymbol<*>>,
         numbering: SqlTextReconstruction.ParameterNumbering,
     ): Part? {
         val call = statement.unwrapImplicitReturn() as? FirFunctionCall ?: return null
-        val sqlArgument = SqlBuilderCalls.sqlArgumentOrNull(call)?.takeIf { call.isOnOwnBuilder(block) } ?: return null
+        val text = callTextOrNull(call, owners, numbering, seen = mutableSetOf(), depth = 0) ?: return null
+        return Part(text, SqlBuilderCalls.sqlArgumentOrNull(call)?.source ?: call.source)
+    }
+
+    // The SQL text a single call contributes: an add/unaryPlus on the current builder, or an
+    // inlined helper call.
+    private fun callTextOrNull(
+        call: FirFunctionCall,
+        owners: Set<FirBasedSymbol<*>>,
+        numbering: SqlTextReconstruction.ParameterNumbering,
+        seen: MutableSet<FirBasedSymbol<*>>,
+        depth: Int,
+    ): String? {
+        val sqlArgument = SqlBuilderCalls.sqlArgumentOrNull(call)
+        return if (sqlArgument != null) {
+            if (call.dispatchReceiver.isThisBoundTo(owners)) addTextOrNull(sqlArgument, numbering) else null
+        } else {
+            inlinedHelperTextOrNull(call, owners, numbering, seen, depth)
+        }
+    }
+
+    private fun addTextOrNull(
+        sqlArgument: FirExpression,
+        numbering: SqlTextReconstruction.ParameterNumbering,
+    ): String? {
         val text = SqlTextReconstruction.textOrNull(sqlArgument, numbering) ?: return null
-        return Part(
-            if (autoTrimIndent) text.trimIndent() else text,
-            sqlArgument.source ?: call.source,
-        )
+        // The runtime auto-trim applies per add/unaryPlus call, so trim each text here rather
+        // than per block statement (an inlined helper contributes several adds in one statement).
+        return if (autoTrimIndent) text.trimIndent() else text
+    }
+
+    // A same-module, final SqlBuilder-extension helper whose body is only static adds on its own
+    // receiver (or further such helpers) is inlined into the reconstruction: its interpolations
+    // become the same :pN binds at runtime regardless of the call arguments, so the numbering
+    // simply continues through the body. A compiled helper from another module has no body here
+    // and returns null (skip), as does anything dynamic.
+    private fun inlinedHelperTextOrNull(
+        call: FirFunctionCall,
+        callerOwners: Set<FirBasedSymbol<*>>,
+        numbering: SqlTextReconstruction.ParameterNumbering,
+        seen: MutableSet<FirBasedSymbol<*>>,
+        depth: Int,
+    ): String? {
+        val helper = helperFunctionOrNull(call, callerOwners) ?: return null
+        // `seen` tracks the current recursion stack, so sibling calls to the same helper are
+        // fine while direct or mutual recursion bails out.
+        if (depth >= MAX_HELPER_DEPTH || !seen.add(helper.symbol)) return null
+        val owners = thisOwnersOf(helper.symbol, helper.receiverParameter?.symbol)
+        val texts = helper.body?.statements.orEmpty().map { statement ->
+            (statement.unwrapImplicitReturn() as? FirFunctionCall)
+                ?.let { callTextOrNull(it, owners, numbering, seen, depth + 1) }
+                ?: return null
+        }
+        seen.remove(helper.symbol)
+        return texts.joinToString("\n")
     }
 
     // The add call whose reconstructed lines contain the failing line; the parser may also point
@@ -202,12 +261,36 @@ internal class SqlSyntaxChecker(
                 .any { it.classId in ClassIds.SQL_CLIENTS }
         }
 
-        // add/unaryPlus must act on this block's own builder (the lambda's receiver); a call on
-        // any other SqlBuilder contributes to a different statement at runtime.
-        private fun FirFunctionCall.isOnOwnBuilder(block: FirAnonymousFunction): Boolean {
-            val thisReference = (dispatchReceiver as? FirThisReceiverExpression)?.calleeReference ?: return false
-            val bound = thisReference.boundSymbol
-            return bound == block.symbol || bound == block.receiverParameter?.symbol
+        private const val MAX_HELPER_DEPTH = 10
+
+        private fun thisOwnersOf(vararg symbols: FirBasedSymbol<*>?): Set<FirBasedSymbol<*>> =
+            symbols.filterNotNull().toSet()
+
+        // add/unaryPlus must act on the current builder — the `this` of the enclosing block
+        // lambda or inlined helper; a call on any other SqlBuilder contributes to a different
+        // statement at runtime.
+        private fun FirExpression?.isThisBoundTo(owners: Set<FirBasedSymbol<*>>): Boolean {
+            val reference = (this as? FirThisReceiverExpression)?.calleeReference ?: return false
+            val bound = reference.boundSymbol as? FirBasedSymbol<*> ?: return false
+            return bound in owners
+        }
+
+        // The helper must act on the caller's builder (its extension receiver), while a
+        // this-bound dispatch receiver (a member helper of the enclosing class) is harmless. An
+        // open helper can be overridden at runtime, so only a final one has a single known body.
+        @OptIn(SymbolInternals::class)
+        private fun helperFunctionOrNull(
+            call: FirFunctionCall,
+            callerOwners: Set<FirBasedSymbol<*>>,
+        ): FirNamedFunction? {
+            val dispatch = call.dispatchReceiver
+            val receiversOk = call.extensionReceiver.isThisBoundTo(callerOwners) &&
+                (dispatch == null || dispatch is FirThisReceiverExpression)
+            if (!receiversOk) return null
+            val symbol = call.calleeReference.toResolvedCallableSymbol() as? FirNamedFunctionSymbol ?: return null
+            if (symbol.resolvedStatus.modality != Modality.FINAL) return null
+            // A helper compiled in another module is deserialized without a body.
+            return symbol.fir.takeIf { it.body != null }
         }
 
         // A lambda body's last expression may be wrapped in an implicit return.
