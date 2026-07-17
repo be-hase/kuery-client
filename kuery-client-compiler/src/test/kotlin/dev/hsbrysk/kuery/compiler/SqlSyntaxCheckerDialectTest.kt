@@ -76,6 +76,29 @@ class SqlSyntaxCheckerDialectTest {
     }
 
     @Test
+    fun `no warning for the H2 MERGE KEY upsert that JSqlParser cannot parse`() {
+        // H2's flagship upsert has no grammar in JSqlParser; it must be skipped instead of being
+        // a permanent false positive in the h2 mode.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int) {
+                Sql { +"MERGE INTO users (id) KEY(id) VALUES (${'$'}id)" }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption("h2")),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.messages).doesNotContain(DIALECT_DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
     fun `no dialect warning under the generic check even for a vendor-specific feature`() {
         // generic parses without any feature validation, so a MySQL-only feature draws neither
         // warning.

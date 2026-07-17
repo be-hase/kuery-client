@@ -94,9 +94,16 @@ internal class SqlSyntaxChecker(
     override fun check(expression: FirFunctionCall) {
         val block = entryPoints.sqlBlockOrNull(expression, context.session) ?: return
         val parts = reconstructedPartsFailSafe(block) ?: return
-        val sql = parts.joinToString("\n") { it.text }
-        if (sql.isBlank()) return
-        reportFailures(expression, parts, sql)
+        val joined = parts.joinToString("\n") { it.text }
+        // DefaultSqlBuilder.build() trims the assembled body — including unicode whitespace the
+        // parser would reject — so mirror it, and remember how many fully removed leading lines
+        // to add back when mapping parser positions to parts.
+        val sql = joined.trim()
+        if (sql.isEmpty()) return
+        val leadingLineOffset = joined
+            .take(joined.indexOfFirst { !it.isWhitespace() })
+            .count { it == '\n' }
+        reportFailures(expression, parts, sql, leadingLineOffset)
     }
 
     // A bug in the reconstruction must never escape the checker: it would fail the user's whole
@@ -123,10 +130,12 @@ internal class SqlSyntaxChecker(
             // This checker runs on every function call in the project, so pre-filter on the
             // callee name before any symbol resolution.
             val isEntryPoint = when (call.calleeReference.name) {
-                CallableIds.SQL_TOP_LEVEL.callableName ->
-                    call.calleeReference.toResolvedCallableSymbol()?.callableId == CallableIds.SQL_TOP_LEVEL
+                CallableIds.SQL_TOP_LEVEL.callableName -> call.isTopLevelSqlCall()
                 SQL_MEMBER_NAME -> call.isClientSqlCall(session)
-                else -> false
+                // An import alias can rename the top-level Sql entry point (members cannot be
+                // aliased). The call is already resolved, so reading its callable id is cheap;
+                // gate only on a lambda argument being present.
+                else -> call.hasLambdaArgument() && call.isTopLevelSqlCall()
             }
             if (!isEntryPoint) return null
             return call.argumentList.arguments
@@ -139,6 +148,12 @@ internal class SqlSyntaxChecker(
                 // client subtype taking a plain lambda has different semantics and is not checked.
                 ?.takeIf { it.isSqlBuilderLambda(session) }
         }
+
+        private fun FirFunctionCall.isTopLevelSqlCall(): Boolean =
+            calleeReference.toResolvedCallableSymbol()?.callableId == CallableIds.SQL_TOP_LEVEL
+
+        private fun FirFunctionCall.hasLambdaArgument(): Boolean =
+            argumentList.arguments.any { it.unwrapArgument() is FirAnonymousFunctionExpression }
 
         private fun FirAnonymousFunction.isSqlBuilderLambda(session: FirSession): Boolean = receiverParameter
             ?.typeRef
@@ -192,10 +207,11 @@ internal class SqlSyntaxChecker(
         expression: FirFunctionCall,
         parts: List<Part>,
         sql: String,
+        leadingLineOffset: Int,
     ) {
         when (val outcome = parse(sql)) {
             is ParseOutcome.Failed -> reporter.reportOn(
-                anchorSource(parts, outcome.reason) ?: expression.source,
+                anchorSource(parts, outcome.reason, leadingLineOffset) ?: expression.source,
                 KueryClientDiagnostics.KUERY_SQL_SYNTAX,
                 outcome.reason,
             )
@@ -289,12 +305,15 @@ internal class SqlSyntaxChecker(
     }
 
     // The add call whose reconstructed lines contain the failing line; the parser may also point
-    // one past the end (EOF), which maps to the last add.
+    // one past the end (EOF), which maps to the last add. Parser positions are relative to the
+    // trimmed SQL, so shift them back by the fully removed leading lines.
     private fun anchorSource(
         parts: List<Part>,
         reason: String,
+        leadingLineOffset: Int,
     ): KtSourceElement? {
-        val line = LINE_REGEX.find(reason)?.groupValues?.get(1)?.toIntOrNull() ?: return null
+        val reported = LINE_REGEX.find(reason)?.groupValues?.get(1)?.toIntOrNull() ?: return null
+        val line = reported + leadingLineOffset
         var firstLine = 1
         for (part in parts) {
             val lineCount = part.text.lines().size
@@ -380,6 +399,13 @@ internal class SqlSyntaxChecker(
 
         // InstanceOfCheckForException: the parser failure is wrapped in a cause chain, so the
         // interesting exception type genuinely has to be located by walking it.
+        // Vendor statements JSqlParser has no grammar for at all; reporting them would be a
+        // permanent false positive, so a failed parse that matches one is skipped instead.
+        // Currently: H2's `MERGE INTO ... KEY(...)` upsert.
+        private val KNOWN_UNPARSEABLE_STATEMENTS = listOf(
+            Regex("""(?is)\bMERGE\s+INTO\b.*\bKEY\s*\("""),
+        )
+
         @Suppress("TooGenericExceptionCaught", "SwallowedException", "InstanceOfCheckForException")
         private fun parse(sql: String): ParseOutcome = try {
             ParseOutcome.Parsed(CCJSqlParserUtil.parseStatements(sql, parserExecutor) {})
@@ -390,7 +416,11 @@ internal class SqlSyntaxChecker(
             val reason = generateSequence(e as Throwable) { it.cause }
                 .firstOrNull { it is ParseException || it is TokenMgrException }
                 ?.message
-            if (reason != null) ParseOutcome.Failed(firstSentenceOf(reason)) else ParseOutcome.Indeterminate
+            when {
+                reason == null -> ParseOutcome.Indeterminate
+                KNOWN_UNPARSEABLE_STATEMENTS.any { it.containsMatchIn(sql) } -> ParseOutcome.Indeterminate
+                else -> ParseOutcome.Failed(firstSentenceOf(reason))
+            }
         } catch (e: Exception) {
             ParseOutcome.Indeterminate
         }
