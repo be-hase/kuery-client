@@ -76,6 +76,23 @@ class KueryClientGradlePluginTest {
     }
 
     @Test
+    fun `autoTrimIndent and sqlSyntaxCheck are both emitted when both are set`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        val extension = project.extensions.getByType(KueryClientExtension::class.java)
+        extension.autoTrimIndent.set(true)
+        extension.sqlSyntaxCheck.set("mysql")
+
+        // when
+        val options = plugin.applyToCompilation(compilation(project)).get()
+
+        // then
+        assertThat(options.map { it.toEqualsString() })
+            .isEqualTo(listOf("autoTrimIndent=true", "sqlSyntaxCheck=mysql"))
+    }
+
+    @Test
     fun `a mixed-case sqlSyntaxCheck value is accepted and passed through verbatim`() {
         // The compiler resolves the value case-insensitively, so the plugin must not reject a
         // valid value on case alone.

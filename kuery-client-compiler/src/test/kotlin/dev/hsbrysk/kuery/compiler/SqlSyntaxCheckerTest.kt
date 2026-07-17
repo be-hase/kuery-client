@@ -74,6 +74,12 @@ class SqlSyntaxCheckerTest {
                 Sql { add(SELECT_ALL) }
                 Sql { +"INSERT INTO users (id, name) VALUES (${'$'}id, ${'$'}name)" }
                 Sql { +"UPDATE users SET name = ${'$'}name WHERE id = ${'$'}id" }
+                Sql { +"SELECT 1;" }
+                Sql { +"SELECT * FROM users LIMIT ${'$'}{10}" }
+                Sql {
+                    +"-- users are soft-deleted"
+                    +"SELECT * FROM users WHERE deleted = false"
+                }
             }
 
             // Common MySQL / PostgreSQL flavored syntax must not draw false positives.
@@ -93,6 +99,92 @@ class SqlSyntaxCheckerTest {
         // then
         assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `warn when a broken block is passed to the sql overload with a sqlId`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.KueryClient
+
+            fun query(client: KueryClient) {
+                client.sql("listUsers") { +"SELCT * FROM users" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `warn when the whole string is a single interpolated variable`() {
+        // The fragment is bound, not spliced: the runtime SQL body is literally ":p0", which is
+        // genuinely broken — this warning catches a real misuse of interpolation.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(fragment: String) {
+                Sql { +"${'$'}fragment" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `a nested block is checked even when the enclosing block is skipped`() {
+        // The outer block contains an if statement and is skipped, but the checker fires per
+        // call, so the broken nested block still warns.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(cond: Boolean) {
+                Sql {
+                    +"SELECT * FROM users"
+                    if (cond) {
+                        val inner = Sql { +"SELCT 1" }
+                    }
+                }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `warning becomes an error with -Werror`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { +"SELCT * FROM users" }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.COMPILATION_ERROR)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test
@@ -552,6 +644,28 @@ class SqlSyntaxCheckerTest {
         // then
         assertThat(result.messages).doesNotContain(DIALECT_DIAGNOSTIC_NAME)
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `the ansi mode flags a vendor-specific feature unlike generic`() {
+        // ansi is a real, strict feature set — the documented distinction from generic.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int) {
+                Sql { +"INSERT INTO users (id) VALUES (${'$'}id) ON DUPLICATE KEY UPDATE id = ${'$'}id" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption("ansi")),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIALECT_DIAGNOSTIC_NAME)
+        // The label uses the option vocabulary, not the parser's enum name ("ansi_sql").
+        assertThat(result.messages).contains("(dialect: ansi)")
     }
 
     @Test
