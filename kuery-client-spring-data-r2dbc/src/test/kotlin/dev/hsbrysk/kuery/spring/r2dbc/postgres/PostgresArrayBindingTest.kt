@@ -234,6 +234,8 @@ class PostgresArrayBindingTest {
 
     @Test
     fun `bind primitive char array round-trips through select`() = runTest {
+        // The r2dbc module boxes char arrays to String[]. The jdbc module passes char[] through to
+        // pgjdbc, which has no SQL array mapping for it, so its counterpart pins a rejection.
         // given
         val chars = charArrayOf('a', 'b')
 

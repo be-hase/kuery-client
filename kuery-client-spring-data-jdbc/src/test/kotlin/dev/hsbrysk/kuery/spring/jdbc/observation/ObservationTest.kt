@@ -123,6 +123,18 @@ class ObservationTest {
     }
 
     @Test
+    fun `sequenceMap does not record an observation`() {
+        userRepository.sequenceMap().toList()
+        TestObservationRegistryAssert.assertThat(registry).doesNotHaveAnyObservation()
+    }
+
+    @Test
+    fun `sequence does not record an observation`() {
+        userRepository.sequence().toList()
+        TestObservationRegistryAssert.assertThat(registry).doesNotHaveAnyObservation()
+    }
+
+    @Test
     fun `explicit sqlId overload propagates to the observation`() {
         kueryClient.sql("my.explicit.sql.id") { +"SELECT * FROM users" }.listMap()
         assertObservation(
