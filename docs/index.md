@@ -18,10 +18,17 @@ features:
   - icon: ♥️
     title: Love SQL
     details: ORM libraries are convenient, but they each require learning their own DSL, which we believe is a steep cost. Kuery Client emphasizes writing SQL as it is.
+  - icon: 🛡️
+    title: Safe by design
+    details: String interpolation is converted into bind parameters by the compiler plugin — never concatenated into the SQL text. A built-in compiler safety check warns when a SQL string cannot be converted safely.
+    link: /compiler-safety-check
   - icon: 🍃
     title: Based on spring-data-r2dbc and spring-data-jdbc
     details: Kuery Client is implemented on top of spring-data-r2dbc and spring-data-jdbc. Use whichever you prefer. You can keep using Spring's ecosystem as is, such as @Transactional.
   - icon: 🔭
     title: Observability
     details: It supports Micrometer Observation, so you can collect and customize metrics, tracing, and logging.
+  - icon: 🧩
+    title: Extensible
+    details: When dealing with complex data schemas, you often want to share common query logic. Kotlin's extension functions make this easy.
 ---
