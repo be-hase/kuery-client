@@ -14,8 +14,8 @@ import org.jetbrains.kotlin.ir.util.fileOrNull
  * its enclosing declarations: the Kotlin FQN of the innermost named declaration, e.g.
  * `com.example.UserRepository.findById`.
  *
- * - lambdas and anonymous functions/objects carry no name and fold into the enclosing
- *   declaration
+ * - lambdas, anonymous functions, and anonymous objects carry no name and contribute no
+ *   segment of their own (named members of an anonymous object still do)
  * - property accessors and property initializers use the property name
  * - constructors and init blocks use `<init>`
  * - local functions contribute their name after the enclosing function's
@@ -24,6 +24,16 @@ import org.jetbrains.kotlin.ir.util.fileOrNull
  */
 @Suppress("OPT_IN_USAGE")
 internal object SqlIdComputer {
+    /**
+     * The innermost enclosing declaration that contributes a name segment — what a call site's
+     * id is anchored to. `#N` numbering is scoped to this declaration (not to the id string),
+     * so declarations whose ids happen to collide (e.g. overloads) never affect each other's
+     * numbering.
+     */
+    fun anchor(innermost: IrDeclaration): IrDeclaration = generateSequence(innermost) { it.parent as? IrDeclaration }
+        .firstOrNull { segmentOrNull(it) != null }
+        ?: innermost
+
     fun baseId(innermost: IrDeclaration): String {
         val segments = generateSequence(innermost) { it.parent as? IrDeclaration }
             .mapNotNull { segmentOrNull(it) }

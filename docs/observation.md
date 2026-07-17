@@ -119,8 +119,16 @@ As shown above, the `sql_id` label is automatically derived from the repository 
 The id is derived at compile time by the compiler plugin: every `sql { ... }` call site is rewritten to carry
 the fully qualified name of its enclosing declaration (e.g. `com.example.UserRepository.selectByUserId`), so no
 stack inspection happens at runtime and a given call site always produces the same id. Calls inside lambdas
-fold into the enclosing named method. Call sites that are not compiled with the compiler plugin (e.g. Java
-callers or reflective invocations) fall back to the fixed id `NONE`.
+fold into the enclosing named method.
+
+The id is attached only when the block is written literally at the call site — a lambda or a function
+reference. Everything else resolves to the fixed id `NONE`: a block passed via a variable, call sites that are
+not compiled with the compiler plugin (e.g. Java callers or reflective invocations), and so on. Specify the id
+explicitly in such cases.
+
+A few sharing rules follow from "the id is the enclosing declaration's FQN": overloads of the same method
+share one id, as do same-named top-level functions in different files of the same package; and a call inside
+an `inline` function uses the inline function's own FQN, not its caller's.
 
 Whether the derived id is actually used is controlled by the builder's `enableAutoSqlIdGeneration(...)` flag.
 It defaults to `true` when an `ObservationRegistry` is specified, and `false` otherwise — in which case the

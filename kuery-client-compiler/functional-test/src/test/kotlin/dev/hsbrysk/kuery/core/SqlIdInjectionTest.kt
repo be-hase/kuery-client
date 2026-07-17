@@ -3,15 +3,19 @@ package dev.hsbrysk.kuery.core
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import dev.hsbrysk.kuery.core.internal.SqlIds.id
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 
 /**
  * Verifies the sqlId the compiler plugin injects into the sqlId-less `sql(block)` overloads:
  * the FQN of the call site's enclosing declaration, disambiguated with a `#N` suffix when one
- * declaration contains several calls. The call-site shapes live in the fixtures at the bottom
- * of this file, so all ids start with this file's package.
+ * declaration contains several calls. Only literally written blocks (lambdas and function
+ * references) are rewritten; anything else — variables, mocking-library matchers — stays
+ * untouched. The call-site shapes live in the fixtures at the bottom of this file, so all ids
+ * start with this file's package.
  */
 class SqlIdInjectionTest {
     private val client = RecordingClient()
@@ -173,6 +177,53 @@ class SqlIdInjectionTest {
         // then
         assertThat(client.sqlIds).containsExactly("dev.hsbrysk.kuery.core.queryThroughSubtype")
     }
+
+    @Test
+    fun `a function reference passed as the block gets the call site's id`() {
+        // when
+        queryByFunctionReference(client)
+
+        // then
+        assertThat(client.sqlIds).containsExactly("dev.hsbrysk.kuery.core.queryByFunctionReference")
+    }
+
+    @Test
+    fun `a block passed as a variable is not rewritten and resolves to NONE`() {
+        // given
+        val block: SqlBuilder.() -> Unit = { +"SELECT * FROM users" }
+
+        // when
+        client.sql(block)
+
+        // then
+        assertThat(client.sqlIds).containsExactly("NONE")
+    }
+
+    @Test
+    fun `overloads with a single call each keep their plain ids`() {
+        // when
+        OverloadedRepository(client).find(1)
+        OverloadedRepository(client).find("user1")
+
+        // then
+        assertThat(client.sqlIds).containsExactly(
+            "dev.hsbrysk.kuery.core.OverloadedRepository.find",
+            "dev.hsbrysk.kuery.core.OverloadedRepository.find",
+        )
+    }
+
+    @Test
+    fun `mockk argument matchers on the sqlId-less overload keep working`() {
+        // given: any() must reach mockk unwrapped, otherwise the matcher binding breaks
+        val mock = mockk<KueryBlockingClient>()
+        every { mock.sql(any()) } returns mockk()
+
+        // when
+        mock.sql { +"SELECT * FROM users" }
+
+        // then
+        verify(exactly = 1) { mock.sql(any()) }
+    }
 }
 
 /**
@@ -307,11 +358,30 @@ private inline fun inlineQuery(
 private interface SubtypeBlockingClient : KueryBlockingClient
 
 // The compiler-generated delegation bridge `override fun sql(block) = delegate.sql(block)` must
-// not re-wrap the block; the caller's id has to survive the pass-through.
+// not re-wrap the block; the caller's id has to survive the pass-through. The bridge forwards
+// its parameter — not a literal — so the literal-only rewrite rule keeps it untouched.
 private class SubtypeClient(delegate: KueryBlockingClient) :
     SubtypeBlockingClient,
     KueryBlockingClient by delegate
 
 private fun queryThroughSubtype(client: SubtypeBlockingClient) {
     client.sql { +"SELECT * FROM users" }
+}
+
+private fun selectAllUsers(builder: SqlBuilder) {
+    builder.add("SELECT * FROM users")
+}
+
+private fun queryByFunctionReference(client: KueryBlockingClient) {
+    client.sql(::selectAllUsers)
+}
+
+private class OverloadedRepository(private val client: KueryBlockingClient) {
+    fun find(id: Int) {
+        client.sql { +"SELECT * FROM users WHERE user_id = $id" }
+    }
+
+    fun find(name: String) {
+        client.sql { +"SELECT * FROM users WHERE username = $name" }
+    }
 }
