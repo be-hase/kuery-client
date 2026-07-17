@@ -9,6 +9,9 @@ class KueryClientIrGenerationExtension(private val autoTrimIndent: Boolean) : Ir
         moduleFragment: IrModuleFragment,
         pluginContext: IrPluginContext,
     ) {
+        // Inject first: the injection only wraps the block argument of sql(...) calls and never
+        // touches the add/unaryPlus calls inside the block, so the passes do not interfere.
+        moduleFragment.transformChildren(SqlIdInjectionTransformer(pluginContext), null)
         moduleFragment.transformChildren(StringInterpolationTransformer(pluginContext, autoTrimIndent), null)
     }
 }
