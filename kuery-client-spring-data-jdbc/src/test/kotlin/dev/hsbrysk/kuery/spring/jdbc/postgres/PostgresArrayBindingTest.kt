@@ -1,12 +1,15 @@
 package dev.hsbrysk.kuery.spring.jdbc.postgres
 
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.core.convert.converter.Converter
 import org.springframework.data.convert.WritingConverter
+import org.springframework.jdbc.BadSqlGrammarException
 import java.sql.Array as SqlArray
 
 class PostgresArrayBindingTest {
@@ -158,6 +161,91 @@ class PostgresArrayBindingTest {
 
         // then
         assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind primitive long array to ANY predicate`() {
+        // given
+        val userIds = longArrayOf(1, 2)
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($userIds) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind primitive short array to ANY predicate`() {
+        // given
+        val userIds = shortArrayOf(1, 2)
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($userIds) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind primitive double array to ANY predicate`() {
+        // given
+        val userIds = doubleArrayOf(1.0, 2.0)
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($userIds) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind primitive float array to ANY predicate`() {
+        // given
+        val userIds = floatArrayOf(1.0f, 2.0f)
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($userIds) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind primitive boolean array round-trips through select`() {
+        // given
+        val flags = booleanArrayOf(true, false)
+
+        // when
+        val record = kueryClient
+            .sql { +"SELECT $flags AS flags" }
+            .singleMap()
+
+        // then
+        assertThat(((record["flags"] as SqlArray).array as Array<*>).toList()).isEqualTo(listOf(true, false))
+    }
+
+    @Test
+    fun `bind primitive char array is rejected by the driver`() {
+        // pgjdbc has no SQL array mapping for char[]. The r2dbc module boxes char arrays to
+        // String[] instead, so its counterpart round-trips successfully.
+        // given
+        val chars = charArrayOf('a', 'b')
+
+        // when & then
+        assertFailure {
+            kueryClient
+                .sql { +"SELECT $chars AS chars" }
+                .singleMap()
+        }.isInstanceOf(BadSqlGrammarException::class)
     }
 
     companion object {

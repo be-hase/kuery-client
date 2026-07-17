@@ -13,6 +13,7 @@ import io.r2dbc.spi.Result
 import io.r2dbc.spi.Statement
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
@@ -124,6 +125,18 @@ class ObservationTest {
             sqlId = "com.example.spring.r2dbc.UserRepository.generatedValues",
             sql = "INSERT INTO users (username, email) VALUES (:p0, :p1)",
         )
+    }
+
+    @Test
+    fun `flowMap does not record an observation`() = runTest {
+        userRepository.flowMap().collect()
+        TestObservationRegistryAssert.assertThat(registry).doesNotHaveAnyObservation()
+    }
+
+    @Test
+    fun `flow does not record an observation`() = runTest {
+        userRepository.flow().collect()
+        TestObservationRegistryAssert.assertThat(registry).doesNotHaveAnyObservation()
     }
 
     @Test
