@@ -48,7 +48,7 @@ public sealed interface SqlBuilder {
      * +"SELECT * FROM users WHERE user_id = $userId"
      * ```
      */
-    public operator fun String.unaryPlus()
+    public operator fun @receiver:Language("sql") String.unaryPlus()
 
     /**
      * Adds a SQL fragment to the statement being built, WITHOUT rewriting string interpolation
