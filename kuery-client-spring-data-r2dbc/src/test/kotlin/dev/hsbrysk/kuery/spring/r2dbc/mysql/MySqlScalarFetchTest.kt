@@ -38,7 +38,10 @@ class MySqlScalarFetchTest {
                 .sql { +"SELECT EXISTS(SELECT 1 FROM scalar_users WHERE user_id = 1)" }
                 .single<Boolean>()
         }.isInstanceOf(IllegalArgumentException::class)
+    }
 
+    @Test
+    fun `EXISTS maps to Long`() = runTest {
         val exists: Long = kueryClient
             .sql { +"SELECT EXISTS(SELECT 1 FROM scalar_users WHERE user_id = 1)" }
             .single()
@@ -46,16 +49,19 @@ class MySqlScalarFetchTest {
     }
 
     @Test
-    fun `COUNT maps to Long and narrows to Int`() = runTest {
-        val asLong: Long = kueryClient
+    fun `COUNT maps to Long`() = runTest {
+        val count: Long = kueryClient
             .sql { +"SELECT COUNT(*) FROM scalar_users" }
             .single()
-        assertThat(asLong).isEqualTo(2L)
+        assertThat(count).isEqualTo(2L)
+    }
 
-        val asInt: Int = kueryClient
+    @Test
+    fun `COUNT narrows to Int`() = runTest {
+        val count: Int = kueryClient
             .sql { +"SELECT COUNT(*) FROM scalar_users" }
             .single()
-        assertThat(asInt).isEqualTo(2)
+        assertThat(count).isEqualTo(2)
     }
 
     companion object {

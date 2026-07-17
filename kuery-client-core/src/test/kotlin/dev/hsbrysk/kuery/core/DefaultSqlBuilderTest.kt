@@ -139,11 +139,15 @@ class DefaultSqlBuilderTest {
     }
 
     @Test
-    fun `interpolate weaves placeholders between fragments and throws IllegalStateException on count mismatch`() {
+    fun `interpolate weaves placeholders between fragments`() {
         assertThat(DefaultSqlBuilder().interpolate(emptyList(), emptyList())).isEqualTo("")
         assertThat(DefaultSqlBuilder().interpolate(listOf("a"), emptyList())).isEqualTo("a")
         assertThat(DefaultSqlBuilder().interpolate(listOf("a"), listOf(1))).isEqualTo("a:p0")
         assertThat(DefaultSqlBuilder().interpolate(listOf("a", "b"), listOf(1))).isEqualTo("a:p0b")
+    }
+
+    @Test
+    fun `interpolate throws IllegalStateException when fragment and value counts mismatch`() {
         assertFailure {
             DefaultSqlBuilder().interpolate(listOf("a", "b"), emptyList())
         }.isInstanceOf(IllegalStateException::class)

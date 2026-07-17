@@ -17,12 +17,28 @@ class SqlIdsTest {
     @Test
     fun `id resolves the fully qualified class and method name of the call site`() {
         assertThat(ClassA().sql1 {}).isEqualTo("com.example.core.ClassA.sql1")
+    }
+
+    @Test
+    fun `id resolves a suspend call site across dispatcher switches`() {
         runBlocking { assertThat(ClassA().sql2 {}).isEqualTo("com.example.core.ClassA.sql2") }
+    }
+
+    @Test
+    fun `id resolves a nested class call site with its enclosing class names`() {
         assertThat(ClassA.ClassB().sql3 {}).isEqualTo("com.example.core.ClassA.ClassB.sql3")
         assertThat(
             ClassA.ClassB.ClassC().sql4 {},
         ).isEqualTo("com.example.core.ClassA.ClassB.ClassC.sql4")
+    }
+
+    @Test
+    fun `id resolves the call site through a lambda passed to a higher-order function`() {
         assertThat(ClassA().sql5 {}).isEqualTo("com.example.core.ClassA.sql5")
+    }
+
+    @Test
+    fun `id resolves the call site through a class-compiled lambda`() {
         assertThat(ClassA().sql6 {}).isEqualTo("com.example.core.ClassA.sql6")
     }
 
@@ -37,8 +53,12 @@ class SqlIdsTest {
     }
 
     @Test
-    fun `removeSuffixes strips a matching suffix and leaves the string unchanged otherwise`() {
+    fun `removeSuffixes strips a matching suffix`() {
         assertThat("a.b.c".removeSuffixes(listOf(".b", ".c"))).isEqualTo("a.b")
+    }
+
+    @Test
+    fun `removeSuffixes leaves the string unchanged when no suffix matches`() {
         assertThat("a.b.c".removeSuffixes(listOf(".a", ".d"))).isEqualTo("a.b.c")
     }
 

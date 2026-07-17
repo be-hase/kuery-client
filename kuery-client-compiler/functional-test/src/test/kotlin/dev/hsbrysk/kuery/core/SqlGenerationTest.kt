@@ -147,7 +147,7 @@ class SqlGenerationTest {
     }
 
     @Test
-    fun `an empty collection is bound as a single parameter without expansion`() {
+    fun `an empty list is bound as a single parameter without expansion`() {
         // An empty collection is NOT expanded at the core level. It is bound as a single
         // parameter whose value is the empty collection; what happens next is up to the
         // executing layer (e.g. Spring's named parameter expansion).
@@ -175,17 +175,20 @@ class SqlGenerationTest {
                 ),
             ),
         )
+    }
 
+    @Test
+    fun `an empty set is bound as a single parameter without expansion`() {
         // given
         val emptyIdSet = emptySet<Int>()
 
         // when
-        val sql2 = Sql {
+        val sql = Sql {
             +"SELECT * FROM user WHERE id IN ($emptyIdSet)"
         }
 
         // then
-        assertThat(sql2).isEqualTo(
+        assertThat(sql).isEqualTo(
             Sql(
                 "SELECT * FROM user WHERE id IN (:p0)",
                 listOf(
