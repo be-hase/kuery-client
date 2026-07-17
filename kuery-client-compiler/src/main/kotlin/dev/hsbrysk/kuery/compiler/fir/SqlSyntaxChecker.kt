@@ -64,6 +64,9 @@ internal class SqlSyntaxChecker(
 ) : FirFunctionCallChecker(MppCheckerKind.Common) {
     // null for GENERIC: parse only, no feature validation.
     private val dialect: DatabaseType? = mode.toDatabaseTypeOrNull()
+
+    // The user-facing name of the mode, i.e. the option vocabulary ("ansi", not "ansi_sql").
+    private val dialectLabel: String = mode.optionValue
     private class Part(
         val text: String,
         val source: KtSourceElement?,
@@ -94,7 +97,11 @@ internal class SqlSyntaxChecker(
             // syntax warning.
             is ParseOutcome.Parsed -> {
                 val reason = dialect?.let { dialectFailureOrNull(outcome.statements, it) } ?: return
-                reporter.reportOn(expression.source, KueryClientDiagnostics.KUERY_SQL_DIALECT, reason)
+                reporter.reportOn(
+                    expression.source,
+                    KueryClientDiagnostics.KUERY_SQL_DIALECT,
+                    "$reason (dialect: $dialectLabel)",
+                )
             }
             ParseOutcome.Indeterminate -> Unit
         }
@@ -234,11 +241,7 @@ internal class SqlSyntaxChecker(
             val messages = statements
                 .flatMap { statement -> Validation.validate(statement, context).values.flatten() }
                 .mapNotNull { it.message }
-            if (messages.isEmpty()) {
-                null
-            } else {
-                "${messages.joinToString(" ")} (dialect: ${dialect.name.lowercase()})"
-            }
+            if (messages.isEmpty()) null else messages.joinToString(" ")
         } catch (e: Exception) {
             null
         }

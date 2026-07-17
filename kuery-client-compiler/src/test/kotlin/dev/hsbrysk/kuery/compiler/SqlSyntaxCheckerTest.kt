@@ -528,6 +528,8 @@ class SqlSyntaxCheckerTest {
         // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(result.messages).contains(DIALECT_DIAGNOSTIC_NAME)
+        // The label uses the option vocabulary.
+        assertThat(result.messages).contains("(dialect: postgresql)")
     }
 
     @Test
