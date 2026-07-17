@@ -50,6 +50,9 @@ internal object SqlTextReconstruction {
     // inlined as text at runtime, so when its value cannot be computed here (a constant
     // expression rather than a single literal) the whole reconstruction must bail — substituting
     // a placeholder would diverge from the runtime SQL and produce false positives.
+    // UnreachableCode: detekt's type resolution (Kotlin 1.9-based) cannot resolve the 2.4
+    // compiler API and falsely flags the elvis-return as unreachable.
+    @Suppress("UnreachableCode")
     private fun FirStringConcatenationCall.templateTextOrNull(numbering: ParameterNumbering): String? {
         val text = StringBuilder()
         for (argument in argumentList.arguments) {

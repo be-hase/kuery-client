@@ -253,6 +253,9 @@ internal class SqlSyntaxChecker(
         // sub-interfaces (fake overrides) and overriding decorators such as
         // `class Decorated(d: KueryClient) : KueryClient by d`, mirroring the IR-side override
         // walk in SqlIdInjectionTransformer.
+        // UnreachableCode: detekt's type resolution (Kotlin 1.9-based) cannot resolve the 2.4
+        // compiler API and falsely flags the elvis-return chain as unreachable.
+        @Suppress("UnreachableCode")
         private fun FirFunctionCall.isClientSqlCall(session: FirSession): Boolean {
             val receiverType = dispatchReceiver?.resolvedType?.fullyExpandedType(session) ?: return false
             val classSymbol = receiverType.toRegularClassSymbol(session) ?: return false
