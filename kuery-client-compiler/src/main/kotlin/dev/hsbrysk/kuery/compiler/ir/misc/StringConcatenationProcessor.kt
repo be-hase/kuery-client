@@ -1,15 +1,13 @@
 package dev.hsbrysk.kuery.compiler.ir.misc
 
-import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
-import org.jetbrains.kotlin.ir.builders.irString
 import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.expressions.IrConstKind
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 
-internal class StringConcatenationProcessor(private val builder: IrBuilderWithScope) {
+internal object StringConcatenationProcessor {
     // first: fragments, second: values
-    fun process(expressions: List<IrExpression>): Pair<List<IrExpression>, List<IrExpression>> {
-        val fragments = mutableListOf<IrExpression>()
+    fun process(expressions: List<IrExpression>): Pair<List<String>, List<IrExpression>> {
+        val fragments = mutableListOf<String>()
         val values = mutableListOf<IrExpression>()
 
         // K2 constant-folds `const val` references into standalone IrConst nodes without merging
@@ -22,13 +20,13 @@ internal class StringConcatenationProcessor(private val builder: IrBuilderWithSc
                 pending.append(text)
             } else {
                 // The reason for adding an empty string fragment can be found in `DefaultSqlBuilder.interpolate`.
-                fragments.add(builder.irString(pending.toString()))
+                fragments.add(pending.toString())
                 pending.clear()
                 values.add(expression)
             }
         }
         if (pending.isNotEmpty()) {
-            fragments.add(builder.irString(pending.toString()))
+            fragments.add(pending.toString())
         }
 
         return fragments to values

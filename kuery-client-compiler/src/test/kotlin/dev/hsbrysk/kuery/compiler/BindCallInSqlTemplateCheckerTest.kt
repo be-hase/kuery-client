@@ -4,9 +4,7 @@ import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
-import com.tschuchort.compiletesting.JvmCompilationResult
 import com.tschuchort.compiletesting.KotlinCompilation
-import com.tschuchort.compiletesting.SourceFile
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.junit.jupiter.api.Test
 
@@ -151,18 +149,6 @@ class BindCallInSqlTemplateCheckerTest {
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.COMPILATION_ERROR)
         assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
-
-    private fun compile(
-        source: String,
-        allWarningsAsErrors: Boolean = false,
-    ): JvmCompilationResult = KotlinCompilation().apply {
-        sources = listOf(SourceFile.kotlin("Sample.kt", source))
-        commandLineProcessors = listOf(KueryClientCompilerCommandLineProcessor())
-        compilerPluginRegistrars = listOf(KueryClientCompilerPluginRegistrar())
-        inheritClassPath = true
-        verbose = false
-        this.allWarningsAsErrors = allWarningsAsErrors
-    }.compile()
 
     companion object {
         private const val DIAGNOSTIC_NAME = "KUERY_BIND_CALL_IN_SQL_TEMPLATE"

@@ -1,5 +1,6 @@
 package dev.hsbrysk.kuery.compiler
 
+import dev.hsbrysk.kuery.compiler.KueryClientCompilerCommandLineProcessor.Companion.AUTO_TRIM_INDENT_KEY
 import dev.hsbrysk.kuery.compiler.fir.KueryClientFirExtensionRegistrar
 import dev.hsbrysk.kuery.compiler.ir.KueryClientIrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
@@ -16,7 +17,8 @@ class KueryClientCompilerPluginRegistrar : CompilerPluginRegistrar() {
     override val supportsK2: Boolean = true
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
-        FirExtensionRegistrarAdapter.registerExtension(KueryClientFirExtensionRegistrar())
-        IrGenerationExtension.registerExtension(KueryClientIrGenerationExtension())
+        val autoTrimIndent = configuration.get(AUTO_TRIM_INDENT_KEY, false)
+        FirExtensionRegistrarAdapter.registerExtension(KueryClientFirExtensionRegistrar(autoTrimIndent))
+        IrGenerationExtension.registerExtension(KueryClientIrGenerationExtension(autoTrimIndent))
     }
 }

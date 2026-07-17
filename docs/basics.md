@@ -40,6 +40,40 @@ with `org.intellij.lang.annotations.Language`, if you are using a JetBrains IDE,
 the query for metrics. See [Observation](/observation#sql-id).
 :::
 
+### Automatic `trimIndent` (opt-in)
+
+With a multi-line string, the source indentation stays in the SQL body. That is harmless to the
+database, but it makes logged SQL noisy, so `.trimIndent()` is commonly appended. If you would
+rather not write it every time, enable `autoTrimIndent` in the Gradle plugin:
+
+```kotlin
+kueryClient {
+    autoTrimIndent = true
+}
+```
+
+(On Gradle versions without Kotlin DSL property assignment — before 8.2 — write
+`autoTrimIndent.set(true)` instead.)
+
+Every string passed to `+` / `add()` then gets `trimIndent()` applied automatically. For string
+literals and templates the trimming is computed **at compile time** by the compiler plugin, so it
+adds no runtime cost. Arguments the plugin cannot see through (e.g. a variable) are trimmed at
+runtime instead.
+
+Notes:
+
+- `addUnsafe()` is not affected — use it when you need to keep indentation as-is.
+- An explicit `.trimIndent()` left behind is the worst of both worlds: it prevents compile-time
+  trimming, so the string ends up trimmed twice at runtime. The compiler reports a
+  `KUERY_REDUNDANT_TRIM_INDENT` warning for such calls — remove them when enabling the option.
+  (Behavior stays correct either way; the double trim only differs when the explicitly trimmed
+  string still starts or ends with a blank line, which the automatic trim then drops.)
+- An explicit `.trimMargin()` is not flagged — auto-trim does not remove margins. Note however
+  that the automatic trim runs on its result, so per-line indentation deliberately kept after the
+  margin prefix (e.g. `|  SELECT`) is stripped; use `addUnsafe()` when such indentation must
+  survive.
+- The option defaults to `false`, so existing builds are unaffected.
+
 ## Binding Parameters
 
 When you want to bind parameters, use string interpolation.

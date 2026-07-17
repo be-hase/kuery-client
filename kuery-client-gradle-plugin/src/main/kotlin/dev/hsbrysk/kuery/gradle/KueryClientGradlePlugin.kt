@@ -1,5 +1,6 @@
 package dev.hsbrysk.kuery.gradle
 
+import org.gradle.api.Project
 import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
@@ -8,8 +9,25 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
 class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
-    override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> =
-        kotlinCompilation.target.project.provider { emptyList() }
+    override fun apply(target: Project) {
+        target.extensions.create(EXTENSION_NAME, KueryClientExtension::class.java)
+            .autoTrimIndent.convention(false)
+    }
+
+    override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
+        val extension = kotlinCompilation.target.project.extensions.getByType(KueryClientExtension::class.java)
+        return extension.autoTrimIndent.map { enabled ->
+            // Only emit the option when it deviates from the compiler plugin's default, so a
+            // build whose compiler-plugin artifact resolves to an older kuery-client-compiler
+            // (which would reject the unknown option) keeps working as long as the feature is
+            // not enabled.
+            if (enabled) {
+                listOf(SubpluginOption("autoTrimIndent", "true"))
+            } else {
+                emptyList()
+            }
+        }
+    }
 
     override fun getCompilerPluginId(): String = "dev.hsbrysk.kuery-client"
 
@@ -27,4 +45,8 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
             KotlinPlatformType.jvm, KotlinPlatformType.androidJvm -> true
             else -> false
         }
+
+    companion object {
+        private const val EXTENSION_NAME = "kueryClient"
+    }
 }
