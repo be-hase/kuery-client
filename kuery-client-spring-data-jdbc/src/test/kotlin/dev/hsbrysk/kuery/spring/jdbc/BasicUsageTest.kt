@@ -158,7 +158,7 @@ class BasicUsageTest {
     @Test
     fun `singleMapOrNull throws when more than one row matches`() {
         assertFailure {
-            kueryClient.sql { +"SELECT * FROM users" }.singleMap()
+            kueryClient.sql { +"SELECT * FROM users" }.singleMapOrNull()
         }.isInstanceOf(IncorrectResultSizeDataAccessException::class)
     }
 
