@@ -58,7 +58,8 @@ kueryClient.sql {
 Anything else makes the whole block **silently skipped**, because the final SQL cannot be known
 at compile time:
 
-- Conditionals or loops inside the block (`if`, `when`, `for`, `?.let { ... }`)
+- Conditionals, loops, or early returns inside the block (`if`, `when`, `for`, `?.let { ... }`,
+  `return@sql`)
 - Helper functions that are dynamic inside, overridable, or compiled in another module
 - `addUnsafe()` (dynamic SQL is out of the check's scope by design)
 - Non-literal `add()` arguments such as variables (those already draw

@@ -606,6 +606,39 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
+    fun `no warning when an overload takes several SqlBuilder lambdas`() {
+        // With more than one SqlBuilder-receiver lambda there is no way to know which one is
+        // the SQL block, so the call is skipped instead of guessing.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.KueryClient
+            import dev.hsbrysk.kuery.core.SqlBuilder
+
+            class Decorated(delegate: KueryClient) : KueryClient by delegate {
+                fun sql(
+                    first: SqlBuilder.() -> Unit,
+                    second: SqlBuilder.() -> Unit,
+                ) = Unit
+            }
+
+            fun query(client: Decorated) {
+                client.sql(
+                    { +"SELCT 1" },
+                    { +"SELCT 2" },
+                )
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
     fun `warn for sql calls through a type parameter bounded by a client interface`() {
         // when
         val result = compile(
