@@ -1,5 +1,6 @@
 package dev.hsbrysk.kuery.compiler
 
+import dev.hsbrysk.kuery.compiler.fir.KueryClientDiagnostics
 import org.jetbrains.kotlin.compiler.plugin.AbstractCliOption
 import org.jetbrains.kotlin.compiler.plugin.CliOption
 import org.jetbrains.kotlin.compiler.plugin.CliOptionProcessingException
@@ -78,8 +79,9 @@ class KueryClientCompilerCommandLineProcessor : CommandLineProcessor {
         private val STRICT_OPTION = CliOption(
             optionName = STRICT_OPTION_NAME,
             valueDescription = "<true|false>",
-            description = "Report the SQL-safety diagnostics (KUERY_UNSAFE_SQL_STRING, KUERY_SQL_SYNTAX, " +
-                "KUERY_SQL_DIALECT) as errors instead of warnings",
+            description = "Report the SQL-safety diagnostics " +
+                "(${KueryClientDiagnostics.STRICT_DIAGNOSTIC_NAMES.joinToString(", ")}) " +
+                "as errors instead of warnings",
             required = false,
             allowMultipleOccurrences = false,
         )

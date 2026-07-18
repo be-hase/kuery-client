@@ -144,6 +144,76 @@ class StrictModeTest {
         assertThat(result.messages).doesNotContain(UNSAFE_MESSAGE)
     }
 
+    @Test
+    fun `an explicit -Xwarning-level downgrade of the syntax diagnostic wins over strict mode`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun broken() = Sql { +"SELECT * FORM users" }
+            """.trimIndent(),
+            pluginOptions = listOf(strictOption(), sqlSyntaxCheckOption("generic")),
+            kotlincArguments = listOf("-Xwarning-level=KUERY_SQL_SYNTAX:warning"),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains("w: ")
+        assertThat(result.messages).contains(SYNTAX_MESSAGE)
+    }
+
+    @Test
+    fun `an explicit -Xwarning-level downgrade of the dialect diagnostic wins over strict mode`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun upsert(id: Int, name: String) = Sql {
+                +"INSERT INTO users (id, name) VALUES (${'$'}id, ${'$'}name) ON DUPLICATE KEY UPDATE name = ${'$'}name"
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(strictOption(), sqlSyntaxCheckOption("postgresql")),
+            kotlincArguments = listOf("-Xwarning-level=KUERY_SQL_DIALECT:warning"),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains("w: ")
+        assertThat(result.messages).contains(DIALECT_MESSAGE)
+    }
+
+    // The diagnostics container is created per compilation, so a strict compilation must not
+    // change the severities of a later non-strict compilation in the same JVM.
+    @Test
+    fun `strict severities do not leak into a later non-strict compilation in the same JVM`() {
+        // given: a strict compilation in this JVM
+        val strictResult = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun unsafe(fragment: String) = Sql { add(fragment) }
+            """.trimIndent(),
+            pluginOptions = listOf(strictOption()),
+        )
+        assertThat(strictResult.exitCode).isEqualTo(KotlinCompilation.ExitCode.COMPILATION_ERROR)
+
+        // when: the same source compiles again without strict
+        val defaultResult = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun unsafe(fragment: String) = Sql { add(fragment) }
+            """.trimIndent(),
+        )
+
+        // then: the diagnostic is a warning again
+        assertThat(defaultResult.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(defaultResult.messages).contains("w: ")
+        assertThat(defaultResult.messages).contains(UNSAFE_MESSAGE)
+    }
+
     // The downgraded diagnostic cannot be asserted on here: the CLI omits warnings from a
     // failing compilation entirely (general K2 behavior, unrelated to strict mode). The
     // downgrade itself is proven by the test above; this one proves the other escalations are

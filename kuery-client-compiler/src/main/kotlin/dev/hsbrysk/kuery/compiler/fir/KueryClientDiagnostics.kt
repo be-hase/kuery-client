@@ -33,9 +33,13 @@ internal class KueryClientDiagnostics(
     // is initialized.
     private val rendererFactory = KueryClientDiagnosticRenderers(this)
 
-    // The name literal must match the property name it decides for (the property name is the
-    // diagnostic name); the strict-mode tests exercise each escalated diagnostic by name.
-    private val escalate: (String) -> Boolean = { name -> strict && name !in userConfiguredWarningLevels }
+    // Whether the diagnostic with the given name is registered as an error. The name literal at
+    // each call site must match the property name it decides for (the property name is the
+    // diagnostic name); KueryClientDiagnosticsTest pins the severity of every diagnostic per
+    // mode, so a mismatch cannot go unnoticed.
+    private val escalate: (String) -> Boolean = { name ->
+        strict && name in STRICT_DIAGNOSTIC_NAMES && name !in userConfiguredWarningLevels
+    }
 
     val KUERY_UNSAFE_SQL_STRING by (
         if (escalate("KUERY_UNSAFE_SQL_STRING")) {
@@ -50,8 +54,13 @@ internal class KueryClientDiagnostics(
     // as-is.
     val KUERY_BIND_CALL_IN_SQL_TEMPLATE by error0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
 
-    // Not escalated by strict mode: a style issue, not a safety issue.
-    val KUERY_REDUNDANT_TRIM_INDENT by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
+    val KUERY_REDUNDANT_TRIM_INDENT by (
+        if (escalate("KUERY_REDUNDANT_TRIM_INDENT")) {
+            error0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
+        } else {
+            warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
+        }
+        )
 
     val KUERY_SQL_SYNTAX by (
         if (escalate("KUERY_SQL_SYNTAX")) {
@@ -70,6 +79,19 @@ internal class KueryClientDiagnostics(
         )
 
     override fun getRendererFactory(): BaseDiagnosticRendererFactory = rendererFactory
+
+    companion object {
+        // The single source of truth for which diagnostics the strict option escalates to
+        // errors. Membership here is the decision — every warning-default property above routes
+        // through [escalate] — and the CLI option description is derived from it too.
+        // KUERY_REDUNDANT_TRIM_INDENT is deliberately absent (a style issue, not a safety
+        // issue); KUERY_BIND_CALL_IN_SQL_TEMPLATE is an unconditional error.
+        val STRICT_DIAGNOSTIC_NAMES: Set<String> = setOf(
+            "KUERY_UNSAFE_SQL_STRING",
+            "KUERY_SQL_SYNTAX",
+            "KUERY_SQL_DIALECT",
+        )
+    }
 }
 
 internal class KueryClientDiagnosticRenderers(diagnostics: KueryClientDiagnostics) : BaseDiagnosticRendererFactory() {
