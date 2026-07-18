@@ -68,20 +68,53 @@ kueryClient.sql {
 ### Compliant code
 
 ```kotlin
+// String literal / template
 kueryClient.sql {
     +"SELECT * FROM users WHERE user_id = $userId" // userId is bound as :p0
 }
+
+// trimIndent() / trimMargin() on a literal
+kueryClient.sql {
+    +"""
+    SELECT *
+    FROM users
+    """.trimIndent()
+}
+kueryClient.sql {
+    +"""
+    |SELECT *
+    |FROM users
+    """.trimMargin()
+}
+
+// const val
+const val SELECT_ALL_USERS = "SELECT * FROM users"
+kueryClient.sql {
+    +SELECT_ALL_USERS
+}
+
+// if expression with a safe string in every branch
+kueryClient.sql {
+    +"SELECT * FROM users"
+    add(if (asc) "ORDER BY user_id" else "ORDER BY user_id DESC")
+}
+
+// when expression; a throwing branch never produces a SQL string
+kueryClient.sql {
+    +"SELECT * FROM users"
+    add(
+        when (sort) {
+            "name" -> "ORDER BY name"
+            "created" -> "ORDER BY created_at DESC"
+            else -> error("Unsupported sort: $sort")
+        },
+    )
+}
 ```
 
-Here the SQL template is passed directly, so the plugin can rewrite `userId` into a bind
-parameter. Other accepted forms include:
-
-- A string literal / string template: `"SELECT ... $id"`
-- `trimIndent()` / `trimMargin()` called on one (with literal-only arguments)
-- A reference to a `const val`
-- An `if` / `when` expression whose every branch is one of the above (each branch is checked
-  recursively): `if (asc) "ORDER BY id" else "ORDER BY id DESC"`. A branch that only throws —
-  e.g. `else -> error("unsupported sort")` — is also fine, since it never produces a SQL string.
+Each SQL-producing expression is known at compile time, so the plugin can safely rewrite any
+interpolated values into bind parameters. With `autoTrimIndent` enabled, omit the explicit
+`trimIndent()` as described in [`KUERY_REDUNDANT_TRIM_INDENT`](#redundant-trimindent).
 
 ### Responding to the warning
 
