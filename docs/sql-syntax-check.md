@@ -109,10 +109,9 @@ SQL parser, and runs without connecting to a database. Consequences:
 - **It is a syntax check only.** Table/column names, types, and schema are not verified.
 - **Some invalid SQL passes.** JSqlParser is deliberately lenient; the check catches broken
   statements, not every mistake.
-- **A few vendor statements have no grammar in JSqlParser at all** and are skipped instead of
-  being reported (currently: H2's `MERGE INTO ... KEY(...)` upsert).
-- **Rare vendor-specific syntax may be flagged although your database accepts it.** In that
-  case suppress the warning for the declaration:
+- **Rare vendor-specific syntax may be flagged although your database accepts it**, when
+  JSqlParser has no grammar for it (a known example: H2's `MERGE INTO ... KEY(...)` upsert).
+  In that case suppress the warning for the declaration:
 
 ```kotlin
 @Suppress("KUERY_SQL_SYNTAX")

@@ -406,13 +406,10 @@ internal class SqlSyntaxChecker(
 
         // InstanceOfCheckForException: the parser failure is wrapped in a cause chain, so the
         // interesting exception type genuinely has to be located by walking it.
-        // Vendor statements JSqlParser has no grammar for at all; reporting them would be a
-        // permanent false positive, so a failed parse that matches one is skipped instead.
-        // Currently: H2's `MERGE INTO ... KEY(...)` upsert.
-        private val KNOWN_UNPARSEABLE_STATEMENTS = listOf(
-            Regex("""(?is)\bMERGE\s+INTO\b.*\bKEY\s*\("""),
-        )
-
+        // Vendor statements JSqlParser has no grammar for at all (e.g. H2's `MERGE ... KEY(...)`
+        // upsert) draw a warning too — a known, documented limitation with @Suppress as the
+        // escape. A skip list keyed on the statement's shape would also swallow real typos in
+        // any statement matching it.
         @Suppress("TooGenericExceptionCaught", "SwallowedException", "InstanceOfCheckForException")
         private fun parse(sql: String): ParseOutcome = try {
             ParseOutcome.Parsed(CCJSqlParserUtil.parseStatements(sql, parserExecutor) {})
@@ -423,11 +420,7 @@ internal class SqlSyntaxChecker(
             val reason = generateSequence(e as Throwable) { it.cause }
                 .firstOrNull { it is ParseException || it is TokenMgrException }
                 ?.message
-            when {
-                reason == null -> ParseOutcome.Indeterminate
-                KNOWN_UNPARSEABLE_STATEMENTS.any { it.containsMatchIn(sql) } -> ParseOutcome.Indeterminate
-                else -> ParseOutcome.Failed(firstSentenceOf(reason))
-            }
+            if (reason == null) ParseOutcome.Indeterminate else ParseOutcome.Failed(firstSentenceOf(reason))
         } catch (e: Exception) {
             ParseOutcome.Indeterminate
         }
