@@ -78,6 +78,12 @@ Apply `dev.hsbrysk.kuery-client` to every module that contains `sql { ... }` cal
 application module does not transform repository code compiled in another module.
 :::
 
+::: details Runtime error: `SqlBuilder.add` / `String.unaryPlus` must be rewritten
+This means the Gradle plugin was not applied to the module that compiled the call. `+"..."` / `add(...)` are
+intentionally broken without the compiler plugin; otherwise interpolation could be executed as raw SQL. Apply
+the plugin as shown above, then clean and rebuild the affected module.
+:::
+
 ### Recommended compiler settings
 
 For a new project, make unsafe SQL strings fail compilation. The syntax check is optional because uncommon
@@ -195,26 +201,3 @@ class UserRepository(private val kueryClient: KueryBlockingClient) {
 :::
 
 Next, read [Building SQL](/basics), [Fetching Results](/fetching-results), and [Row Mapping](/row-mapping).
-
-## Troubleshooting
-
-### `IllegalStateException: ... must be rewritten by the kuery-client compiler plugin`
-
-This runtime exception means the Gradle plugin was not applied to the module that compiled the call:
-
-```
-`SqlBuilder.add`/`String.unaryPlus` must be rewritten by the kuery-client compiler plugin, but this call was not.
-```
-
-`+"..."` / `add(...)` are intentionally broken without the compiler plugin; otherwise interpolation could be
-executed as raw SQL. Apply the plugin as shown in [Install](#install), then clean and rebuild the affected module.
-
-### An empty `IN` list fails with bad SQL grammar
-
-MySQL and PostgreSQL reject the `IN ()` produced for an empty collection. Handle the empty case before executing
-the query; see [Supported Platforms](/supported-platforms#empty-collections-in-in-clauses).
-
-### A generated-key map does not contain the requested column name
-
-Generated-key labels and value types are driver-dependent. See
-[Fetching Results: Generated values](/fetching-results#generated-values).
