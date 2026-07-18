@@ -31,8 +31,9 @@ SELECT * FROM users WHERE user_id = :p0  -- :p0 = userId, bound as a named param
       cost. Kuery Client emphasizes writing SQL as it is.
 - 🛡️ **Safe by design**
     - String interpolation is converted into bind parameters by the compiler plugin — never concatenated into
-      the SQL text. A built-in [compiler safety check](/compiler-safety-check) warns when it detects a SQL
-      string that cannot be converted safely.
+      the SQL text. Built-in [compile-time checks](/compiler-safety-check) warn when they detect a SQL
+      string that cannot be converted safely — and can be escalated to compile errors with the
+      [strict option](/compiler-safety-check#strict-mode).
 - 🍃 **Based on spring-data-r2dbc and spring-data-jdbc**
     - Kuery Client is implemented on top of spring-data-r2dbc (coroutines) and spring-data-jdbc (blocking).
       Use whichever you prefer. You can keep using Spring's ecosystem as is, such as `@Transactional`.

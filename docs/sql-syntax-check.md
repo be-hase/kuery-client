@@ -18,7 +18,7 @@ kueryClient {
 
 A block whose SQL fails to parse is then reported as a `KUERY_SQL_SYNTAX` **warning** (or a
 compile **error** when `strict` is enabled — see
-[Compiler Safety Check](/compiler-safety-check#strict-mode)), anchored to the offending line:
+[Compile-Time Checks](/compiler-safety-check#strict-mode)), anchored to the offending line:
 
 ```kotlin
 kueryClient.sql {
@@ -61,7 +61,7 @@ at compile time:
 - Helper functions that are dynamic inside, overridable, or compiled in another module
 - `addUnsafe()` (dynamic SQL is out of the check's scope by design)
 - Non-literal `add()` arguments such as variables (those already draw
-  [`KUERY_UNSAFE_SQL_STRING`](/compiler-safety-check))
+  [`KUERY_UNSAFE_SQL_STRING`](/compiler-safety-check#unsafe-sql-strings))
 
 This mirrors how compile-time-checked SQL works elsewhere (e.g. Rust's sqlx): statements that
 are fully known are verified, dynamically assembled ones are not — no false alarms on dynamic
@@ -119,13 +119,9 @@ fun listUsersWithVendorSyntax(): List<User> = ...
 
 ## Configuring the severity
 
-Like every diagnostic of the plugin, the standard Kotlin mechanisms apply — note there are two
-diagnostic names, `KUERY_SQL_SYNTAX` and `KUERY_SQL_DIALECT`, configured independently:
-
-- Treat them as errors: `-Xwarning-level=KUERY_SQL_SYNTAX:error` (and
-  `-Xwarning-level=KUERY_SQL_DIALECT:error`), or enable `allWarningsAsErrors` (`-Werror`)
-- Disable them for specific code with `@Suppress("KUERY_SQL_SYNTAX")` /
-  `@Suppress("KUERY_SQL_DIALECT")`, or project-wide with
-  `-Xwarning-level=<name>:disabled` (or simply leave `sqlSyntaxCheck` unset)
+Like every diagnostic of the plugin, the standard Kotlin mechanisms (`strict` mode, `@Suppress`,
+`-Xwarning-level`) apply — note there are two diagnostic names, `KUERY_SQL_SYNTAX` and
+`KUERY_SQL_DIALECT`, configured independently. See
+[Compile-Time Checks](/compiler-safety-check#configuring-the-severity-manually) for the details.
 
 The option is unset by default, so existing builds are unaffected.

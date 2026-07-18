@@ -57,9 +57,8 @@ Some SQL fragments cannot be expressed with plain string interpolation — for e
 of placeholders. In such cases, use `addUnsafe` and `bind` (the `values` function above is a good example).
 
 `bind` only makes sense together with `addUnsafe`. Calling it inside a string template passed to `add()` / `+`
-is a compile error (`KUERY_BIND_CALL_IN_SQL_TEMPLATE`): interpolated values there are bound automatically, so
-the placeholder returned by `bind` would itself be re-bound as a value and the SQL would compare against the
-literal string `:pN`.
+is a compile error (`KUERY_BIND_CALL_IN_SQL_TEMPLATE`) — see
+[Compile-Time Checks](/compiler-safety-check#bind-in-a-string-template) for why.
 
 Note that `addUnsafe` and `bind` are annotated with `@DelicateKueryClientApi` and require an explicit opt-in, since
-misusing them can lead to SQL injection. See [Compiler Safety Check](/compiler-safety-check) for details.
+misusing them can lead to SQL injection. See [Compile-Time Checks](/compiler-safety-check) for details.
