@@ -136,8 +136,14 @@ val statuses = listOf(UserStatus.ACTIVE, UserStatus.INACTIVE)
 kueryClient
     .sql {
         +"SELECT * FROM users WHERE status IN ($statuses)"
+        // Kuery SQL: SELECT * FROM users WHERE status IN (:p0)
+        // p0 = [ACTIVE, INACTIVE]
+        // Spring expands it at execution: SELECT * FROM users WHERE status IN (?, ?)
     }
 ```
+
+The exact placeholders sent to the database depend on the driver; `?, ?` above illustrates that
+Spring creates one placeholder for each collection element.
 
 ::: warning Empty collections
 Spring expands an empty collection to `IN ()`. H2 accepts that syntax, but MySQL and PostgreSQL reject it.
