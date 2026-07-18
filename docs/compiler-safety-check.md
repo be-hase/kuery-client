@@ -124,10 +124,7 @@ In order of preference:
 1. **Restructure into safe forms.** Most dynamic SQL can be expressed with Kotlin control flow
    inside the `sql { }` block — `if` / `when` / loops around `+"..."` — which the plugin handles
    safely. See [Building SQL](/basics#dynamic-sql-with-kotlin-control-flow).
-2. **Use `addUnsafe()` with `bind()`** when the SQL syntax itself must be assembled as text. Keep
-   the assembled syntax trusted and register every runtime value with `bind()`. See
-   [`addUnsafe()` and `bind()`](/basics#addunsafe-and-bind).
-3. **Suppress the warning** with `@Suppress("KUERY_UNSAFE_SQL_STRING")` on the declaration, when
+2. **Suppress the warning** with `@Suppress("KUERY_UNSAFE_SQL_STRING")` on the declaration, when
    you know the string is safe but the checker cannot see it.
 
 ## `bind()` in a string template (`KUERY_BIND_CALL_IN_SQL_TEMPLATE`) {#bind-in-a-string-template}
