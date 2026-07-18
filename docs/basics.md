@@ -305,7 +305,7 @@ in the example above.
 For multi-row `INSERT` statements, use the built-in [`values` helper](/helpers#values) instead of
 implementing the example above yourself.
 
-## Fetch Result
+## Fetching Results
 
 `sql { ... }` returns a `FetchSpec`; a terminal operation such as `single()`, `list()`, `flow()`, `sequence()`,
 or `rowsUpdated()` executes it. Continue to [Fetching Results](/fetching-results) for row-count rules, execution

@@ -86,18 +86,20 @@ the plugin as shown above, then clean and rebuild the affected module.
 
 ### Recommended compiler settings
 
-For a new project, make unsafe SQL strings fail compilation. The syntax check is optional because uncommon
-vendor-specific syntax can produce false positives:
+For a new project, enable the settings below. They remain opt-in because they were introduced after
+Kuery Client's initial releases, but they are intended to become the defaults in a future release.
+This guide uses MySQL; replace `mysql` with the project's dialect when needed:
 
 ```kotlin
 kueryClient {
-    strict = true
     autoTrimIndent = true
     sqlSyntaxCheck = "mysql"
+    strict = true
 }
 ```
 
-See [Configuration](/configuration) before enabling these options in an existing codebase.
+Dialect validation can report false positives for uncommon vendor-specific SQL. See
+[Configuration](/configuration) before enabling these options in an existing codebase.
 
 ## Configure the database
 

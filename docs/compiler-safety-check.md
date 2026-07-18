@@ -16,8 +16,9 @@ every diagnostic the plugin can report:
 | [`KUERY_SQL_DIALECT`](#unsupported-sql-dialect-features) | Reports SQL features unsupported by the configured dialect | warning ([`strict`](#strict-mode) → error) | [`sqlSyntaxCheck` with a dialect](/sql-syntax-check#choosing-a-dialect) |
 | [`KUERY_REDUNDANT_TRIM_INDENT`](#redundant-trimindent) | Reports unnecessary `trimIndent()` calls when automatic trimming is enabled | warning (style — never escalated) | [`autoTrimIndent`](/basics#automatic-trimindent-opt-in) |
 
-Every diagnostic can be [suppressed per declaration or reconfigured project-wide](#configuring-the-severity-manually)
-with the standard Kotlin mechanisms (`@Suppress`, `-Xwarning-level`).
+Every diagnostic can be [suppressed per declaration](#configuring-the-severity-manually) with
+`@Suppress`. The warning-based diagnostics can also be reconfigured project-wide with
+`-Xwarning-level`; the unconditional `KUERY_BIND_CALL_IN_SQL_TEMPLATE` error cannot.
 
 ## Unsafe SQL strings (`KUERY_UNSAFE_SQL_STRING`) {#unsafe-sql-strings}
 

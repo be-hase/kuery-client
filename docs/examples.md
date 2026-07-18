@@ -39,17 +39,15 @@ for a newly created container.
 
 ## Run an application
 
-Run one application at a time because both listen on port `8080`:
+Continue from the `examples` directory. Run one application at a time because both listen on port `8080`:
 
 ::: code-group
 
 ```shell [R2DBC]
-cd examples
 ../gradlew :spring-data-r2dbc:bootRun
 ```
 
 ```shell [JDBC]
-cd examples
 ../gradlew :spring-data-jdbc:bootRun
 ```
 
@@ -95,7 +93,6 @@ Read the matching `ExampleApplication.kt` to compare the R2DBC and JDBC implemen
 Stop the application with <kbd>Ctrl</kbd>+<kbd>C</kbd>, then remove the example container and its data:
 
 ```shell
-cd examples
 docker compose down
 ```
 

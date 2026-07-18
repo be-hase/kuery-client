@@ -5,6 +5,9 @@
 For the complete walkthrough and API calls, see the
 [Examples documentation](https://kuery-client.hsbrysk.dev/examples).
 
+Run the steps below in order. Start from the repository root; after `cd examples`, remain in that
+directory for the application and shutdown commands.
+
 ### Start and initialize MySQL
 
 ```shell
@@ -16,7 +19,6 @@ docker compose up -d
 ### Run application
 
 ```shell
-cd examples
 ../gradlew :spring-data-r2dbc:bootRun
 
 # or
@@ -29,6 +31,5 @@ Both applications use port `8080`, so run only one at a time.
 ### Stop MySQL
 
 ```shell
-cd examples
 docker compose down
 ```
