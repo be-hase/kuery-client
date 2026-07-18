@@ -163,6 +163,31 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
+    fun `the anchor mapping counts a part-final CR merged with the joining newline as one line break`() {
+        // "\r" + the joining "\n" form a single CRLF line break in the assembled SQL, so the
+        // first part spans one line, not two.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql {
+                    +"\r"
+                    +"SELCT 1"
+                }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        // The broken fragment is on line 6 of the compiled source.
+        assertThat(result.messages).contains("Sample.kt:6")
+    }
+
+    @Test
     fun `a nested block is checked even when the enclosing block is skipped`() {
         // The outer block contains an if statement and is skipped, but the checker fires per
         // call, so the broken nested block still warns.
@@ -493,6 +518,33 @@ class SqlSyntaxCheckerTest {
         // then
         assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
         assertThat(Regex(DIAGNOSTIC_NAME).findAll(result.messages).count()).isEqualTo(2)
+    }
+
+    @Test
+    fun `warn for a subtype's own sql overload taking a SqlBuilder lambda`() {
+        // Deliberate scope: entry points are matched by receiver type plus a SqlBuilder-receiver
+        // lambda, so a `sql`-named overload a client subtype declares itself is checked too —
+        // such a lambda builds SQL the same way.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.KueryClient
+            import dev.hsbrysk.kuery.core.SqlBuilder
+
+            class Decorated(delegate: KueryClient) : KueryClient by delegate {
+                fun sql(dryRun: Boolean, block: SqlBuilder.() -> Unit) = Unit
+            }
+
+            fun query(client: Decorated) {
+                client.sql(dryRun = true) { +"SELCT 1" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
     }
 
     @Test

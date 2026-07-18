@@ -97,12 +97,14 @@ internal class SqlSyntaxChecker(
         val joined = parts.joinToString("\n") { it.text }
         // DefaultSqlBuilder.build() trims the assembled body — including unicode whitespace the
         // parser would reject — so mirror it, and remember how many fully removed leading lines
-        // to add back when mapping parser positions to parts.
+        // to add back when mapping parser positions to parts. lines() counts CRLF, CR and LF as
+        // one break each, matching the parser's line numbering.
         val sql = joined.trim()
         if (sql.isEmpty()) return
         val leadingLineOffset = joined
             .take(joined.indexOfFirst { !it.isWhitespace() })
-            .count { it == '\n' }
+            .lines()
+            .size - 1
         reportFailures(expression, parts, sql, leadingLineOffset)
     }
 
@@ -118,6 +120,9 @@ internal class SqlSyntaxChecker(
 
     // Which calls start a checkable `sql { }` block, and the receiver-type matching
     // behind it (kept in its own class to stay within the function-count threshold).
+    // Matching by receiver type deliberately includes `sql`-named overloads a client subtype
+    // declares itself (as long as they take a SqlBuilder-receiver lambda): such a lambda builds
+    // SQL the same way, so checking it is acceptable — and usually useful.
     private class SqlBlockEntryPoints {
         // The client-type answer depends only on the receiver's ClassId; cache it per checker
         // instance (one exists per FirSession). Concurrent for safety under parallel checker runs.
@@ -316,7 +321,9 @@ internal class SqlSyntaxChecker(
         val line = reported + leadingLineOffset
         var firstLine = 1
         for (part in parts) {
-            val lineCount = part.text.lines().size
+            // A part ending in '\r' merges with the joining '\n' into a single CRLF break, so
+            // the part spans one line fewer than lines() reports.
+            val lineCount = part.text.lines().size - (if (part.text.endsWith('\r')) 1 else 0)
             if (line < firstLine + lineCount) return part.source
             firstLine += lineCount
         }
