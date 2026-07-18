@@ -48,6 +48,7 @@ import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
+import java.util.concurrent.CancellationException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -450,11 +451,15 @@ internal class SqlSyntaxChecker(
 // A bug anywhere in the checker must never escape it: that would fail the user's whole
 // compilation with an internal error, when the worst acceptable outcome is a missing warning.
 // Unexpected failures skip the block, like the parser's own fail-open path.
-@Suppress("TooGenericExceptionCaught", "SwallowedException")
-private inline fun failSafe(block: () -> Unit) {
+// (internal, not private, so the cancellation contract can be unit-tested.)
+@Suppress("TooGenericExceptionCaught", "SwallowedException", "InstanceOfCheckForException")
+internal inline fun failSafe(block: () -> Unit) {
     try {
         block()
     } catch (e: Exception) {
+        // Compiler/IDE cancellation (ProcessCanceledException extends CancellationException) is
+        // control flow, not a checker failure — it must keep propagating.
+        if (e is CancellationException) throw e
         // Fail open.
     }
 }
