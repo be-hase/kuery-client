@@ -60,10 +60,9 @@ Notes:
   calls — remove them when enabling the option.
   (Behavior stays correct either way; the double trim only differs when the explicitly trimmed
   string still starts or ends with a blank line, which the automatic trim then drops.)
-- An explicit `.trimMargin()` is not flagged — auto-trim does not remove margins. Note however
-  that the automatic trim runs on its result, so per-line indentation deliberately kept after the
-  margin prefix (e.g. `|  SELECT`) is stripped; use `addUnsafe()` when such indentation must
-  survive.
+- Unlike `.trimIndent()`, `.trimMargin()` is not redundant and does not produce a compiler warning.
+  Auto-trim still applies `trimIndent()` to its result, which removes any common indentation left
+  after the margin prefix. Use `addUnsafe()` if that indentation must be preserved.
 - The option defaults to `false`, so existing builds are unaffected.
 
 ## Binding Parameters
