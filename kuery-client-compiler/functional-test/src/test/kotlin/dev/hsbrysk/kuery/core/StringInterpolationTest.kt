@@ -2,7 +2,9 @@ package dev.hsbrysk.kuery.core
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isTrue
 import io.mockk.InternalPlatformDsl.toStr
+import io.mockk.mockk
 import org.junit.jupiter.api.Test
 
 private const val TABLE = "users"
@@ -611,5 +613,41 @@ class StringInterpolationTest {
                 listOf(NamedSqlParameter("p0", "null")),
             ),
         )
+    }
+
+    @Test
+    fun `the transformation applies inside a SqlBuilder lambda passed to a custom sql overload`() {
+        // The IR rewrite matches add/unaryPlus by their resolved declarations, independent of
+        // the function the lambda is passed to — and a subtype's own `sql` overload is not an
+        // override of the client's, so the sqlId injection must leave the call untouched.
+        // given
+        class Decorated(delegate: KueryBlockingClient) : KueryBlockingClient by delegate {
+            fun sql(
+                block: SqlBuilder.() -> Unit,
+                after: () -> Unit,
+            ): Sql {
+                after()
+                return Sql(block)
+            }
+        }
+
+        val decorated = Decorated(mockk())
+        val id = 1
+        var afterRan = false
+
+        // when
+        val sql = decorated.sql(
+            { +"SELECT * FROM users WHERE id = $id" },
+            { afterRan = true },
+        )
+
+        // then
+        assertThat(sql).isEqualTo(
+            Sql(
+                "SELECT * FROM users WHERE id = :p0",
+                listOf(NamedSqlParameter("p0", 1)),
+            ),
+        )
+        assertThat(afterRan).isTrue()
     }
 }
