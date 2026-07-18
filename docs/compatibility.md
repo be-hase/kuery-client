@@ -37,6 +37,13 @@ release, as long as there are no other breaking changes).
 
 Kuery Client is built with a Java 17 toolchain, so Java 17 or later is required at runtime.
 
+## Gradle version
+
+The Gradle plugin supports **Gradle 8.4 or later** — the first version where the Kotlin DSL property
+assignment syntax used throughout this documentation (e.g. `autoTrimIndent = true`) is enabled by default.
+The minimum version is exercised in CI by running the published plugin against it, so it only changes
+deliberately and will be noted here when it does.
+
 ## Compatibility matrix
 
 The following table lists the versions of Kotlin, Spring Boot, and Spring Data that each kuery-client release

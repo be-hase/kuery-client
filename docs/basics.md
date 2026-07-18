@@ -52,9 +52,6 @@ kueryClient {
 }
 ```
 
-(On Gradle versions without Kotlin DSL property assignment — before 8.2 — write
-`autoTrimIndent.set(true)` instead.)
-
 Every string passed to `+` / `add()` then gets `trimIndent()` applied automatically. For string
 literals and templates the trimming is computed **at compile time** by the compiler plugin, so it
 adds no runtime cost. Arguments the plugin cannot see through (e.g. a variable) are trimmed at
