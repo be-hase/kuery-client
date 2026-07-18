@@ -80,27 +80,30 @@ kueryClient
     }
 ```
 
-### Compile-time constants are expanded as text
+### `String` and `Char` constants are expanded as text
 
-Only runtime values are bound as parameters. Compile-time `String` / `Char` constants inside a
-template are expanded into the SQL text at compile time instead of being bound:
+Compile-time `String` / `Char` constants inside a template are expanded into the SQL text. All
+other interpolated values — including compile-time constants of other types — are bound as
+parameters:
 
 | Interpolated expression | Examples | Behavior |
 |---|---|---|
 | Runtime value | `$userId`, `${user.id}`, `${find()}` | Bound as a parameter (`:p0`) |
-| `String` / `Char` constant (literal or `const val`) | `${"users"}`, `$TABLE`, `${'$'}` | Expanded into the SQL text |
-| Constant of any other type (literal or `const val`) | `${1}`, `${true}`, `${null}` | Bound as a parameter |
+| `String` / `Char` constant (literal or `const val`) | `$TABLE` where `const val TABLE = "users"`; `${"users"}`, `${'$'}` | Expanded into the SQL text |
+| Constant of any other type (literal or `const val`) | `$LIMIT` where `const val LIMIT = 100`; `${1}`, `${true}`, `${null}` | Bound as a parameter |
 
-For example, you can share a table name as a `const val`: it is expanded into the SQL text, while
-the runtime value `userId` in the same template is still bound as a parameter:
+For example, the `String` constant `TABLE` is expanded into the SQL text. The `Int` constant
+`LIMIT` and the runtime value `userId` are both bound as parameters:
 
 ```kotlin
 const val TABLE = "users"
+const val LIMIT = 100
 
 kueryClient
     .sql {
-        +"SELECT * FROM $TABLE WHERE user_id = $userId"
-        // SQL body: SELECT * FROM users WHERE user_id = :p0
+        +"SELECT * FROM $TABLE WHERE user_id = $userId LIMIT $LIMIT"
+        // SQL body: SELECT * FROM users WHERE user_id = :p0 LIMIT :p1
+        // Parameters: p0 = userId, p1 = 100
     }
 ```
 
