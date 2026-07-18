@@ -90,16 +90,3 @@ val kueryClient: KueryBlockingClient = SpringJdbcKueryClient.builder()
 :::
 
 See [Type Conversion](/type-conversion) and [Observation](/observation) for the optional runtime settings.
-
-## Per-query SQL id
-
-When a stable identifier is needed for metrics or tracing, specify it at the call site:
-
-```kotlin
-kueryClient.sql("users.find-by-id") {
-    +"SELECT * FROM users WHERE user_id = $userId"
-}
-```
-
-Otherwise the compiler plugin can derive an id from the enclosing declaration. See
-[Observation: SQL id](/observation#sql-id) for its defaults and stability constraints.

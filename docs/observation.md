@@ -135,7 +135,18 @@ Whether the derived id is actually used is controlled by the builder's `enableAu
 It defaults to `true` when an `ObservationRegistry` is specified, and `false` otherwise — in which case the
 fixed id `NONE` is used.
 
-You can also set the id explicitly per query: `sql("my-sql-id") { ... }`.
+### Explicit SQL IDs
+
+When an id must remain stable across method renames and other refactorings, specify it at the call
+site instead of relying on automatic generation:
+
+```kotlin
+kueryClient.sql("users.find-by-id") {
+    +"SELECT * FROM users WHERE user_id = $userId"
+}
+```
+
+An explicit id is used as-is and is not affected by `enableAutoSqlIdGeneration(...)`.
 
 ### Multiple calls in one method
 
