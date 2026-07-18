@@ -17,6 +17,7 @@ hero:
       text: GitHub
       link: https://github.com/be-hase/kuery-client
 
+# Keep these six features aligned with README.md and docs/introduction.md.
 features:
   - icon: ♥️
     title: Love SQL
