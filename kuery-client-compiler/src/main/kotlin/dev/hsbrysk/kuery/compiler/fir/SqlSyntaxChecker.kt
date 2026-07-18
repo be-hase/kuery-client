@@ -11,6 +11,7 @@ import net.sf.jsqlparser.parser.feature.FeatureConfiguration
 import net.sf.jsqlparser.statement.Statement
 import net.sf.jsqlparser.util.validation.Validation
 import net.sf.jsqlparser.util.validation.feature.DatabaseType
+import org.jetbrains.kotlin.KtFakeSourceElementKind
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
@@ -397,8 +398,14 @@ internal class SqlSyntaxChecker(
                 valueParameters.none { it.defaultValue?.containsThisBoundTo(owners) == true }
         }
 
-        // A lambda body's last expression may be wrapped in an implicit return.
-        private fun FirStatement.unwrapImplicitReturn(): FirStatement = (this as? FirReturnExpression)?.result ?: this
+        // A lambda body's last expression may be wrapped in an implicit return. An EXPLICIT
+        // return is different: it is control flow the reconstruction does not follow (statements
+        // after it never run), so it is left as-is — not being a plain add call, it then makes
+        // the caller skip the block.
+        private fun FirStatement.unwrapImplicitReturn(): FirStatement {
+            val expression = this as? FirReturnExpression ?: return this
+            return if (expression.source?.kind is KtFakeSourceElementKind.ImplicitReturn) expression.result else this
+        }
 
         // InstanceOfCheckForException: the parser failure is wrapped in a cause chain, so the
         // interesting exception type genuinely has to be located by walking it.

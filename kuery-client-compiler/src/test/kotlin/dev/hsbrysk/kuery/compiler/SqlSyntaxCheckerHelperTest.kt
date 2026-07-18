@@ -195,6 +195,36 @@ class SqlSyntaxCheckerHelperTest {
     }
 
     @Test
+    fun `no warning when a helper returns early with an explicit return`() {
+        // An explicit return is control flow the inlining does not follow, so the helper is not
+        // inlinable and the block is skipped.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+            import dev.hsbrysk.kuery.core.SqlBuilder
+
+            fun SqlBuilder.brokenWhere(id: Int) {
+                return add("WHRE id = ${'$'}id")
+            }
+
+            fun query(id: Int) {
+                Sql {
+                    +"SELECT * FROM users"
+                    brokenWhere(id)
+                }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
     fun `no warning when a helper comes from another module`() {
         // The body of a compiled helper (here core's values()) is not available to the checker,
         // so the block is skipped.

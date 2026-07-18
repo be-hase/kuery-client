@@ -449,6 +449,32 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
+    fun `no warning when the block returns early with an explicit return`() {
+        // Statements after an explicit return@Sql never run, so the runtime SQL is only the
+        // returned fragment. The reconstruction does not follow control flow and must skip the
+        // block instead of reporting the unreachable fragment.
+        // (No allWarningsAsErrors: Kotlin itself warns about the unreachable code.)
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql {
+                    return@Sql +"SELECT 1"
+                    +"SELCT 2"
+                }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
     fun `no warning when the block adds to a different builder`() {
         // `other.add(...)` contributes to another statement at runtime, so this block's SQL is
         // not statically known and must be skipped.
