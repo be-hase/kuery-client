@@ -80,7 +80,7 @@ kueryClient
     }
 ```
 
-### `String` and `Char` constants are expanded as text
+### How interpolated values are handled
 
 Compile-time `String` / `Char` constants inside a template are expanded into the SQL text. All
 other interpolated values — including compile-time constants of other types — are bound as
