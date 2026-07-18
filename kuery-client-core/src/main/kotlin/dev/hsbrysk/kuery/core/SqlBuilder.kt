@@ -70,7 +70,10 @@ public sealed interface SqlBuilder {
      * to embed in the SQL fragment.
      *
      * It is intended to be used together with [addUnsafe]; fragments passed to [add] /
-     * [String.unaryPlus] bind interpolated values automatically.
+     * [String.unaryPlus] bind interpolated values automatically. Calling it inside a string
+     * template passed to [add] / [String.unaryPlus] is therefore a compile error
+     * (`KUERY_BIND_CALL_IN_SQL_TEMPLATE`): the returned placeholder would be re-bound as a
+     * value and the SQL would compare against the literal string `:pN`.
      */
     @DelicateKueryClientApi
     public fun bind(parameter: Any?): String
