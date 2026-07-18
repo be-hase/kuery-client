@@ -12,7 +12,7 @@ import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
 import org.jetbrains.kotlin.fir.visitors.FirVisitorVoid
 
 /**
- * Reports [diagnostics.KUERY_BIND_CALL_IN_SQL_TEMPLATE] when `SqlBuilder.bind()` is called
+ * Reports `KUERY_BIND_CALL_IN_SQL_TEMPLATE` when `SqlBuilder.bind()` is called
  * anywhere inside the SQL string argument of `add()` / `unaryPlus`. The IR transformation converts every
  * interpolated value into a bind parameter, so the placeholder name returned by `bind()` would itself be
  * re-bound as a new parameter value and the SQL would compare against the literal string ":pN".
