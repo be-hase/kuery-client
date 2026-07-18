@@ -23,7 +23,7 @@ buildConfig {
 
 @Suppress("UnstableApiUsage")
 gradlePlugin {
-    val kueryClient by plugins.creating {
+    plugins.create("kueryClient") {
         id = "dev.hsbrysk.kuery-client"
         displayName = "Gradle plugin for the Kuery client compiler"
         description = """
