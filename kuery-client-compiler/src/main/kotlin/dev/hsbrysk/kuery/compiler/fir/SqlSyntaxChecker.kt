@@ -136,15 +136,17 @@ internal class SqlSyntaxChecker(
                 else -> call.hasLambdaArgument() && call.isTopLevelSqlCall()
             }
             if (!isEntryPoint) return null
+            // The SQL block is the single SqlBuilder-receiver lambda among the arguments — a
+            // subtype overload may take additional plain callbacks, which are not it. With no
+            // such lambda (a like-named member taking only plain lambdas has different
+            // semantics), or several (ambiguous), there is nothing to check.
             return call.argumentList.arguments
                 .asSequence()
                 .map { it.unwrapArgument() }
                 .filterIsInstance<FirAnonymousFunctionExpression>()
+                .map { it.anonymousFunction }
+                .filter { it.isSqlBuilderLambda(session) }
                 .singleOrNull()
-                ?.anonymousFunction
-                // The lambda must actually be a SqlBuilder-receiver block: a like-named member on a
-                // client subtype taking a plain lambda has different semantics and is not checked.
-                ?.takeIf { it.isSqlBuilderLambda(session) }
         }
 
         private fun FirFunctionCall.isTopLevelSqlCall(): Boolean =

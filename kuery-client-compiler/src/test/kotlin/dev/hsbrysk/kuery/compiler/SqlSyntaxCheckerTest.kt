@@ -548,6 +548,38 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
+    fun `warn for a subtype's sql overload even when another plain lambda argument is present`() {
+        // The SQL block is the single SqlBuilder-receiver lambda among the arguments; an
+        // additional plain callback must not hide it from the check.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.KueryClient
+            import dev.hsbrysk.kuery.core.SqlBuilder
+
+            class Decorated(delegate: KueryClient) : KueryClient by delegate {
+                fun sql(
+                    block: SqlBuilder.() -> Unit,
+                    after: () -> Unit,
+                ) = Unit
+            }
+
+            fun query(client: Decorated) {
+                client.sql(
+                    { +"SELCT 1" },
+                    {},
+                )
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
     fun `warn for sql calls through a type parameter bounded by a client interface`() {
         // when
         val result = compile(
