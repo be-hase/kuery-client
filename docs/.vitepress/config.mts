@@ -2,9 +2,25 @@ import {execSync} from 'node:child_process'
 import {defineConfig} from 'vitepress'
 import llmstxt from 'vitepress-plugin-llms'
 
-// Latest release version, derived from the latest git tag (e.g. "v1.0.0" -> "1.0.0").
-// Used to replace `{{version}}` placeholders in markdown files at build time.
-const version = execSync('git describe --tags --abbrev=0').toString().trim().replace(/^v/, '')
+// Latest release version, used to replace `{{version}}` placeholders in markdown files at
+// build time. Resolution order: the DOCS_VERSION env var, the latest git tag
+// (e.g. "v1.0.0" -> "1.0.0"), then "latest" for environments where no tag is reachable
+// (shallow clones, source archives).
+const version = resolveVersion()
+
+function resolveVersion(): string {
+    if (process.env.DOCS_VERSION) {
+        return process.env.DOCS_VERSION
+    }
+    try {
+        return execSync('git describe --tags --abbrev=0', {stdio: ['ignore', 'pipe', 'ignore']})
+            .toString()
+            .trim()
+            .replace(/^v/, '')
+    } catch {
+        return 'latest'
+    }
+}
 
 const hostname = "https://kuery-client.hsbrysk.dev"
 
