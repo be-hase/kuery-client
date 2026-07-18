@@ -7,8 +7,9 @@ import kotlin.reflect.KClass
  * A blocking SQL client.
  *
  * SQL is written with plain Kotlin string interpolation inside the [sql] block; the Kuery Client
- * compiler plugin rewrites every interpolated value into a named bind parameter, so values are
- * never concatenated into the SQL text.
+ * compiler plugin rewrites interpolated runtime values into named bind parameters, so they are
+ * never concatenated into the SQL text. Compile-time `String` and `Char` constants are expanded
+ * into the SQL text instead.
  *
  * ```kotlin
  * val user: User = client.sql { +"SELECT * FROM users WHERE user_id = $userId" }.single()
@@ -165,11 +166,15 @@ public interface KueryBlockingClient {
         public fun rowsUpdated(): Long
 
         /**
-         * Executes the statement and returns the values generated on the database side, such as
-         * an auto-increment ID, as a map keyed by column name.
+         * Executes the statement and returns one row of values generated on the database side,
+         * such as an auto-increment ID. The map keys and value types are those reported by the
+         * configured driver and may differ from the requested column names.
          *
-         * @param columns the names of the generated columns to return; when empty, the
-         * driver's default set of generated values is returned
+         * Fails with an exception if the driver returns no generated-value row or more than one
+         * row.
+         *
+         * @param columns generated columns to request from the driver; when empty, the driver's
+         * default set is requested
          */
         public fun generatedValues(vararg columns: String): Map<String, Any>
     }

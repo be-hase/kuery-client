@@ -33,8 +33,9 @@ parameter, an exception is thrown at runtime.
 
 ## Simple types
 
-If the return type is a simple value type, the query must return a single column, and its value is converted
-directly to the target type. Whether a type is "simple" is determined by Spring's
+If the return type is a simple value type, select one column and its value is converted directly to the target
+type. JDBC rejects a scalar query with multiple columns; R2DBC reads the first column. Selecting exactly one
+column is therefore required for portable behavior. Whether a type is "simple" is determined by Spring's
 [`BeanUtils.isSimpleProperty`](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/beans/BeanUtils.html#isSimpleProperty(java.lang.Class)),
 which covers primitives and their wrappers, `String`, enums, `Number` types, date/time types, `UUID`, and other
 JDK value types.
@@ -118,3 +119,6 @@ val rows: List<Map<String, Any?>> = kueryClient
     .sql { +"SELECT * FROM users" }
     .listMap()
 ```
+
+Alias duplicate column labels in joins. JDBC and R2DBC resolve duplicate map keys differently; see
+[Raw maps and column labels](/fetching-results#raw-maps-and-column-labels).

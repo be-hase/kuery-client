@@ -4,7 +4,7 @@ description: All compile-time diagnostics reported by the kuery-client compiler 
 
 # Compile-Time Checks
 
-The kuery-client compiler plugin does more than rewrite string interpolation into bind
+The kuery-client compiler plugin does more than rewrite interpolated runtime values into bind
 parameters — it also **checks your SQL code at compile time**. This page is the overview of
 every diagnostic the plugin can report:
 
@@ -64,13 +64,13 @@ In order of preference:
 
 1. **Restructure into safe forms.** Most dynamic SQL can be expressed with Kotlin control flow
    inside the `sql { }` block — `if` / `when` / loops around `+"..."` — which the plugin handles
-   safely. See [Basics](/basics#logic-such-as-if-and-for-etc).
+   safely. See [Building SQL](/basics#dynamic-sql-with-kotlin-control-flow).
 2. **Suppress the warning** with `@Suppress("KUERY_UNSAFE_SQL_STRING")` on the declaration, when
    you know the string is safe but the checker cannot see it.
 
 ## `bind()` in a string template
 
-[`bind()`](/helpers#you-can-also-write-your-own-helper) only makes sense together with
+[`bind()`](/helpers#writing-a-custom-helper) only makes sense together with
 `addUnsafe()`. Calling it inside a string template passed to `add()` / `+` is reported as a
 `KUERY_BIND_CALL_IN_SQL_TEMPLATE` compile **error**:
 
@@ -85,7 +85,7 @@ Interpolated values there are bound automatically, so the placeholder name retur
 `user_id` against the literal string `:p0` and silently match nothing. Since there is no valid
 program in which this may be left as-is, it is an **error regardless of strict mode**.
 Interpolate the value directly (`$userId` instead of `${bind(userId)}`), or use `addUnsafe()`
-when you need `bind()` — see [Helpers](/helpers#you-can-also-write-your-own-helper).
+when you need `bind()` — see [Helpers](/helpers#writing-a-custom-helper).
 
 ## SQL syntax validation (opt-in)
 

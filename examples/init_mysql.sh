@@ -3,6 +3,20 @@ set -euo pipefail
 
 mysql_name="kuery-client-example-mysql"
 
+echo "[$mysql_name] Waiting for MySQL to accept connections"
+mysql_ready=false
+for _ in {1..60}; do
+    if docker compose exec "$mysql_name" mysqladmin ping --silent >/dev/null 2>&1; then
+        mysql_ready=true
+        break
+    fi
+    sleep 1
+done
+if [[ "$mysql_ready" != true ]]; then
+    echo "[$mysql_name] MySQL did not become ready within 60 seconds" >&2
+    exit 1
+fi
+
 # Create user
 echo "[$mysql_name] Try to create users: admin"
 docker compose exec "$mysql_name" mysql -e "

@@ -4,11 +4,9 @@ description: Built-in values helper for multi-row inserts and guidance on writin
 
 # Helpers
 
-## Functions
+## `values`
 
-### `values`
-
-This is a helpful function for performing multi-row inserts.
+Use `values` to build a multi-row insert while binding every value:
 
 ```kotlin
 data class UserParam(val username: String, val email: String?, val age: Int)
@@ -23,17 +21,17 @@ suspend fun insertMany(params: List<UserParam>): Long = kueryClient
 // INSERT INTO users (username, email, age) VALUES (:p0, :p1, :p2), (:p3, :p4, :p5), ...
 ```
 
-## You can also write your own helper
+## Writing a custom helper
 
-For example, the above `values` function is implemented as follows.
+The built-in `values` function uses the same lower-level API available to custom helpers:
 
 ```kotlin
 @OptIn(DelicateKueryClientApi::class)
 fun SqlBuilder.values(input: List<List<Any?>>) {
-    require(input.isNotEmpty()) { "inputted list is empty" }
+    require(input.isNotEmpty()) { "input must not be empty" }
     val firstSize = input.first().size
-    require(input.all { it.size == firstSize }) { "All inputted child lists must have the same size." }
-    require(firstSize > 0) { "inputted child list is empty" }
+    require(input.all { it.size == firstSize }) { "all rows must have the same size" }
+    require(firstSize > 0) { "rows must not be empty" }
 
     val placeholders = input.joinToString(", ") { list ->
         list.joinToString(separator = ", ", prefix = "(", postfix = ")") {
@@ -51,8 +49,6 @@ fun <T> SqlBuilder.values(
 }
 ```
 
-Feel free to extend it as you wish.
-
 Some SQL fragments cannot be expressed with plain string interpolation — for example, a dynamically sized list
 of placeholders. In such cases, use `addUnsafe` and `bind` (the `values` function above is a good example).
 
@@ -60,5 +56,10 @@ of placeholders. In such cases, use `addUnsafe` and `bind` (the `values` functio
 is a compile error (`KUERY_BIND_CALL_IN_SQL_TEMPLATE`) — see
 [Compile-Time Checks](/compiler-safety-check#bind-in-a-string-template) for why.
 
-Note that `addUnsafe` and `bind` are annotated with `@DelicateKueryClientApi` and require an explicit opt-in, since
-misusing them can lead to SQL injection. See [Compile-Time Checks](/compiler-safety-check) for details.
+`addUnsafe` and `bind` are annotated with `@DelicateKueryClientApi` and require an explicit opt-in because
+untrusted text passed to `addUnsafe` can cause SQL injection. Keep all runtime values in `bind(...)`; use
+`addUnsafe(...)` only for SQL syntax assembled by trusted application code. See
+[Compile-Time Checks](/compiler-safety-check) for details.
+
+The built-in `values` overloads reject an empty input, an empty row, and rows with different sizes by throwing
+`IllegalArgumentException`.

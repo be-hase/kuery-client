@@ -4,15 +4,15 @@ description: Register Spring's @WritingConverter / @ReadingConverter via the bui
 
 # Type Conversion
 
-By using
-[Spring Type Conversion](https://docs.spring.io/spring-framework/reference/core/validation/convert.html),
-you can support your own custom types.
+Kuery Client uses [Spring Type Conversion](https://docs.spring.io/spring-framework/reference/core/validation/convert.html)
+for values written to bind parameters and values read into mapped properties. Register Spring `@WritingConverter`
+and `@ReadingConverter` implementations on the client builder.
 
-## Default Behavior
+## Default behavior
 
 Without any configuration:
 
-- Types the driver supports natively (numbers, strings, date/time types, ...) are passed through as is.
+- Types the driver supports natively (numbers, strings, date/time types, and so on) are passed through unchanged.
 - Enums are written by their name (`Enum.name`) and read back by name.
 
 Custom converters registered via `converters(...)` take precedence over these defaults. For example, registering
@@ -20,13 +20,13 @@ a `@WritingConverter` from your enum to `Int` overrides the write-by-name defaul
 
 ## Example
 
-### Custom type used as a sample
+### Define a custom type
 
 ```kotlin
 data class StringWrapper(val value: String)
 ```
 
-### Prepare Type Converters
+### Create the converters
 
 ```kotlin
 @WritingConverter
@@ -44,10 +44,11 @@ class StringToStringWrapperConverter : Converter<String, StringWrapper> {
 }
 ```
 
-### Specify the converters when creating the `KueryClient`
+### Register the converters
 
-```kotlin {4-9}
-// e.g. In the case of kuery-client-spring-data-r2dbc
+::: code-group
+
+```kotlin {4-9} [R2DBC]
 val kueryClient = SpringR2dbcKueryClient.builder()
     .connectionFactory(connectionFactory)
     .converters(
@@ -59,7 +60,21 @@ val kueryClient = SpringR2dbcKueryClient.builder()
     .build()
 ```
 
-### Let's Try
+```kotlin {4-9} [JDBC]
+val kueryClient = SpringJdbcKueryClient.builder()
+    .dataSource(dataSource)
+    .converters(
+        listOf(
+            StringWrapperToStringConverter(),
+            StringToStringWrapperConverter(),
+        )
+    )
+    .build()
+```
+
+:::
+
+### Use the type
 
 ```kotlin
 suspend fun write(str: StringWrapper): Long = kueryClient
@@ -78,3 +93,10 @@ suspend fun read(): List<Record> = kueryClient
     }
     .list()
 ```
+
+The blocking client uses the same SQL and mapping code without `suspend`.
+
+Conversion is performed per bound value and per mapped column. A non-simple custom type used as the top-level
+return type does not automatically use its `@ReadingConverter`; put it in a mapped data class property instead.
+Kotlin value classes have additional fetch-side limitations. See [Custom types](/row-mapping#custom-types) and
+[Value classes](/row-mapping#value-classes) in Row Mapping.

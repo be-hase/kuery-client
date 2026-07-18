@@ -12,9 +12,9 @@ is. This page gives a brief overview; for details, please refer to the
 
 Use `TransactionalOperator` (R2DBC) or `TransactionTemplate` (JDBC) to manage transactions programmatically.
 
-When using Spring Boot, they are registered as beans by default, so you can inject and use them as is. (On the
-other hand, if you are using multiple databases, for example, you will need to provide them yourself. In such
-cases, please refer to the Spring documentation and set them up accordingly.)
+With Spring Boot's matching data starter, these transaction helpers are normally available as beans. Applications
+with multiple databases or custom transaction managers must select and configure the appropriate manager
+explicitly.
 
 ::: code-group
 
@@ -78,8 +78,8 @@ class UserRepository(private val kueryClient: KueryBlockingClient) {
 
 ## Declarative (`@Transactional`) Transaction Management
 
-Of course, you can also use the AOP-based approach. In this case, add `@Transactional` to the methods where you
-want to apply the transaction.
+For declarative transaction management, add `@Transactional` to a Spring-managed method. Standard Spring proxy
+rules still apply—for example, self-invocation does not pass through the transactional proxy.
 
 ::: code-group
 
@@ -136,3 +136,9 @@ class UserRepository(private val kueryClient: KueryBlockingClient) {
 ```
 
 :::
+
+## Streaming inside a transaction
+
+R2DBC `flow()` executes when collected, so collect it inside the reactive transaction that should own the query.
+JDBC `sequence()` opens a `ResultSet` immediately and must be consumed or closed inside the active transaction.
+See [Fetching Results](/fetching-results#streaming-with-jdbc) for the resource-management rules.

@@ -4,6 +4,9 @@ description: API stability policy, Kotlin version policy, and the version compat
 
 # Compatibility
 
+This page covers language and framework versions. For the database and driver test matrix, see
+[Supported Platforms](/supported-platforms).
+
 ## API stability policy
 
 Since version 1.0.0, Kuery Client follows [Semantic Versioning](https://semver.org/).
