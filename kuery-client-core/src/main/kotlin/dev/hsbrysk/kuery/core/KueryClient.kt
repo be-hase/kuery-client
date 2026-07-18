@@ -58,8 +58,9 @@ public interface KueryClient {
     /**
      * Specifies how to execute the built SQL and retrieve the results.
      *
-     * Each terminal operation ([singleMap], [single], [list], [flow], [rowsUpdated],
-     * [generatedValues], ...) executes the statement when invoked.
+     * Each terminal operation ([singleMap], [single], [list], [rowsUpdated],
+     * [generatedValues], ...) executes the statement when invoked, except [flowMap] and
+     * [flow], which execute it when the returned [Flow] is collected.
      *
      * Rows are mapped to the specified type as follows: simple scalar types (numbers, strings,
      * date/time types, ...) are read from the first column of the row, while other types
