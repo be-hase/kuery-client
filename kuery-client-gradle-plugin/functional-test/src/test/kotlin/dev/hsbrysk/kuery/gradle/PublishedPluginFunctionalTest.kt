@@ -127,6 +127,109 @@ class PublishedPluginFunctionalTest {
     }
 
     @Test
+    fun `strict set via the kueryClient extension makes an unsafe SQL string a compile error`() {
+        writeSettings()
+        writeBuild(
+            """
+            plugins {
+                kotlin("jvm") version "$kotlinVersion"
+                id("dev.hsbrysk.kuery-client") version "$version"
+            }
+
+            kueryClient {
+                strict = true
+            }
+
+            dependencies {
+                implementation("dev.hsbrysk.kuery-client:kuery-client-core:$version")
+            }
+            """,
+        )
+        writeSource(
+            "src/main/kotlin/Main.kt",
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun unsafe(fragment: String) = Sql { add(fragment) }
+            """,
+        )
+
+        val output = runner("compileKotlin").buildAndFail().output
+
+        assertThat(output).contains("e: ")
+        assertThat(output).contains("This expression is not a string literal/template")
+    }
+
+    @Test
+    fun `an unsafe SQL string under strict can still be suppressed by diagnostic name`() {
+        writeSettings()
+        writeBuild(
+            """
+            plugins {
+                kotlin("jvm") version "$kotlinVersion"
+                id("dev.hsbrysk.kuery-client") version "$version"
+            }
+
+            kueryClient {
+                strict = true
+            }
+
+            dependencies {
+                implementation("dev.hsbrysk.kuery-client:kuery-client-core:$version")
+            }
+            """,
+        )
+        writeSource(
+            "src/main/kotlin/Main.kt",
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            @Suppress("KUERY_UNSAFE_SQL_STRING")
+            fun unsafe(fragment: String) = Sql { add(fragment) }
+            """,
+        )
+
+        val output = runner("compileKotlin").build().output
+
+        assertThat(output).doesNotContain("This expression is not a string literal/template")
+    }
+
+    @Test
+    fun `strict escalates sqlSyntaxCheck warnings to errors`() {
+        writeSettings()
+        writeBuild(
+            """
+            plugins {
+                kotlin("jvm") version "$kotlinVersion"
+                id("dev.hsbrysk.kuery-client") version "$version"
+            }
+
+            kueryClient {
+                strict = true
+                sqlSyntaxCheck = "mysql"
+            }
+
+            dependencies {
+                implementation("dev.hsbrysk.kuery-client:kuery-client-core:$version")
+            }
+            """,
+        )
+        writeSource(
+            "src/main/kotlin/Main.kt",
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun broken() = Sql { +"SELECT * FORM users" }
+            """,
+        )
+
+        val output = runner("compileKotlin").buildAndFail().output
+
+        assertThat(output).contains("e: ")
+        assertThat(output).contains("The SQL assembled from this block failed to parse")
+    }
+
+    @Test
     fun `in a multiplatform project the compiler plugin is applied to the JVM compilation only`() {
         writeSettings()
         writeBuild(

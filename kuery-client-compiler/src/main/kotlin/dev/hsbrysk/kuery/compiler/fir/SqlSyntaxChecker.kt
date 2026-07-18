@@ -79,6 +79,7 @@ import java.util.concurrent.Executors
 internal class SqlSyntaxChecker(
     private val autoTrimIndent: Boolean,
     mode: SqlSyntaxCheck,
+    private val diagnostics: KueryClientDiagnostics,
 ) : FirFunctionCallChecker(MppCheckerKind.Common) {
     // null for GENERIC: parse only, no feature validation.
     private val dialect: DatabaseType? = mode.toDatabaseTypeOrNull()
@@ -214,7 +215,7 @@ internal class SqlSyntaxChecker(
         when (val outcome = parse(sql)) {
             is ParseOutcome.Failed -> reporter.reportOn(
                 anchorSource(parts, outcome.reason, leadingLineOffset) ?: expression.source,
-                KueryClientDiagnostics.KUERY_SQL_SYNTAX,
+                diagnostics.KUERY_SQL_SYNTAX,
                 outcome.reason,
             )
             // Only a statement that parses is feature-checked; a broken one already drew the
@@ -223,7 +224,7 @@ internal class SqlSyntaxChecker(
                 val reason = dialect?.let { dialectFailureOrNull(outcome.statements, it) } ?: return
                 reporter.reportOn(
                     expression.source,
-                    KueryClientDiagnostics.KUERY_SQL_DIALECT,
+                    diagnostics.KUERY_SQL_DIALECT,
                     "$reason (dialect: $dialectLabel)",
                 )
             }

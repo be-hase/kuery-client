@@ -31,4 +31,23 @@ interface KueryClientExtension {
      * `@Suppress("KUERY_SQL_SYNTAX")` / `@Suppress("KUERY_SQL_DIALECT")`.
      */
     val sqlSyntaxCheck: Property<String>
+
+    /**
+     * When true, the compiler plugin registers the SQL-safety diagnostics that are warnings by
+     * default as compile errors instead: `KUERY_UNSAFE_SQL_STRING`, and — when [sqlSyntaxCheck]
+     * is enabled — `KUERY_SQL_SYNTAX` / `KUERY_SQL_DIALECT`. Default: false.
+     *
+     * The escalated set may grow in minor releases as new safety diagnostics are added —
+     * enabling strict mode opts into those too.
+     *
+     * `@Suppress("KUERY_...")` on the enclosing declaration keeps working for individual call
+     * sites, and `addUnsafe()` + `bind()` remain the sanctioned way to build SQL dynamically.
+     * An explicit `-Xwarning-level` for a diagnostic always wins — strict only changes the
+     * default severity, so a single diagnostic can still be lowered back to a warning
+     * module-wide. `KUERY_REDUNDANT_TRIM_INDENT` stays a warning — a style issue, not a safety
+     * issue.
+     *
+     * See https://kuery-client.hsbrysk.dev/compiler-safety-check for details.
+     */
+    val strict: Property<Boolean>
 }
