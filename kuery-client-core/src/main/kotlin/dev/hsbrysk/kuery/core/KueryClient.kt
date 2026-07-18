@@ -47,7 +47,8 @@ public interface KueryClient {
      *
      * The sqlId is derived from the enclosing declaration of the call site at compile time by
      * the compiler plugin and used when auto sqlId generation is enabled. `"NONE"` is used when
-     * auto sqlId generation is disabled or when the call site was not compiled with the
+     * auto sqlId generation is disabled, when the block is passed via a variable rather than
+     * written literally at the call site, or when the call site was not compiled with the
      * compiler plugin.
      *
      * @param block [SqlBuilder] block that constructs the SQL
