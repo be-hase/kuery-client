@@ -116,7 +116,7 @@ spring-data code, so you can start small.
 
 ## Getting Started
 
-Kuery Client requires Java 17 or later.
+Kuery Client requires Java 17 or later and Gradle 8.4 or later.
 
 ### Install
 
