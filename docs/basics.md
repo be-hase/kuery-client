@@ -55,9 +55,9 @@ runtime instead.
 Notes:
 
 - `addUnsafe()` is not affected — use it when you need to keep indentation as-is.
-- An explicit `.trimIndent()` left behind is the worst of both worlds: it prevents compile-time
-  trimming, so the string ends up trimmed twice at runtime. The compiler reports a
-  `KUERY_REDUNDANT_TRIM_INDENT` warning for such calls — remove them when enabling the option.
+- An explicit `.trimIndent()` is redundant: it prevents compile-time trimming, so the string is
+  trimmed twice at runtime. The compiler reports a `KUERY_REDUNDANT_TRIM_INDENT` warning for such
+  calls — remove them when enabling the option.
   (Behavior stays correct either way; the double trim only differs when the explicitly trimmed
   string still starts or ends with a blank line, which the automatic trim then drops.)
 - An explicit `.trimMargin()` is not flagged — auto-trim does not remove margins. Note however
