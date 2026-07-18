@@ -122,15 +122,16 @@ class SqlSyntaxCheckerDialectTest {
 
     @Test
     fun `a syntax error rather than a dialect violation is reported when the SQL does not parse`() {
-        // A statement that fails to parse cannot be feature-checked, so only the syntax warning
-        // fires even with a dialect configured.
+        // Without the typo (VALEUS) this query draws the postgresql dialect warning for
+        // ON DUPLICATE KEY UPDATE — but a statement that fails to parse cannot be
+        // feature-checked, so only the syntax warning fires.
         // when
         val result = compile(
             """
             import dev.hsbrysk.kuery.core.Sql
 
-            fun query() {
-                Sql { +"SELCT * FROM users" }
+            fun query(id: Int, name: String) {
+                Sql { +"INSERT INTO users (id, name) VALEUS (${'$'}id, ${'$'}name) ON DUPLICATE KEY UPDATE name = ${'$'}name" }
             }
             """.trimIndent(),
             pluginOptions = listOf(sqlSyntaxCheckOption("postgresql")),
