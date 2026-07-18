@@ -42,10 +42,11 @@ public interface SpringJdbcKueryClientBuilder {
      * without an explicit sqlId.
      * When [observationRegistry] is specified, the default is true; otherwise, the default is false.
      *
-     * The sqlId is derived from the call site of the first invocation and cached per SQL block.
-     * If the same block (e.g. one stored in a property) is shared across multiple call sites,
-     * all of them observe the sqlId of whichever call site ran first.
-     * Define blocks inline if each call site should get its own sqlId.
+     * The sqlId is generated at compile time by the compiler plugin from the fully qualified name
+     * of the call site's enclosing declaration (e.g. `com.example.UserRepository.selectByUserId`),
+     * so no runtime stack inspection is involved and a given call site always produces the same
+     * sqlId. Blocks passed via a variable and call sites not compiled with the compiler plugin
+     * resolve to the fixed sqlId `NONE`; specify the sqlId explicitly in such cases.
      */
     public fun enableAutoSqlIdGeneration(enableAutoSqlIdGeneration: Boolean): SpringJdbcKueryClientBuilder
 
