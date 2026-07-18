@@ -36,6 +36,23 @@ and parses the resulting SQL.
 
 ### Checked code
 
+The simplest case is a multiline SQL template written directly in the block:
+
+```kotlin
+kueryClient.sql {
+    +"""
+    SELECT user_id, username
+    FROM users
+    WHERE tenant_id = $tenantId
+    """
+}
+
+// Parsed as:
+// SELECT user_id, username
+// FROM users
+// WHERE tenant_id = :p0
+```
+
 String literals/templates, `const val` references, and `trimIndent()` / `trimMargin()` on those
 forms can all be reconstructed:
 
