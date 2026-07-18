@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test
 
 private const val TABLE = "users"
 private const val ORDER_COLUMN = "created_at"
+private const val LIMIT = 100
 
 class StringInterpolationTest {
     @Test
@@ -139,6 +140,19 @@ class StringInterpolationTest {
             Sql(
                 "a :p0",
                 listOf(NamedSqlParameter("p0", 2)),
+            ),
+        )
+    }
+
+    @Test
+    fun `an int const val is bound as a parameter`() {
+        val sql = Sql {
+            +"LIMIT $LIMIT"
+        }
+        assertThat(sql).isEqualTo(
+            Sql(
+                "LIMIT :p0",
+                listOf(NamedSqlParameter("p0", 100)),
             ),
         )
     }

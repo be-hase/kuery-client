@@ -4,6 +4,9 @@ description: API stability policy, Kotlin version policy, and the version compat
 
 # Compatibility
 
+This page covers language and framework versions. For the database and driver test matrix, see
+[Supported Platforms](/supported-platforms).
+
 ## API stability policy
 
 Since version 1.0.0, Kuery Client follows [Semantic Versioning](https://semver.org/).
@@ -21,8 +24,9 @@ The following are **not** covered by the compatibility guarantee:
 - `kuery-client-compiler` internals. The compiler plugin depends on Kotlin compiler internal APIs and its
   implementation may change at any time.
 
-Declarations annotated with `@DelicateKueryClientApi` (such as `addUnsafe` and `bind`) are covered by the guarantee,
-but require care in use as documented.
+Declarations annotated with `@DelicateKueryClientApi` (such as
+[`addUnsafe()` and `bind()`](/basics#addunsafe-and-bind)) are covered by the guarantee, but require
+care in use as documented.
 
 ## Kotlin version policy
 

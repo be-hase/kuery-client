@@ -54,6 +54,27 @@ class SqlSyntaxCheckerDialectTest {
     }
 
     @Test
+    fun `no warning for a PostgreSQL upsert under the PostgreSQL dialect`() {
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(id: Int, name: String) {
+                Sql { +"INSERT INTO users (id, name) VALUES (${'$'}id, ${'$'}name) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name" }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption("postgresql")),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.messages).doesNotContain(DIALECT_DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
     fun `the ansi mode flags a vendor-specific feature unlike generic`() {
         // ansi is a real, strict feature set — the documented distinction from generic.
         // when

@@ -17,7 +17,7 @@ val user: User? = kueryClient
 ```
 
 ...but it executes as a **parameterized query**. A Kotlin compiler plugin rewrites the
-interpolation into named parameter binding at compile time — so you get the readability of
+interpolated runtime value into named parameter binding at compile time — so you get the readability of
 raw SQL without the risk of SQL injection:
 
 ```sql
@@ -26,19 +26,23 @@ SELECT * FROM users WHERE user_id = :p0  -- :p0 = userId, bound as a named param
 
 ## Features
 
+<!-- Keep these six features aligned with docs/index.md and README.md. -->
+
 - ♥️ **Love SQL**
     - ORM libraries are convenient, but they each require learning their own DSL, which we believe is a steep
       cost. Kuery Client emphasizes writing SQL as it is.
 - 🛡️ **Safe by design**
-    - String interpolation is converted into bind parameters by the compiler plugin — never concatenated into
-      the SQL text. Built-in [compile-time checks](/compiler-safety-check) warn when they detect a SQL
-      string that cannot be converted safely — and can be escalated to compile errors with the
-      [strict option](/compiler-safety-check#strict-mode).
-- 🍃 **Based on spring-data-r2dbc and spring-data-jdbc**
-    - Kuery Client is implemented on top of spring-data-r2dbc (coroutines) and spring-data-jdbc (blocking).
-      Use whichever you prefer. You can keep using Spring's ecosystem as is, such as `@Transactional`.
+    - Interpolated runtime values are converted into bind parameters by the compiler plugin, so the normal
+      SQL-building path never concatenates them into the SQL text.
+- ✅ **Compile-time checks**
+    - The compiler plugin [warns when a SQL string cannot be converted safely](/compiler-safety-check), and can
+      optionally [validate SQL syntax](/sql-syntax-check) — mistakes surface at compile time, not in production.
+- 🍃 **Built on Spring Data**
+    - Kuery Client is implemented on top of `spring-data-r2dbc` and `spring-data-jdbc`. Use whichever you prefer.
+      You can keep using Spring's ecosystem as is, such as `@Transactional`.
 - 🔭 **Observability**
-    - It supports Micrometer Observation, so you can collect and customize metrics, tracing, and logging.
+    - It supports [Micrometer Observation](/observation), so you can collect and customize metrics, tracing,
+      and logging.
 - 🧩 **Extensible**
     - When dealing with complex data schemas, you often want to share common query logic. Kotlin's extension
       functions make this easy.
@@ -133,9 +137,11 @@ class UserRepository(private val kueryClient: KueryBlockingClient) {
 
 This SQL builder is very simple. There are only two things you need to remember:
 
-- You can concatenate SQL strings using `+`(unaryPlus).
-    - You can also directly express logic such as if statements in Kotlin.
-- You can bind parameters using string interpolation.
+- Add SQL fragments with unary `+`; use normal Kotlin control flow for dynamic queries.
+- Interpolate runtime values to bind them as parameters.
+
+Continue to [Getting Started](/getting-started) to add Kuery Client to a project, or read
+[Building SQL](/basics) for the complete interpolation and dynamic-query rules.
 
 ## For LLMs
 

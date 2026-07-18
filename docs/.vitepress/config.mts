@@ -60,7 +60,7 @@ export default defineConfig({
         // https://vitepress.dev/reference/default-theme-config
         nav: [
             {text: "Home", link: "/"},
-            {text: "Docs", link: "/introduction"},
+            {text: "Docs", link: "/getting-started"},
         ],
 
         sidebar: [
@@ -69,9 +69,17 @@ export default defineConfig({
                 items: [
                     {text: "Introduction", link: '/introduction'},
                     {text: "Getting Started", link: '/getting-started'},
-                    {text: "Basics", link: '/basics'},
+                    {text: "Building SQL", link: '/basics'},
+                    {text: "Fetching Results", link: '/fetching-results'},
                     {text: "Row Mapping", link: '/row-mapping'},
                     {text: "Transaction", link: '/transaction'},
+                ]
+            },
+            {
+                text: "Safety",
+                items: [
+                    {text: "Compile-Time Checks", link: '/compiler-safety-check'},
+                    {text: "SQL Syntax Check", link: '/sql-syntax-check'},
                 ]
             },
             {
@@ -79,14 +87,14 @@ export default defineConfig({
                 items: [
                     {text: "Type Conversion", link: '/type-conversion'},
                     {text: "Observation", link: '/observation'},
-                    {text: "Compile-Time Checks", link: '/compiler-safety-check'},
-                    {text: "SQL Syntax Check", link: '/sql-syntax-check'},
                     {text: "Helpers", link: '/helpers'},
                 ]
             },
             {
                 text: "Reference",
                 items: [
+                    {text: "Configuration", link: '/configuration'},
+                    {text: "Supported Platforms", link: '/supported-platforms'},
                     {text: "Examples", link: '/examples'},
                     {text: "Compatibility", link: '/compatibility'},
                 ]

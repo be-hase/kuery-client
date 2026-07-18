@@ -5,7 +5,7 @@
 
 **Write SQL as it is.**
 
-A Kotlin SQL client built on Spring Data — string interpolation becomes bind parameters via a compiler plugin.
+A Kotlin SQL client built on Spring Data — interpolated runtime values become bind parameters via a compiler plugin.
 
 <a href="https://central.sonatype.com/search?q=kuery-client"><img alt="Maven Central Version" src="https://img.shields.io/maven-central/v/dev.hsbrysk.kuery-client/kuery-client-core"></a>
 <a href="https://github.com/be-hase/kuery-client/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/be-hase/kuery-client/actions/workflows/ci.yml/badge.svg"></a>
@@ -27,7 +27,7 @@ val user: User? = kueryClient
 ```
 
 ...but it executes as a **parameterized query**. A Kotlin compiler plugin rewrites the
-interpolation into named parameter binding at compile time — so you get the readability of
+interpolated runtime value into named parameter binding at compile time — so you get the readability of
 raw SQL without the risk of SQL injection:
 
 ```sql
@@ -36,19 +36,24 @@ SELECT * FROM users WHERE user_id = :p0  -- :p0 = userId, bound as a named param
 
 ## Why Kuery Client?
 
+<!-- Keep these six features aligned with docs/index.md and docs/introduction.md. -->
+
 - ♥️ **Love SQL**
     - ORM libraries are convenient, but they each require learning their own DSL, which we believe is a steep
       cost. Kuery Client emphasizes writing SQL as it is.
 - 🛡️ **Safe by design**
-    - String interpolation is converted into bind parameters by the compiler plugin — never concatenated into
-      the SQL text. Built-in [compile-time checks](https://kuery-client.hsbrysk.dev/compiler-safety-check)
-      warn when they detect a SQL string that cannot be converted safely — and can be escalated to compile
-      errors with the [strict option](https://kuery-client.hsbrysk.dev/compiler-safety-check#strict-mode).
-- 🍃 **Based on spring-data-r2dbc and spring-data-jdbc**
-    - Kuery Client is implemented on top of spring-data-r2dbc (coroutines) and spring-data-jdbc (blocking).
-      Use whichever you prefer. You can keep using Spring's ecosystem as is, such as `@Transactional`.
+    - Interpolated runtime values are converted into bind parameters by the compiler plugin, so the normal
+      SQL-building path never concatenates them into the SQL text.
+- ✅ **Compile-time checks**
+    - The compiler plugin [warns when a SQL string cannot be converted safely](https://kuery-client.hsbrysk.dev/compiler-safety-check),
+      and can optionally [validate SQL syntax](https://kuery-client.hsbrysk.dev/sql-syntax-check) — mistakes
+      surface at compile time, not in production.
+- 🍃 **Built on Spring Data**
+    - Kuery Client is implemented on top of `spring-data-r2dbc` and `spring-data-jdbc`. Use whichever you prefer.
+      You can keep using Spring's ecosystem as is, such as `@Transactional`.
 - 🔭 **Observability**
-    - It supports Micrometer Observation, so you can collect and customize metrics, tracing, and logging.
+    - It supports [Micrometer Observation](https://kuery-client.hsbrysk.dev/observation), so you can collect and
+      customize metrics, tracing, and logging.
 - 🧩 **Extensible**
     - When dealing with complex data schemas, you often want to share common query logic. Kotlin's extension
       functions make this easy.
@@ -164,12 +169,15 @@ val user: User? = kueryClient
 
 More details are on the [document site](https://kuery-client.hsbrysk.dev/):
 
-- [Basics](https://kuery-client.hsbrysk.dev/basics) — the SQL builder, dynamic SQL, fetch operations
+- [Getting Started](https://kuery-client.hsbrysk.dev/getting-started) — choose R2DBC or JDBC and run the first query
+- [Building SQL](https://kuery-client.hsbrysk.dev/basics) — interpolation, collections, dynamic SQL, and reusable fragments
+- [Fetching Results](https://kuery-client.hsbrysk.dev/fetching-results) — terminal operations, streaming, generated values, and statement options
 - [Compile-Time Checks](https://kuery-client.hsbrysk.dev/compiler-safety-check) — the compiler diagnostics that catch unsafe SQL, and the strict option
 - [SQL Syntax Check](https://kuery-client.hsbrysk.dev/sql-syntax-check) — opt-in compile-time validation of your SQL syntax
 - [Transaction](https://kuery-client.hsbrysk.dev/transaction) / [Type Conversion](https://kuery-client.hsbrysk.dev/type-conversion) / [Row Mapping](https://kuery-client.hsbrysk.dev/row-mapping)
 - [Observation](https://kuery-client.hsbrysk.dev/observation) — Micrometer-based metrics, tracing, and logging
-- [Compatibility](https://kuery-client.hsbrysk.dev/compatibility) — supported Kotlin / Spring versions
+- [Configuration](https://kuery-client.hsbrysk.dev/configuration) — Gradle plugin and runtime builder options
+- [Supported Platforms](https://kuery-client.hsbrysk.dev/supported-platforms) / [Compatibility](https://kuery-client.hsbrysk.dev/compatibility) — tested databases and supported Kotlin / Spring versions
 
 For AI assistants and LLM-based tools, the entire documentation is also available in
 the [llms.txt](https://llmstxt.org/) format: [llms.txt](https://kuery-client.hsbrysk.dev/llms.txt)

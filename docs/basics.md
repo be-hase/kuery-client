@@ -1,14 +1,14 @@
 ---
-description: "SQL builder API: +/add, parameter binding via string interpolation, Kotlin control flow, and the fetch API (single, list, flow, sequence, rowsUpdated, generatedValues, fetchSize, maxRows, queryTimeoutSeconds)."
+description: Build safe static and dynamic SQL with +/add, interpolation, constants, collections, reusable helpers, and the lower-level addUnsafe/bind APIs.
 ---
 
-# Basics
+# Building SQL
 
-## Building SQL
+## SQL fragments
 
-### `+`(unaryPlus)
+### `+` (`unaryPlus`)
 
-Concatenate SQL strings using the + operator.
+Add SQL fragments with the unary `+` operator. Fragments are joined with newlines.
 
 ```kotlin
 kueryClient
@@ -18,7 +18,7 @@ kueryClient
     }
 ```
 
-Of course, if there is no need to concatenate, you don't have to.
+A fragment can also span multiple lines:
 
 ```kotlin
 kueryClient
@@ -30,15 +30,10 @@ kueryClient
     }
 ```
 
-### `fun add(sql: String)`
+### `add(sql: String)`
 
-It is an alias for `+`(unaryPlus). However, since the argument is annotated
-with `org.intellij.lang.annotations.Language`, if you are using a JetBrains IDE, you will get syntax assistance.
-
-::: info
-`sql { ... }` also has an overload that takes an explicit SQL id — `sql("my-sql-id") { ... }` — which labels
-the query for metrics. See [Observation](/observation#sql-id).
-:::
+`add(...)` is an alias for unary `+`. Its argument is annotated with
+`org.intellij.lang.annotations.Language`, so JetBrains IDEs can provide SQL syntax assistance.
 
 ### Automatic `trimIndent` (opt-in)
 
@@ -59,16 +54,15 @@ runtime instead.
 
 Notes:
 
-- `addUnsafe()` is not affected — use it when you need to keep indentation as-is.
-- An explicit `.trimIndent()` left behind is the worst of both worlds: it prevents compile-time
-  trimming, so the string ends up trimmed twice at runtime. The compiler reports a
-  `KUERY_REDUNDANT_TRIM_INDENT` warning for such calls — remove them when enabling the option.
+- [`addUnsafe()`](#addunsafe-and-bind) is not affected — use it when you need to keep indentation as-is.
+- An explicit `.trimIndent()` is redundant: it prevents compile-time trimming, so the string is
+  trimmed twice at runtime. The compiler reports a `KUERY_REDUNDANT_TRIM_INDENT` warning for such
+  calls — remove them when enabling the option.
   (Behavior stays correct either way; the double trim only differs when the explicitly trimmed
   string still starts or ends with a blank line, which the automatic trim then drops.)
-- An explicit `.trimMargin()` is not flagged — auto-trim does not remove margins. Note however
-  that the automatic trim runs on its result, so per-line indentation deliberately kept after the
-  margin prefix (e.g. `|  SELECT`) is stripped; use `addUnsafe()` when such indentation must
-  survive.
+- Unlike `.trimIndent()`, `.trimMargin()` is not redundant and does not produce a compiler warning.
+  Auto-trim still applies `trimIndent()` to its result, which removes any common indentation left
+  after the margin prefix. Use [`addUnsafe()`](#addunsafe-and-bind) if that indentation must be preserved.
 - The option defaults to `false`, so existing builds are unaffected.
 
 ## Binding Parameters
@@ -86,27 +80,30 @@ kueryClient
     }
 ```
 
-### Compile-time constants are expanded as text
+### How interpolated values are handled
 
-Only runtime values are bound as parameters. Compile-time `String` / `Char` constants inside a
-template are expanded into the SQL text at compile time instead of being bound:
+Compile-time `String` / `Char` constants inside a template are expanded into the SQL text. All
+other interpolated values — including compile-time constants of other types — are bound as
+parameters:
 
 | Interpolated expression | Examples | Behavior |
 |---|---|---|
 | Runtime value | `$userId`, `${user.id}`, `${find()}` | Bound as a parameter (`:p0`) |
-| `String` / `Char` constant (literal or `const val`) | `${"users"}`, `$TABLE`, `${'$'}` | Expanded into the SQL text |
-| Constant of any other type (literal or `const val`) | `${1}`, `${true}`, `${null}` | Bound as a parameter |
+| `String` / `Char` constant (literal or `const val`) | `$TABLE` where `const val TABLE = "users"`; `${"users"}`, `${'$'}` | Expanded into the SQL text |
+| Constant of any other type (literal or `const val`) | `$LIMIT` where `const val LIMIT = 100`; `${1}`, `${true}`, `${null}` | Bound as a parameter |
 
-For example, you can share a table name as a `const val`: it is expanded into the SQL text, while
-the runtime value `userId` in the same template is still bound as a parameter:
+For example, the `String` constant `TABLE` is expanded into the SQL text. The `Int` constant
+`LIMIT` and the runtime value `userId` are both bound as parameters:
 
 ```kotlin
 const val TABLE = "users"
+const val LIMIT = 100
 
 kueryClient
     .sql {
-        +"SELECT * FROM $TABLE WHERE user_id = $userId"
-        // SQL body: SELECT * FROM users WHERE user_id = :p0
+        +"SELECT * FROM $TABLE WHERE user_id = $userId LIMIT $LIMIT"
+        // SQL body: SELECT * FROM users WHERE user_id = :p0 LIMIT :p1
+        // Parameters: p0 = userId, p1 = 100
     }
 ```
 
@@ -139,8 +136,20 @@ val statuses = listOf(UserStatus.ACTIVE, UserStatus.INACTIVE)
 kueryClient
     .sql {
         +"SELECT * FROM users WHERE status IN ($statuses)"
+        // Kuery SQL: SELECT * FROM users WHERE status IN (:p0)
+        // p0 = [ACTIVE, INACTIVE]
+        // Spring expands it at execution: SELECT * FROM users WHERE status IN (?, ?)
     }
 ```
+
+The exact placeholders sent to the database depend on the driver; `?, ?` above illustrates that
+Spring creates one placeholder for each collection element.
+
+::: warning Empty collections
+Spring expands an empty collection to `IN ()`. H2 accepts that syntax, but MySQL and PostgreSQL reject it.
+Return early or build a different predicate when the collection is empty. See
+[Supported Platforms](/supported-platforms#empty-collections-in-in-clauses).
+:::
 
 An array is different: it is passed to the driver as a single array value with its element type
 preserved. It is *not* expanded for `IN`. Use arrays with databases that support them natively,
@@ -155,6 +164,12 @@ kueryClient
 ```
 
 MySQL has no array type, so use a `Collection` for `IN` clauses there.
+
+`ByteArray` is a special case: it is passed to the driver as one binary value, not as a SQL array
+or an expanded parameter list. Other primitive arrays are client- and driver-dependent. R2DBC
+boxes `IntArray`, `LongArray`, and the other non-byte primitive arrays into object arrays before
+binding; JDBC passes primitive arrays to the driver unchanged. Check that the selected driver
+supports the resulting value.
 
 ### Enums
 
@@ -173,7 +188,7 @@ kueryClient
 If you want a different representation, register a custom `@WritingConverter` — it takes precedence over the
 default. See [Type Conversion](/type-conversion).
 
-### null values
+### Null values
 
 A `null` value is bound as SQL `NULL`. Be careful with comparison operators: `column = NULL` never matches
 anything in SQL. If a value can be null, branch explicitly:
@@ -190,21 +205,38 @@ kueryClient
     }
 ```
 
-## Logic such as `if` and `for` ...etc
+## Dynamic SQL with Kotlin control flow
 
-Just write using Kotlin syntax. There is no need to learn special syntax.
+Use normal Kotlin `if`, `when`, loops, and function calls. There is no separate template language.
 
 ```kotlin
+enum class UserSort { NAME, CREATED_AT }
+
 kueryClient
     .sql {
-        +"SELECT * FROM users"
-        +"WHERE"
-        +"status = $status"
-        if (vip != null) {
-            +"AND vip = $vip"
+        +"SELECT u.* FROM users u"
+        +"WHERE u.tenant_id = $tenantId"
+
+        if (email != null) {
+            +"AND u.email = $email"
+        }
+        if (!includeDeleted) {
+            +"AND u.deleted_at IS NULL"
+        }
+        for (role in requiredRoles) {
+            +"AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.user_id AND ur.role_name = $role)"
+        }
+
+        when (sort) {
+            UserSort.NAME -> +"ORDER BY u.name"
+            UserSort.CREATED_AT -> +"ORDER BY u.created_at DESC"
         }
     }
+    .list()
 ```
+
+The `if` blocks add optional filters, the loop requires every requested role, and `when` selects a
+fixed, safe `ORDER BY` clause. Interpolated values are still bound as parameters in every branch.
 
 ## Reusable query parts
 
@@ -239,114 +271,59 @@ class UserRepository(private val kueryClient: KueryClient) {
 }
 ```
 
-For fragments that must be assembled as a string dynamically (e.g. a variable number of placeholders), see
-[Helpers](/helpers).
+For fragments that must be assembled as a string dynamically, use the lower-level APIs described next.
 
-## Fetch Result
+## `addUnsafe()` and `bind()`
 
-Terminal operations execute the query and return the result. In `kuery-client-spring-data-r2dbc` they are
-`suspend` functions; in `kuery-client-spring-data-jdbc` they are blocking.
+Prefer `+` / `add()` and ordinary string interpolation whenever possible. The compiler plugin can
+then bind runtime values automatically and check that the SQL string is safe.
 
-| Method | Description | Availability |
-|---|---|---|
-| `single()` / `singleMap()` | Exactly one row | both |
-| `singleOrNull()` / `singleMapOrNull()` | One row, or `null` when there is no row | both |
-| `list()` / `listMap()` | All rows as a `List` | both |
-| `flow()` / `flowMap()` | Rows as a Kotlin coroutines `Flow` | r2dbc only |
-| `sequence()` / `sequenceMap()` | Rows as a `CloseableSequence` | jdbc only |
-| `rowsUpdated()` | The number of affected rows | both |
-| `generatedValues(vararg columns)` | Values generated by the database (e.g. auto increment) | both |
-
-How rows are converted to the specified type is described in [Row Mapping](/row-mapping). The `*Map`
-variants return each row as a `Map<String, Any?>` keyed by column name instead of a converted type.
-
-### `single()` / `singleOrNull()`
-
-`single()` expects exactly one row: it throws an exception when the query returns no rows. `singleOrNull()`
-returns `null` in that case. Both throw an exception when the query returns more than one row.
+For a fragment that must itself be assembled programmatically—such as a variable number of
+assignments—`addUnsafe()` appends the completed SQL text without compiler transformation.
+`bind(value)` registers one named parameter and returns its placeholder (for example, `:p0`) for
+that text:
 
 ```kotlin
-val user: User = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = $userId" }
-    .single()
+enum class UserColumn(val sqlName: String) {
+    USERNAME("username"),
+    EMAIL("email"),
+}
 
-val userOrNull: User? = kueryClient
-    .sql { +"SELECT * FROM users WHERE user_id = $userId" }
-    .singleOrNull()
+@OptIn(DelicateKueryClientApi::class)
+fun SqlBuilder.addAssignments(values: Map<UserColumn, Any?>) {
+    require(values.isNotEmpty()) { "values must not be empty" }
+
+    val assignments = values.entries.joinToString(", ") { (column, value) ->
+        "${column.sqlName} = ${bind(value)}"
+    }
+    addUnsafe("SET $assignments")
+}
+
+kueryClient.sql {
+    +"UPDATE users"
+    addAssignments(mapOf(UserColumn.USERNAME to username, UserColumn.EMAIL to email))
+    +"WHERE user_id = $userId"
+}
+
+// SQL body:
+// UPDATE users
+// SET username = :p0, email = :p1
+// WHERE user_id = :p2
 ```
 
-### `list()`
+Both functions require an explicit `@OptIn(DelicateKueryClientApi::class)`. Text passed to
+`addUnsafe()` becomes part of the SQL body as-is, so never include untrusted input in it. Keep
+runtime values in `bind(...)`. In the example above, SQL identifiers come only from the closed
+`UserColumn` enum; arbitrary input can never become a column name.
 
-Fetches all rows into a `List`.
+`bind()` is only for SQL passed to `addUnsafe()`. Do not interpolate its result into `+"..."` or
+`add("...")`: those APIs already bind interpolated expressions, so doing both is a compile error
+([`KUERY_BIND_CALL_IN_SQL_TEMPLATE`](/compiler-safety-check#bind-in-a-string-template)).
 
-```kotlin
-val users: List<User> = kueryClient
-    .sql { +"SELECT * FROM users WHERE status = $status" }
-    .list()
-```
+For multi-row `INSERT` statements, use the built-in [`values` helper](/helpers#values).
 
-### `flow()` <Badge type="info" text="r2dbc only" />
+## Fetching Results
 
-Streams rows as a Kotlin coroutines `Flow`.
-
-```kotlin
-val users: Flow<User> = kueryClient
-    .sql { +"SELECT * FROM users WHERE status = $status" }
-    .flow()
-```
-
-### `sequence()` <Badge type="info" text="jdbc only" />
-
-Streams rows as a `CloseableSequence`.
-
-```kotlin
-val users: CloseableSequence<User> = kueryClient
-    .sql { +"SELECT * FROM users WHERE status = $status" }
-    .sequence()
-```
-
-::: warning
-`sequence()` is not lazy: the statement executes eagerly when the sequence is created, before any element
-is consumed. Only the consumption of rows is deferred.
-
-The sequence is backed by an open JDBC ResultSet — iterate within an active transaction. It is single-pass.
-`CloseableSequence` implements `AutoCloseable`; if you stop iterating midway (e.g., with `take` or `first`),
-close it explicitly, typically via `use`.
-:::
-
-### `rowsUpdated()`
-
-Returns the number of affected rows.
-
-```kotlin
-val count: Long = kueryClient
-    .sql { +"INSERT INTO users (username, email) VALUES ($username, $email)" }
-    .rowsUpdated()
-```
-
-### `generatedValues(vararg columns)`
-
-Returns the values generated on the database side. For example, an auto increment value.
-
-```kotlin
-val generated: Map<String, Any> = kueryClient
-    .sql { +"INSERT INTO users (username, email) VALUES ($username, $email)" }
-    .generatedValues("user_id")
-```
-
-## Tuning Queries
-
-`FetchSpec` also exposes a few knobs that apply to the subsequent terminal operation:
-
-| Method | Description | Availability |
-|---|---|---|
-| `fetchSize(Int)` | Fetch size hint for the driver | both |
-| `maxRows(Int)` | Maximum number of rows to fetch | jdbc only |
-| `queryTimeoutSeconds(Int)` | Query timeout in seconds | jdbc only |
-
-```kotlin
-val users: List<User> = kueryClient
-    .sql { +"SELECT * FROM users" }
-    .fetchSize(100)
-    .list()
-```
+`sql { ... }` returns a `FetchSpec`; a terminal operation such as `single()`, `list()`, `flow()`, `sequence()`,
+or `rowsUpdated()` executes it. Continue to [Fetching Results](/fetching-results) for row-count rules, execution
+timing, JDBC resource management, generated-key portability, and statement options.

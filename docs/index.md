@@ -5,22 +5,26 @@ layout: home
 hero:
   name: "Kuery Client"
   text: "Write SQL as it is"
-  tagline: A Kotlin/JVM database client built on spring-data — string interpolation becomes bind parameters via a compiler plugin
+  tagline: A Kotlin/JVM database client built on Spring Data — interpolated runtime values become bind parameters via a compiler plugin
   actions:
     - theme: brand
-      text: Introduction
+      text: Get Started
+      link: /getting-started
+    - theme: alt
+      text: Why Kuery Client?
       link: /introduction
     - theme: alt
       text: GitHub
       link: https://github.com/be-hase/kuery-client
 
+# Keep these six features aligned with README.md and docs/introduction.md.
 features:
   - icon: ♥️
     title: Love SQL
     details: ORM libraries are convenient, but they each require learning their own DSL, which we believe is a steep cost. Kuery Client emphasizes writing SQL as it is.
   - icon: 🛡️
     title: Safe by design
-    details: String interpolation is converted into bind parameters by the compiler plugin — never concatenated into the SQL text. SQL injection is prevented by construction.
+    details: Interpolated runtime values are converted into bind parameters by the compiler plugin, so the normal SQL-building path never concatenates them into the SQL text.
   - icon: ✅
     title: Compile-time checks
     details: The compiler plugin warns when a SQL string cannot be converted safely, and can optionally validate SQL syntax — mistakes surface at compile time, not in production.
