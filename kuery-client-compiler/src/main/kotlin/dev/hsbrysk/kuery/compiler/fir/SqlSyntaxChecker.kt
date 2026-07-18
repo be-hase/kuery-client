@@ -91,9 +91,12 @@ internal class SqlSyntaxChecker(
     private val entryPoints = SqlBlockEntryPoints()
 
     context(context: CheckerContext, reporter: DiagnosticReporter)
-    override fun check(expression: FirFunctionCall) {
+    override fun check(expression: FirFunctionCall) = failSafe { checkSqlBlock(expression) }
+
+    context(context: CheckerContext, reporter: DiagnosticReporter)
+    private fun checkSqlBlock(expression: FirFunctionCall) {
         val block = entryPoints.sqlBlockOrNull(expression, context.session) ?: return
-        val parts = reconstructedPartsFailSafe(block) ?: return
+        val parts = reconstructedPartsOrNull(block) ?: return
         val joined = parts.joinToString("\n") { it.text }
         // DefaultSqlBuilder.build() trims the assembled body — including unicode whitespace the
         // parser would reject — so mirror it, and remember how many fully removed leading lines
@@ -106,16 +109,6 @@ internal class SqlSyntaxChecker(
             .lines()
             .size - 1
         reportFailures(expression, parts, sql, leadingLineOffset)
-    }
-
-    // A bug in the reconstruction must never escape the checker: it would fail the user's whole
-    // compilation with an internal error. Unexpected failures skip the block, like the parser's
-    // own fail-open path.
-    @Suppress("TooGenericExceptionCaught", "SwallowedException")
-    private fun reconstructedPartsFailSafe(block: FirAnonymousFunction): List<Part>? = try {
-        reconstructedPartsOrNull(block)
-    } catch (e: Exception) {
-        null
     }
 
     // Which calls start a checkable `sql { }` block, and the receiver-type matching
@@ -449,6 +442,18 @@ internal class SqlSyntaxChecker(
             .joinToString(" ")
             .trim()
             .replace(WHITESPACE_REGEX, " ")
+    }
+}
+
+// A bug anywhere in the checker must never escape it: that would fail the user's whole
+// compilation with an internal error, when the worst acceptable outcome is a missing warning.
+// Unexpected failures skip the block, like the parser's own fail-open path.
+@Suppress("TooGenericExceptionCaught", "SwallowedException")
+private inline fun failSafe(block: () -> Unit) {
+    try {
+        block()
+    } catch (e: Exception) {
+        // Fail open.
     }
 }
 
