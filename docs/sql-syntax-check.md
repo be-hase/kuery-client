@@ -75,11 +75,14 @@ kueryClient.sql {
 // ORDER BY user_id
 ```
 
-Calls to your own **static helper functions** are inlined into the reconstruction: a final
-`SqlBuilder` extension in the same module — top-level or a member of the enclosing class (the
-common repository pattern) — whose body is itself only static `add()` / `+"..."` statements (or
-further such helpers). Its interpolated parameters become the same `:pN` binds they are at
-runtime, so this works regardless of the arguments:
+Your own `SqlBuilder` extension functions are also checked when their source code is in the
+**same Gradle module** as the `sql { }` call. Helpers from another module are skipped because the
+checker cannot inspect their source body.
+
+An eligible same-module helper can be a top-level function or a final member function. Its body
+must contain only statically reconstructable `add()` / `+"..."` calls, or calls to other eligible
+helpers. The checker inlines that body and replaces its interpolated parameters with the same
+`:pN` binds used at runtime, regardless of the arguments passed to the helper:
 
 ```kotlin
 fun SqlBuilder.paging(limit: Int, offset: Int) {
