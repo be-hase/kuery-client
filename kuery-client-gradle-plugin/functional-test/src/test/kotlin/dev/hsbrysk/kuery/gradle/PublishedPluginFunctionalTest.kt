@@ -200,13 +200,25 @@ class PublishedPluginFunctionalTest {
         .withProjectDir(projectDir)
         .withArguments(*arguments, "--stacktrace")
 
+    // The dev.hsbrysk.kuery-client group (plugin marker included) is pinned to the build-local
+    // repository via exclusiveContent: released versions of the same group exist on Maven Central
+    // and the Plugin Portal, so a plain repository ordering could silently fall back to a
+    // published artifact when a local publication is missing — the test must fail instead.
+    // External dependencies (Kotlin plugin, stdlib, ...) still resolve from the public repositories.
     private fun writeSettings() {
         writeSource(
             "settings.gradle.kts",
             """
             pluginManagement {
                 repositories {
-                    maven(url = uri("$repoUri"))
+                    exclusiveContent {
+                        forRepository {
+                            maven(url = uri("$repoUri"))
+                        }
+                        filter {
+                            includeGroup("dev.hsbrysk.kuery-client")
+                        }
+                    }
                     mavenCentral()
                     gradlePluginPortal()
                 }
@@ -215,7 +227,14 @@ class PublishedPluginFunctionalTest {
             dependencyResolutionManagement {
                 @Suppress("UnstableApiUsage")
                 repositories {
-                    maven(url = uri("$repoUri"))
+                    exclusiveContent {
+                        forRepository {
+                            maven(url = uri("$repoUri"))
+                        }
+                        filter {
+                            includeGroup("dev.hsbrysk.kuery-client")
+                        }
+                    }
                     mavenCentral()
                 }
             }
