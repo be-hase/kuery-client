@@ -1,6 +1,7 @@
 plugins {
     id("conventions.preset.base")
     id("conventions.maven-publish")
+    id("conventions.functional-test-publish")
 }
 
 description = "Compiler plugin for the Kuery client."

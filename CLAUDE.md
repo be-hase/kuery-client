@@ -109,6 +109,11 @@ Pick the database by asking: "can this behavior differ per driver/DB code path?"
 - `kuery-client-compiler/src/test` (kotlin-compile-testing) is **only** for things observable at compile level: FIR diagnostics, compilation failures, bytecode inspection.
 - The `build.gradle.kts` files of `functional-test` and `functional-test-auto-trim` mirror each other — add dependencies to both.
 
+### Gradle Plugin Test Placement
+
+- `kuery-client-gradle-plugin/src/test` (ProjectBuilder + mocks) covers the plugin's own logic in isolation.
+- `kuery-client-gradle-plugin/functional-test` (Gradle TestKit) black-box tests the **published** plugin path: the three artifacts are published to a build-local Maven repository (`build/functional-test-repo`) and a generated consumer project applies the plugin by id. This module must NOT declare project dependencies on the plugin or the compiler — resolving everything through the repository is the point.
+
 ### Bug Fixes Are Test-First
 
 Write a reproducing test first and confirm it fails against the current implementation, then fix, then confirm green. This proves the fix actually addresses the bug.

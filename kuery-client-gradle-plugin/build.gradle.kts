@@ -3,6 +3,7 @@ plugins {
     // ABI dump only (no explicit API mode): KueryClientExtension is public API consumed from
     // build scripts, but Gradle plugin code doesn't follow library explicit-API conventions.
     id("conventions.abi-validation")
+    id("conventions.functional-test-publish")
     `java-gradle-plugin`
     signing
     alias(libs.plugins.plugin.publish)
