@@ -66,8 +66,8 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
         // The vocabulary accepted by sqlSyntaxCheck. This module cannot depend on
         // kuery-client-compiler (that would drag the Kotlin compiler onto the Gradle classpath),
-        // so this mirrors the SqlSyntaxCheck enum there — keep the two in sync.
-        private val SUPPORTED_SQL_SYNTAX_CHECKS =
+        // so this mirrors the SqlSyntaxCheck enum there — a test pins the two together.
+        internal val SUPPORTED_SQL_SYNTAX_CHECKS =
             listOf("generic", "ansi", "oracle", "mysql", "sqlserver", "mariadb", "postgresql", "h2")
     }
 }

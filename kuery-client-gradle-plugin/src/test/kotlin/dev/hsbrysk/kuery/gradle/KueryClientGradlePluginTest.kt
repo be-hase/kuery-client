@@ -9,6 +9,7 @@ import assertk.assertions.isFalse
 import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
 import assertk.assertions.message
+import dev.hsbrysk.kuery.compiler.SqlSyntaxCheck
 import io.mockk.every
 import io.mockk.mockk
 import org.gradle.testfixtures.ProjectBuilder
@@ -134,6 +135,14 @@ class KueryClientGradlePluginTest {
 
         // then
         assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheck=mysql")
+    }
+
+    @Test
+    fun `the supported sqlSyntaxCheck values mirror the SqlSyntaxCheck enum of the compiler plugin`() {
+        // The list is duplicated because the plugin cannot depend on kuery-client-compiler at
+        // runtime; this pin makes sure the mirror cannot drift.
+        assertThat(KueryClientGradlePlugin.SUPPORTED_SQL_SYNTAX_CHECKS)
+            .isEqualTo(SqlSyntaxCheck.entries.map { it.name.lowercase() })
     }
 
     @Test
