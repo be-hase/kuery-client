@@ -28,28 +28,53 @@ string would be executed as raw SQL.
 
 To prevent this from happening silently, the compiler plugin reports a
 `KUERY_UNSAFE_SQL_STRING` **warning** when it cannot guarantee that interpolation in an `add()` /
-`+` expression will be converted into bind parameters. Typical flagged arguments:
+`+` expression will be converted into bind parameters.
 
-| Flagged argument | Problem |
-|---|---|
-| `add(sql)` — a `String` variable or parameter | The string may already contain concatenated runtime values |
-| `add("... WHERE " + cond)` — `+` concatenation | Not a string template; the plugin cannot rewrite it into bind parameters |
-| `add(buildWhere())` — a function call | The plugin cannot see what the function returns |
-| `add("WHERE aaa".replace("aaa", input))` — a chained call on a literal | Same as above — and a runtime argument like `input` ends up in the SQL text without being bound |
-| `add(run { "SELECT 1" })` — a lambda / scope function | The plugin does not look inside lambdas, even when the body is just a literal |
-| `add(if (id > 0) "SELECT 1" else fragment)` — an `if` with an unsafe branch | Every branch must be safe on its own; `fragment` is a variable |
-
-For example, the most common case — passing a variable — is reported like this:
+### Noncompliant code
 
 ```kotlin
+// String variable: interpolation already happened before add()
 val sql = "SELECT * FROM users WHERE user_id = $userId"
 kueryClient.sql {
-    add(sql) // KUERY_UNSAFE_SQL_STRING: `$userId` was already concatenated; executed as raw SQL
+    add(sql) // KUERY_UNSAFE_SQL_STRING
+}
+
+// String concatenation
+kueryClient.sql {
+    add("SELECT * FROM users WHERE " + condition) // KUERY_UNSAFE_SQL_STRING
+}
+
+// Function call: the plugin cannot see what the function returns
+kueryClient.sql {
+    add(buildWhere()) // KUERY_UNSAFE_SQL_STRING
+}
+
+// Runtime transformation of a literal
+kueryClient.sql {
+    add("WHERE aaa".replace("aaa", input)) // KUERY_UNSAFE_SQL_STRING
+}
+
+// Scope function: the plugin does not inspect the lambda body
+kueryClient.sql {
+    add(run { "SELECT 1" }) // KUERY_UNSAFE_SQL_STRING
+}
+
+// Every branch must be safe; fragment is a String variable
+kueryClient.sql {
+    add(if (id > 0) "SELECT 1" else fragment) // KUERY_UNSAFE_SQL_STRING
 }
 ```
 
-In contrast, the following forms are accepted. The SQL string is fully determined at compile
-time, so any interpolation in it is rewritten into bind parameters:
+### Compliant code
+
+```kotlin
+kueryClient.sql {
+    +"SELECT * FROM users WHERE user_id = $userId" // userId is bound as :p0
+}
+```
+
+Here the SQL template is passed directly, so the plugin can rewrite `userId` into a bind
+parameter. Other accepted forms include:
 
 - A string literal / string template: `"SELECT ... $id"`
 - `trimIndent()` / `trimMargin()` called on one (with literal-only arguments)
@@ -72,7 +97,11 @@ In order of preference:
 
 [`bind()`](/helpers#writing-a-custom-helper) only makes sense together with
 `addUnsafe()`. Calling it inside a string template passed to `add()` / `+` is reported as a
-`KUERY_BIND_CALL_IN_SQL_TEMPLATE` compile **error**:
+`KUERY_BIND_CALL_IN_SQL_TEMPLATE` compile **error**. Interpolated values there are already bound
+automatically, so the placeholder returned by `bind()` would itself be bound as a value. The SQL
+would compare `user_id` against the literal string `:p0` and silently match nothing.
+
+### Noncompliant code
 
 ```kotlin
 kueryClient.sql {
@@ -80,12 +109,17 @@ kueryClient.sql {
 }
 ```
 
-Interpolated values there are bound automatically, so the placeholder name returned by `bind()`
-(e.g. `:p0`) would itself be re-bound as a new parameter value — the query would compare
-`user_id` against the literal string `:p0` and silently match nothing. Since there is no valid
-program in which this may be left as-is, it is an **error regardless of strict mode**.
-Interpolate the value directly (`$userId` instead of `${bind(userId)}`), or use `addUnsafe()`
-when you need `bind()` — see [Helpers](/helpers#writing-a-custom-helper).
+### Compliant code
+
+```kotlin
+kueryClient.sql {
+    +"SELECT * FROM users WHERE user_id = $userId"
+}
+```
+
+This diagnostic is an **error regardless of strict mode**. Interpolate the value directly, or use
+`addUnsafe()` when you need `bind()` for dynamically assembled SQL — see
+[Helpers](/helpers#writing-a-custom-helper).
 
 ## SQL syntax errors (`KUERY_SQL_SYNTAX`) {#sql-syntax-errors}
 
@@ -94,11 +128,48 @@ compile time: blocks whose complete statement is statically known are assembled 
 runtime and run through a SQL parser. A parse failure is reported as `KUERY_SQL_SYNTAX`. See
 [SQL Syntax Check](/sql-syntax-check) for configuration and examples.
 
+### Noncompliant code
+
+```kotlin
+kueryClient.sql {
+    +"SELECT *"
+    +"FORM users" // KUERY_SQL_SYNTAX: FORM should be FROM
+}
+```
+
+### Compliant code
+
+```kotlin
+kueryClient.sql {
+    +"SELECT *"
+    +"FROM users"
+}
+```
+
 ## Unsupported SQL dialect features (`KUERY_SQL_DIALECT`) {#unsupported-sql-dialect-features}
 
 When `sqlSyntaxCheck` is configured with a dialect, the plugin also reports SQL features that the
 selected dialect does not support as `KUERY_SQL_DIALECT`. See
 [Choosing a dialect](/sql-syntax-check#choosing-a-dialect) for the available dialects and examples.
+
+The following examples assume `sqlSyntaxCheck = "postgresql"`.
+
+### Noncompliant code
+
+```kotlin
+// KUERY_SQL_DIALECT: ON DUPLICATE KEY UPDATE is a MySQL feature
+kueryClient.sql {
+    +"INSERT INTO users (id, name) VALUES ($id, $name) ON DUPLICATE KEY UPDATE name = $name"
+}
+```
+
+### Compliant code
+
+```kotlin
+kueryClient.sql {
+    +"INSERT INTO users (id, name) VALUES ($id, $name) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name"
+}
+```
 
 ## Redundant `trimIndent()` (`KUERY_REDUNDANT_TRIM_INDENT`) {#redundant-trimindent}
 
@@ -109,6 +180,28 @@ plugin reports a `KUERY_REDUNDANT_TRIM_INDENT` **warning** for such calls; remov
 enabling the option. Details are in [Basics](/basics#automatic-trimindent-opt-in).
 
 This is a style issue, not a safety issue, so [strict mode](#strict-mode) does not escalate it.
+
+### Noncompliant code
+
+```kotlin
+kueryClient.sql {
+    +"""
+    SELECT *
+    FROM users
+    """.trimIndent() // KUERY_REDUNDANT_TRIM_INDENT
+}
+```
+
+### Compliant code
+
+```kotlin
+kueryClient.sql {
+    +"""
+    SELECT *
+    FROM users
+    """
+}
+```
 
 ## Strict mode
 
