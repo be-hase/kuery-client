@@ -88,7 +88,7 @@ your `@ReadingConverter` — it goes down the constructor-mapping path and fails
 match. Receive custom types as properties of a data class instead.
 :::
 
-## Value classes
+## Unsupported: Kotlin value classes
 
 Kotlin value classes are not supported on the fetch side, in either position:
 

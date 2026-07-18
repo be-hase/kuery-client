@@ -99,4 +99,4 @@ The blocking client uses the same SQL and mapping code without `suspend`.
 Conversion is performed per bound value and per mapped column. A non-simple custom type used as the top-level
 return type does not automatically use its `@ReadingConverter`; put it in a mapped data class property instead.
 Kotlin value classes have additional fetch-side limitations. See [Custom types](/row-mapping#custom-types) and
-[Value classes](/row-mapping#value-classes) in Row Mapping.
+[Unsupported Kotlin value classes](/row-mapping#unsupported-kotlin-value-classes) in Row Mapping.
