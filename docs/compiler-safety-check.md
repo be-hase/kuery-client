@@ -8,13 +8,13 @@ The kuery-client compiler plugin does more than rewrite interpolated runtime val
 parameters — it also **checks your SQL code at compile time**. This page is the overview of
 every diagnostic the plugin can report:
 
-| Diagnostic | Fires when | Severity | Enabled |
+| Diagnostic | Description | Severity | Enabled |
 |---|---|---|---|
-| [`KUERY_UNSAFE_SQL_STRING`](#unsafe-sql-strings) | Automatic parameter binding cannot be guaranteed for a SQL expression | warning ([`strict`](#strict-mode) → error) | always |
-| [`KUERY_BIND_CALL_IN_SQL_TEMPLATE`](#bind-in-a-string-template) | `bind()` is called inside a string template | always error | always |
-| [`KUERY_SQL_SYNTAX`](#sql-syntax-errors) | Statically-known SQL fails to parse | warning ([`strict`](#strict-mode) → error) | [`sqlSyntaxCheck`](/sql-syntax-check) |
-| [`KUERY_SQL_DIALECT`](#unsupported-sql-dialect-features) | SQL uses a feature the dialect lacks | warning ([`strict`](#strict-mode) → error) | [`sqlSyntaxCheck` with a dialect](/sql-syntax-check#choosing-a-dialect) |
-| [`KUERY_REDUNDANT_TRIM_INDENT`](#redundant-trimindent) | An explicit `trimIndent()` is redundant under auto-trim | warning (style — never escalated) | [`autoTrimIndent`](/basics#automatic-trimindent-opt-in) |
+| [`KUERY_UNSAFE_SQL_STRING`](#unsafe-sql-strings) | Detects SQL expressions whose automatic parameter binding cannot be verified | warning ([`strict`](#strict-mode) → error) | always |
+| [`KUERY_BIND_CALL_IN_SQL_TEMPLATE`](#bind-in-a-string-template) | Prevents a placeholder returned by `bind()` from being bound again as a value | always error | always |
+| [`KUERY_SQL_SYNTAX`](#sql-syntax-errors) | Reports syntax errors in SQL reconstructed at compile time | warning ([`strict`](#strict-mode) → error) | [`sqlSyntaxCheck`](/sql-syntax-check) |
+| [`KUERY_SQL_DIALECT`](#unsupported-sql-dialect-features) | Reports SQL features unsupported by the configured dialect | warning ([`strict`](#strict-mode) → error) | [`sqlSyntaxCheck` with a dialect](/sql-syntax-check#choosing-a-dialect) |
+| [`KUERY_REDUNDANT_TRIM_INDENT`](#redundant-trimindent) | Reports unnecessary `trimIndent()` calls when automatic trimming is enabled | warning (style — never escalated) | [`autoTrimIndent`](/basics#automatic-trimindent-opt-in) |
 
 Every diagnostic can be [suppressed per declaration or reconfigured project-wide](#configuring-the-severity-manually)
 with the standard Kotlin mechanisms (`@Suppress`, `-Xwarning-level`).
