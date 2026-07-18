@@ -30,7 +30,8 @@ val kueryClient = SpringR2dbcKueryClient.builder()
 
 ## Recorded data
 
-Each fetch is recorded as an observation named `kuery.client.fetches` with the following tags:
+Each non-streaming terminal operation is recorded as an observation named `kuery.client.fetches` with the following
+tags. Streaming operations are not observed; see [Streaming operations are not observed](#streaming-operations-are-not-observed).
 
 | Tag | Cardinality | Description |
 |---|---|---|
