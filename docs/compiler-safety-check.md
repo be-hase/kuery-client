@@ -239,7 +239,9 @@ kueryClient.sql {
 ## Strict mode
 
 Enable `strict` in the Gradle plugin to report the SQL-safety diagnostics as compile
-**errors** instead of warnings (recommended for security-sensitive projects):
+**errors** instead of warnings. The option remains opt-in because it was added after Kuery Client's
+initial releases and changing the existing build behavior would be disruptive. It is recommended
+for new projects and is intended to become the default in a future release:
 
 ```kotlin
 kueryClient {
