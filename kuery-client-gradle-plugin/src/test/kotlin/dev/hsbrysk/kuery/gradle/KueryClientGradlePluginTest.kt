@@ -159,6 +159,20 @@ class KueryClientGradlePluginTest {
             .contains("must be one of generic, ansi, oracle, mysql, sqlserver, mariadb, postgresql, h2, but was 'db2'")
     }
 
+    @Test
+    fun `strict is passed through when enabled`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).strict.set(true)
+
+        // when
+        val options = plugin.applyToCompilation(compilation(project)).get()
+
+        // then
+        assertThat(options.single().toEqualsString()).isEqualTo("strict=true")
+    }
+
     private fun compilation(platformType: KotlinPlatformType): KotlinCompilation<*> = mockk {
         every { target.platformType } returns platformType
     }

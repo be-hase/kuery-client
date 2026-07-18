@@ -1,5 +1,5 @@
 ---
-description: The KUERY_UNSAFE_SQL_STRING compiler warning that catches SQL strings the plugin cannot convert into bind parameters.
+description: The KUERY_UNSAFE_SQL_STRING compiler warning that catches SQL strings the plugin cannot convert into bind parameters, and the strict option that turns the safety warnings into compile errors.
 ---
 
 # Compiler Safety Check
@@ -53,18 +53,45 @@ In order of preference:
 2. **Suppress the warning** with `@Suppress("KUERY_UNSAFE_SQL_STRING")` on the declaration, when
    you know the string is safe but the checker cannot see it.
 
-## Configuring the severity
+## Strict mode
 
-The check is a regular Kotlin compiler diagnostic, so the standard
-mechanisms apply:
+Enable `strict` in the Gradle plugin to report the SQL-safety diagnostics as compile
+**errors** instead of warnings (recommended for security-sensitive projects):
 
-- Treat it as an error (recommended for security-sensitive projects):
-  `-Xwarning-level=KUERY_UNSAFE_SQL_STRING:error`, or enable
-  `allWarningsAsErrors` (`-Werror`)
-- Disable it project-wide (not recommended):
-  `-Xwarning-level=KUERY_UNSAFE_SQL_STRING:disabled`
+```kotlin
+kueryClient {
+    strict = true
+}
+```
 
-In Gradle:
+This makes the compiler plugin register `KUERY_UNSAFE_SQL_STRING` — and, when the
+[SQL Syntax Check](/sql-syntax-check) is enabled, `KUERY_SQL_SYNTAX` / `KUERY_SQL_DIALECT` —
+as **error**-severity diagnostics. `@Suppress` on the enclosing declaration keeps working for
+individual call sites, and `addUnsafe()` + `bind()` remain the sanctioned way to build SQL
+dynamically. `KUERY_REDUNDANT_TRIM_INDENT` stays a warning — a style issue, not a safety issue.
+
+The escalated set may grow in minor releases as new safety diagnostics are added — enabling
+strict mode opts into those too.
+
+An explicit `-Xwarning-level` for one of these diagnostics always wins over strict mode: strict
+only changes the **default** severity of the diagnostics you have not configured yourself. So a
+single diagnostic can still be lowered back to a warning (or disabled) module-wide with strict
+enabled:
+
+```kotlin
+kotlin {
+    compilerOptions {
+        // keep everything else strict, but let the dialect check stay advisory
+        freeCompilerArgs.add("-Xwarning-level=KUERY_SQL_DIALECT:warning")
+    }
+}
+```
+
+## Configuring the severity manually
+
+The checks are regular Kotlin compiler diagnostics, so `-Xwarning-level` works as usual —
+without strict mode to escalate a single diagnostic, with strict mode to lower one back (see
+above), or to disable one project-wide (not recommended):
 
 ```kotlin
 kotlin {
@@ -73,6 +100,8 @@ kotlin {
     }
 }
 ```
+
+`allWarningsAsErrors` (`-Werror`) likewise turns all warnings into errors.
 
 ## See also
 

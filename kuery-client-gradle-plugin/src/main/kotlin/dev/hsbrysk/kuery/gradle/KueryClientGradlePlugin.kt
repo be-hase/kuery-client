@@ -13,12 +13,16 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         val extension = target.extensions.create(EXTENSION_NAME, KueryClientExtension::class.java)
         extension.autoTrimIndent.convention(false)
+        extension.strict.convention(false)
     }
 
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
         val extension = kotlinCompilation.target.project.extensions.getByType(KueryClientExtension::class.java)
         return extension.autoTrimIndent
             .zip(extension.sqlSyntaxCheck.orElse("")) { autoTrimIndent, sqlSyntaxCheck ->
+                autoTrimIndent to sqlSyntaxCheck
+            }
+            .zip(extension.strict) { (autoTrimIndent, sqlSyntaxCheck), strict ->
                 // Only emit an option when it deviates from the compiler plugin's default, so a
                 // build whose compiler-plugin artifact resolves to an older kuery-client-compiler
                 // (which would reject the unknown option) keeps working as long as the feature is
@@ -40,6 +44,7 @@ class KueryClientGradlePlugin : KotlinCompilerPluginSupportPlugin {
                         }
                         add(SubpluginOption("sqlSyntaxCheck", value))
                     }
+                    if (strict) add(SubpluginOption("strict", "true"))
                 }
             }
     }

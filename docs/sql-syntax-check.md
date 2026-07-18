@@ -16,8 +16,9 @@ kueryClient {
 }
 ```
 
-A block whose SQL fails to parse is then reported as a `KUERY_SQL_SYNTAX` **warning**, anchored
-to the offending line:
+A block whose SQL fails to parse is then reported as a `KUERY_SQL_SYNTAX` **warning** (or a
+compile **error** when `strict` is enabled — see
+[Compiler Safety Check](/compiler-safety-check#strict-mode)), anchored to the offending line:
 
 ```kotlin
 kueryClient.sql {

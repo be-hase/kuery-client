@@ -19,6 +19,12 @@ internal fun sqlSyntaxCheckOption(value: String = "generic"): PluginOption = Plu
     value,
 )
 
+internal fun strictOption(value: String = "true"): PluginOption = PluginOption(
+    KueryClientCompilerCommandLineProcessor.PLUGIN_ID,
+    KueryClientCompilerCommandLineProcessor.STRICT_OPTION_NAME,
+    value,
+)
+
 // Single kotlin-compile-testing harness with the kuery-client plugin applied, shared by every
 // test that compiles a snippet, so the registrar/processor wiring lives in one place.
 @OptIn(ExperimentalCompilerApi::class)

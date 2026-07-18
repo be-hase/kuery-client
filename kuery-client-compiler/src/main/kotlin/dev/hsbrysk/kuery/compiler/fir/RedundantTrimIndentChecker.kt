@@ -24,7 +24,8 @@ import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
  * `trimMargin` is never flagged — auto-trim does not remove margins, so an explicit call is not
  * redundant.
  */
-internal object RedundantTrimIndentChecker : FirFunctionCallChecker(MppCheckerKind.Common) {
+internal class RedundantTrimIndentChecker(private val diagnostics: KueryClientDiagnostics) :
+    FirFunctionCallChecker(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(expression: FirFunctionCall) {
         val sqlArgument = SqlBuilderCalls.sqlArgumentOrNull(expression) ?: return
@@ -36,7 +37,7 @@ internal object RedundantTrimIndentChecker : FirFunctionCallChecker(MppCheckerKi
         when (expression) {
             is FirFunctionCall -> {
                 if (expression.calleeReference.toResolvedCallableSymbol()?.callableId == CallableIds.TRIM_INDENT) {
-                    reporter.reportOn(expression.source, KueryClientDiagnostics.KUERY_REDUNDANT_TRIM_INDENT)
+                    reporter.reportOn(expression.source, diagnostics.KUERY_REDUNDANT_TRIM_INDENT)
                 }
             }
             // The automatic trim applies to whichever branch value is selected, so a trimIndent

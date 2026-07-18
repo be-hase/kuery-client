@@ -12,18 +12,19 @@ import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
 import org.jetbrains.kotlin.fir.visitors.FirVisitorVoid
 
 /**
- * Reports [KueryClientDiagnostics.KUERY_BIND_CALL_IN_SQL_TEMPLATE] when `SqlBuilder.bind()` is called
+ * Reports [diagnostics.KUERY_BIND_CALL_IN_SQL_TEMPLATE] when `SqlBuilder.bind()` is called
  * anywhere inside the SQL string argument of `add()` / `unaryPlus`. The IR transformation converts every
  * interpolated value into a bind parameter, so the placeholder name returned by `bind()` would itself be
  * re-bound as a new parameter value and the SQL would compare against the literal string ":pN".
  * `bind()` is only meaningful together with `addUnsafe()`, which is not transformed.
  */
-internal object BindCallInSqlTemplateChecker : FirFunctionCallChecker(MppCheckerKind.Common) {
+internal class BindCallInSqlTemplateChecker(private val diagnostics: KueryClientDiagnostics) :
+    FirFunctionCallChecker(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(expression: FirFunctionCall) {
         val sqlArgument = SqlBuilderCalls.sqlArgumentOrNull(expression) ?: return
         collectBindCalls(sqlArgument).forEach {
-            reporter.reportOn(it.source ?: expression.source, KueryClientDiagnostics.KUERY_BIND_CALL_IN_SQL_TEMPLATE)
+            reporter.reportOn(it.source ?: expression.source, diagnostics.KUERY_BIND_CALL_IN_SQL_TEMPLATE)
         }
     }
 
