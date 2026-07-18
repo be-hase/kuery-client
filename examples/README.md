@@ -17,11 +17,11 @@ docker compose up -d
 
 ```shell
 cd examples
-./gradlew :spring-data-r2dbc:bootRun
+../gradlew :spring-data-r2dbc:bootRun
 
 # or
 
-./gradlew :spring-data-jdbc:bootRun
+../gradlew :spring-data-jdbc:bootRun
 ```
 
 Both applications use port `8080`, so run only one at a time.

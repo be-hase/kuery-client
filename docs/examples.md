@@ -45,12 +45,12 @@ Run one application at a time because both listen on port `8080`:
 
 ```shell [R2DBC]
 cd examples
-./gradlew :spring-data-r2dbc:bootRun
+../gradlew :spring-data-r2dbc:bootRun
 ```
 
 ```shell [JDBC]
 cd examples
-./gradlew :spring-data-jdbc:bootRun
+../gradlew :spring-data-jdbc:bootRun
 ```
 
 :::

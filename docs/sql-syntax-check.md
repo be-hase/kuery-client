@@ -30,9 +30,10 @@ kueryClient.sql {
 
 ## What is checked
 
-A block is validated only when the **complete statement is statically known**. The checker joins
-its fragments with newlines, replaces every interpolated value with its `:pN` bind placeholder,
-and parses the resulting SQL.
+A block is validated only when the **complete statement can be reconstructed statically**. The
+checker joins its fragments with newlines, expands compile-time `String` / `Char` constants into
+the SQL text, replaces other interpolated values with their `:pN` bind placeholders, and parses
+the result.
 
 ### Checked code
 
@@ -53,8 +54,8 @@ kueryClient.sql {
 // WHERE tenant_id = :p0
 ```
 
-String literals/templates, `const val` references, and `trimIndent()` / `trimMargin()` on those
-forms can all be reconstructed:
+String literals/templates, direct-literal `const val` references, and `trimIndent()` /
+`trimMargin()` on those forms can all be reconstructed:
 
 ```kotlin
 const val SELECT_USERS = "SELECT * FROM users"
@@ -74,6 +75,11 @@ kueryClient.sql {
 // WHERE tenant_id = :p0
 // ORDER BY user_id
 ```
+
+The checker can evaluate a `const val` here when its initializer is a single literal. A computed
+initializer such as `const val TABLE = "app_" + "users"`, a reference to another constant, or a
+Java constant field is still safe to execute, but the checker cannot reconstruct its text and
+silently skips syntax validation for the block.
 
 Your own `SqlBuilder` extension functions are also checked when their source code is in the
 **same Gradle module** as the `sql { }` call. Helpers from another module are skipped because the

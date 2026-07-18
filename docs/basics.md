@@ -165,8 +165,11 @@ kueryClient
 
 MySQL has no array type, so use a `Collection` for `IN` clauses there.
 
-Primitive arrays are not treated as object arrays. For example, `ByteArray` is passed to the driver as one binary
-value rather than expanded into multiple parameters.
+`ByteArray` is a special case: it is passed to the driver as one binary value, not as a SQL array
+or an expanded parameter list. Other primitive arrays are client- and driver-dependent. R2DBC
+boxes `IntArray`, `LongArray`, and the other non-byte primitive arrays into object arrays before
+binding; JDBC passes primitive arrays to the driver unchanged. Check that the selected driver
+supports the resulting value.
 
 ### Enums
 

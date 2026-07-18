@@ -52,8 +52,11 @@ The same rule applies to the blocking client without `suspend`.
 
 An object array such as `Array<String>` is bound as one driver array value; it is not expanded as an `IN` list.
 This is useful with PostgreSQL array columns and `= ANY(...)`. MySQL has no equivalent native array type, so use
-a non-empty `Collection` for an `IN` clause instead. Primitive arrays such as `ByteArray` remain a single binary
-value.
+a non-empty `Collection` for an `IN` clause instead.
+
+`ByteArray` is bound as one binary value rather than a SQL array. For other primitive arrays, R2DBC boxes the
+elements into an object array before binding, while JDBC passes the primitive array to the driver unchanged;
+support therefore depends on the client and driver combination.
 
 ### Generated values
 
