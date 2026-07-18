@@ -25,11 +25,11 @@ lives in another module.
 
 ### Options
 
-| Option | Type | Default | Purpose |
-|---|---|---|---|
-| `autoTrimIndent` | `Boolean` | `false` | Applies `trimIndent()` automatically to strings passed to `+` / `add()` |
-| `sqlSyntaxCheck` | `String` | unset | Enables compile-time SQL parsing and optionally selects a dialect |
-| `strict` | `Boolean` | `false` | Escalates SQL-safety diagnostics from warnings to errors |
+| Option | Type | Default | Purpose | Accepted values |
+|---|---|---|---|---|
+| `autoTrimIndent` | `Boolean` | `false` | Applies `trimIndent()` automatically to strings passed to `+` / `add()` | — |
+| `sqlSyntaxCheck` | `String` | unset | Enables compile-time SQL parsing and optionally selects a dialect | <ul><li><code>generic</code></li><li><code>ansi</code></li><li><code>oracle</code></li><li><code>mysql</code></li><li><code>sqlserver</code></li><li><code>mariadb</code></li><li><code>postgresql</code></li><li><code>h2</code></li></ul> |
+| `strict` | `Boolean` | `false` | Escalates SQL-safety diagnostics from warnings to errors | — |
 
 For example:
 
@@ -41,8 +41,8 @@ kueryClient {
 }
 ```
 
-`sqlSyntaxCheck` accepts `generic`, `ansi`, `oracle`, `mysql`, `sqlserver`, `mariadb`, `postgresql`, or `h2`.
-Values are case-insensitive and surrounding whitespace is ignored. Any other value fails the Gradle build.
+`sqlSyntaxCheck` values are case-insensitive and surrounding whitespace is ignored. Any other value fails the
+Gradle build.
 
 ::: tip Recommended settings and planned defaults
 These options were added after Kuery Client's initial releases and remain opt-in today to avoid
