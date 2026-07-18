@@ -207,16 +207,33 @@ kueryClient
 Use normal Kotlin `if`, `when`, loops, and function calls. There is no separate template language.
 
 ```kotlin
+enum class UserSort { NAME, CREATED_AT }
+
 kueryClient
     .sql {
-        +"SELECT * FROM users"
-        +"WHERE"
-        +"status = $status"
-        if (vip != null) {
-            +"AND vip = $vip"
+        +"SELECT u.* FROM users u"
+        +"WHERE u.tenant_id = $tenantId"
+
+        if (email != null) {
+            +"AND u.email = $email"
+        }
+        if (!includeDeleted) {
+            +"AND u.deleted_at IS NULL"
+        }
+        for (role in requiredRoles) {
+            +"AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.user_id AND ur.role_name = $role)"
+        }
+
+        when (sort) {
+            UserSort.NAME -> +"ORDER BY u.name"
+            UserSort.CREATED_AT -> +"ORDER BY u.created_at DESC"
         }
     }
+    .list()
 ```
+
+The `if` blocks add optional filters, the loop requires every requested role, and `when` selects a
+fixed, safe `ORDER BY` clause. Interpolated values are still bound as parameters in every branch.
 
 ## Reusable query parts
 
