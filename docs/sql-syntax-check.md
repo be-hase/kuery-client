@@ -30,11 +30,33 @@ kueryClient.sql {
 
 ## What is checked
 
-A block is validated only when the **complete statement is statically known**: every statement
-in the block is an `add()` / `+"..."` whose argument is a string literal/template, a `const val`
-reference, or `trimIndent()` / `trimMargin()` on one. The statement texts are assembled exactly
-like at runtime — joined with newlines, every interpolated `$value` replaced by its `:pN` bind
-placeholder — and parsed.
+A block is validated only when the **complete statement is statically known**. The checker joins
+its fragments with newlines, replaces every interpolated value with its `:pN` bind placeholder,
+and parses the resulting SQL.
+
+### Checked code
+
+String literals/templates, `const val` references, and `trimIndent()` / `trimMargin()` on those
+forms can all be reconstructed:
+
+```kotlin
+const val SELECT_USERS = "SELECT * FROM users"
+
+kueryClient.sql {
+    +SELECT_USERS
+    +"""
+    WHERE tenant_id = $tenantId
+    """.trimIndent()
+    +"""
+    |ORDER BY user_id
+    """.trimMargin()
+}
+
+// Parsed as:
+// SELECT * FROM users
+// WHERE tenant_id = :p0
+// ORDER BY user_id
+```
 
 Calls to your own **static helper functions** are inlined into the reconstruction: a final
 `SqlBuilder` extension in the same module — top-level or a member of the enclosing class (the
@@ -53,15 +75,63 @@ kueryClient.sql {
 }
 ```
 
-Anything else makes the whole block **silently skipped**, because the final SQL cannot be known
-at compile time:
+### Skipped code
 
-- Conditionals, loops, or early returns inside the block (`if`, `when`, `for`, `?.let { ... }`,
-  `return@sql`)
-- Helper functions that are dynamic inside, overridable, or compiled in another module
-- `addUnsafe()` (dynamic SQL is out of the check's scope by design)
-- Non-literal `add()` arguments such as variables (those already draw
-  [`KUERY_UNSAFE_SQL_STRING`](/compiler-safety-check#unsafe-sql-strings))
+If control flow determines which fragments are added, the final SQL depends on runtime state, so
+the whole block is skipped:
+
+```kotlin
+kueryClient.sql {
+    +"SELECT * FROM users"
+    +"WHERE tenant_id = $tenantId"
+
+    if (activeOnly) {
+        +"AND active = TRUE"
+    }
+    for (role in requiredRoles) {
+        +"AND role_name = $role"
+    }
+}
+// No KUERY_SQL_SYNTAX check: the final statement varies at runtime.
+```
+
+A helper with dynamic control flow also makes its caller impossible to reconstruct:
+
+```kotlin
+fun SqlBuilder.activeUsersOnly(enabled: Boolean) {
+    if (enabled) {
+        +"WHERE active = TRUE"
+    }
+}
+
+kueryClient.sql {
+    +"SELECT * FROM users"
+    activeUsersOnly(activeOnly)
+}
+// No KUERY_SQL_SYNTAX check.
+```
+
+`addUnsafe()` and non-literal arguments likewise opt the block out of syntax validation:
+
+```kotlin
+val orderBy = "ORDER BY user_id"
+
+kueryClient.sql {
+    +"SELECT * FROM users"
+    add(orderBy) // Also reports KUERY_UNSAFE_SQL_STRING.
+}
+
+@OptIn(DelicateKueryClientApi::class)
+fun customQuery(customSql: String) = kueryClient.sql {
+    +"SELECT * FROM users"
+    addUnsafe(customSql)
+}
+```
+
+The same skip applies to `when`, `?.let { ... }`, `return@sql`, and helpers that are overridable
+or compiled in another module. Skipping is silent: it suppresses only `KUERY_SQL_SYNTAX` /
+`KUERY_SQL_DIALECT`, not other diagnostics such as
+[`KUERY_UNSAFE_SQL_STRING`](/compiler-safety-check#unsafe-sql-strings).
 
 This mirrors how compile-time-checked SQL works elsewhere (e.g. Rust's sqlx): statements that
 are fully known are verified, dynamically assembled ones are not — no false alarms on dynamic
