@@ -1,0 +1,19 @@
+public abstract interface class dev/hsbrysk/kuery/gradle/KueryClientExtension {
+	public abstract fun getAutoTrimIndent ()Lorg/gradle/api/provider/Property;
+	public abstract fun getSqlSyntaxCheck ()Lorg/gradle/api/provider/Property;
+}
+
+public final class dev/hsbrysk/kuery/gradle/KueryClientGradlePlugin : org/jetbrains/kotlin/gradle/plugin/KotlinCompilerPluginSupportPlugin {
+	public static final field Companion Ldev/hsbrysk/kuery/gradle/KueryClientGradlePlugin$Companion;
+	public fun <init> ()V
+	public synthetic fun apply (Ljava/lang/Object;)V
+	public fun apply (Lorg/gradle/api/Project;)V
+	public fun applyToCompilation (Lorg/jetbrains/kotlin/gradle/plugin/KotlinCompilation;)Lorg/gradle/api/provider/Provider;
+	public fun getCompilerPluginId ()Ljava/lang/String;
+	public fun getPluginArtifact ()Lorg/jetbrains/kotlin/gradle/plugin/SubpluginArtifact;
+	public fun isApplicable (Lorg/jetbrains/kotlin/gradle/plugin/KotlinCompilation;)Z
+}
+
+public final class dev/hsbrysk/kuery/gradle/KueryClientGradlePlugin$Companion {
+}
+
