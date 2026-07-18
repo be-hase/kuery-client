@@ -20,10 +20,13 @@ features:
     details: ORM libraries are convenient, but they each require learning their own DSL, which we believe is a steep cost. Kuery Client emphasizes writing SQL as it is.
   - icon: 🛡️
     title: Safe by design
-    details: String interpolation is converted into bind parameters by the compiler plugin — never concatenated into the SQL text. Built-in compile-time checks warn when a SQL string cannot be converted safely.
+    details: String interpolation is converted into bind parameters by the compiler plugin — never concatenated into the SQL text. SQL injection is prevented by construction.
+  - icon: ✅
+    title: Compile-time checks
+    details: The compiler plugin warns when a SQL string cannot be converted safely, and can optionally validate SQL syntax — mistakes surface at compile time, not in production.
     link: /compiler-safety-check
   - icon: 🍃
-    title: Based on spring-data-r2dbc and spring-data-jdbc
+    title: Built on Spring Data
     details: Kuery Client is implemented on top of spring-data-r2dbc and spring-data-jdbc. Use whichever you prefer. You can keep using Spring's ecosystem as is, such as @Transactional.
   - icon: 🔭
     title: Observability
