@@ -24,42 +24,27 @@ class PublishedPluginFunctionalTest {
 
     @Test
     fun `string interpolation in a consumer project is converted into bind parameters`() {
-        writeSettings()
-        writeBuild(
-            """
-            plugins {
-                kotlin("jvm") version "$kotlinVersion"
-                id("dev.hsbrysk.kuery-client") version "$version"
-                application
-            }
-
-            dependencies {
-                implementation("dev.hsbrysk.kuery-client:kuery-client-core:$version")
-            }
-
-            application {
-                mainClass = "MainKt"
-            }
-            """,
-        )
-        writeSource(
-            "src/main/kotlin/Main.kt",
-            """
-            import dev.hsbrysk.kuery.core.Sql
-
-            fun main() {
-                val userId = 42
-                val sql = Sql { +"SELECT * FROM users WHERE user_id = ${'$'}userId" }
-                println("body=" + sql.body)
-                println("params=" + sql.parameters.joinToString(",") { it.name + "=" + it.value })
-            }
-            """,
-        )
+        writeInterpolationConsumer()
 
         val output = runner("run", "--quiet").build().output
 
-        assertThat(output).contains("body=SELECT * FROM users WHERE user_id = :p0")
-        assertThat(output).contains("params=p0=42")
+        assertInterpolatedSql(output)
+    }
+
+    // The hard floor is Gradle's embedded Kotlin being able to read the metadata of the plugin
+    // jar, so upgrading the Kotlin version the plugin is built with can silently raise it — this
+    // test pins the declared minimum (docs/compatibility.md) so such a change fails CI instead
+    // of failing users.
+    @Test
+    fun `the plugin works on the minimum supported Gradle version`() {
+        writeInterpolationConsumer()
+
+        val output = runner("run", "--quiet")
+            .withGradleVersion(MINIMUM_SUPPORTED_GRADLE_VERSION)
+            .build()
+            .output
+
+        assertInterpolatedSql(output)
     }
 
     @Test
@@ -196,6 +181,45 @@ class PublishedPluginFunctionalTest {
         assertThat(jsLine).doesNotContain("kuery-client-compiler")
     }
 
+    private fun writeInterpolationConsumer() {
+        writeSettings()
+        writeBuild(
+            """
+            plugins {
+                kotlin("jvm") version "$kotlinVersion"
+                id("dev.hsbrysk.kuery-client") version "$version"
+                application
+            }
+
+            dependencies {
+                implementation("dev.hsbrysk.kuery-client:kuery-client-core:$version")
+            }
+
+            application {
+                mainClass = "MainKt"
+            }
+            """,
+        )
+        writeSource(
+            "src/main/kotlin/Main.kt",
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun main() {
+                val userId = 42
+                val sql = Sql { +"SELECT * FROM users WHERE user_id = ${'$'}userId" }
+                println("body=" + sql.body)
+                println("params=" + sql.parameters.joinToString(",") { it.name + "=" + it.value })
+            }
+            """,
+        )
+    }
+
+    private fun assertInterpolatedSql(output: String) {
+        assertThat(output).contains("body=SELECT * FROM users WHERE user_id = :p0")
+        assertThat(output).contains("params=p0=42")
+    }
+
     private fun runner(vararg arguments: String): GradleRunner = GradleRunner.create()
         .withProjectDir(projectDir)
         .withArguments(*arguments, "--stacktrace")
@@ -255,5 +279,11 @@ class PublishedPluginFunctionalTest {
         val file = projectDir.resolve(path)
         file.parentFile.mkdirs()
         file.writeText(content.trimIndent())
+    }
+
+    companion object {
+        // Keep in sync with the declared minimum in docs/compatibility.md and
+        // docs/getting-started.md.
+        private const val MINIMUM_SUPPORTED_GRADLE_VERSION = "8.4"
     }
 }

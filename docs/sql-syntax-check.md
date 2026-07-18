@@ -16,9 +16,6 @@ kueryClient {
 }
 ```
 
-(On Gradle versions without Kotlin DSL property assignment — before 8.2 — write
-`sqlSyntaxCheck.set("generic")` instead.)
-
 A block whose SQL fails to parse is then reported as a `KUERY_SQL_SYNTAX` **warning**, anchored
 to the offending line:
 

@@ -7,8 +7,8 @@ description: Install via Gradle plugin and dependency, build a KueryClient from 
 ## Requirements
 
 - Java 17 or later
-- Gradle — parameter binding relies on a Kotlin compiler plugin that is applied via the Gradle plugin, so Maven
-  is currently not supported
+- Gradle 8.4 or later — parameter binding relies on a Kotlin compiler plugin that is applied via the Gradle
+  plugin, so Maven is currently not supported
 - See [Compatibility](/compatibility) for the recommended Kotlin / Spring versions for each release
 
 ## Install
