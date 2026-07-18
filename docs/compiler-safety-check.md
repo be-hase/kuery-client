@@ -12,14 +12,14 @@ every diagnostic the plugin can report:
 |---|---|---|---|
 | [`KUERY_UNSAFE_SQL_STRING`](#unsafe-sql-strings) | Automatic parameter binding cannot be guaranteed for a SQL expression | warning ([`strict`](#strict-mode) → error) | always |
 | [`KUERY_BIND_CALL_IN_SQL_TEMPLATE`](#bind-in-a-string-template) | `bind()` is called inside a string template | always error | always |
-| [`KUERY_SQL_SYNTAX`](/sql-syntax-check) | Statically-known SQL fails to parse | warning ([`strict`](#strict-mode) → error) | [`sqlSyntaxCheck`](/sql-syntax-check) |
-| [`KUERY_SQL_DIALECT`](/sql-syntax-check#choosing-a-dialect) | SQL uses a feature the dialect lacks | warning ([`strict`](#strict-mode) → error) | [`sqlSyntaxCheck` with a dialect](/sql-syntax-check#choosing-a-dialect) |
+| [`KUERY_SQL_SYNTAX`](#sql-syntax-errors) | Statically-known SQL fails to parse | warning ([`strict`](#strict-mode) → error) | [`sqlSyntaxCheck`](/sql-syntax-check) |
+| [`KUERY_SQL_DIALECT`](#unsupported-sql-dialect-features) | SQL uses a feature the dialect lacks | warning ([`strict`](#strict-mode) → error) | [`sqlSyntaxCheck` with a dialect](/sql-syntax-check#choosing-a-dialect) |
 | [`KUERY_REDUNDANT_TRIM_INDENT`](#redundant-trimindent) | An explicit `trimIndent()` is redundant under auto-trim | warning (style — never escalated) | [`autoTrimIndent`](/basics#automatic-trimindent-opt-in) |
 
 Every diagnostic can be [suppressed per declaration or reconfigured project-wide](#configuring-the-severity-manually)
 with the standard Kotlin mechanisms (`@Suppress`, `-Xwarning-level`).
 
-## Unsafe SQL strings
+## Unsafe SQL strings (`KUERY_UNSAFE_SQL_STRING`) {#unsafe-sql-strings}
 
 The plugin's conversion of string interpolation into named bind parameters only works when the
 SQL string is written **directly as a string literal/template at the call site**. If you pass
@@ -68,7 +68,7 @@ In order of preference:
 2. **Suppress the warning** with `@Suppress("KUERY_UNSAFE_SQL_STRING")` on the declaration, when
    you know the string is safe but the checker cannot see it.
 
-## `bind()` in a string template
+## `bind()` in a string template (`KUERY_BIND_CALL_IN_SQL_TEMPLATE`) {#bind-in-a-string-template}
 
 [`bind()`](/helpers#writing-a-custom-helper) only makes sense together with
 `addUnsafe()`. Calling it inside a string template passed to `add()` / `+` is reported as a
@@ -87,15 +87,20 @@ program in which this may be left as-is, it is an **error regardless of strict m
 Interpolate the value directly (`$userId` instead of `${bind(userId)}`), or use `addUnsafe()`
 when you need `bind()` — see [Helpers](/helpers#writing-a-custom-helper).
 
-## SQL syntax validation (opt-in)
+## SQL syntax errors (`KUERY_SQL_SYNTAX`) {#sql-syntax-errors}
 
 With the `sqlSyntaxCheck` option enabled, the plugin also validates the **SQL text itself** at
 compile time: blocks whose complete statement is statically known are assembled exactly like at
-runtime and run through a SQL parser. A parse failure is reported as `KUERY_SQL_SYNTAX`, and —
-when a dialect is configured — a feature the dialect does not support as `KUERY_SQL_DIALECT`.
-This check has its own page: see [SQL Syntax Check](/sql-syntax-check).
+runtime and run through a SQL parser. A parse failure is reported as `KUERY_SQL_SYNTAX`. See
+[SQL Syntax Check](/sql-syntax-check) for configuration and examples.
 
-## Redundant `trimIndent()`
+## Unsupported SQL dialect features (`KUERY_SQL_DIALECT`) {#unsupported-sql-dialect-features}
+
+When `sqlSyntaxCheck` is configured with a dialect, the plugin also reports SQL features that the
+selected dialect does not support as `KUERY_SQL_DIALECT`. See
+[Choosing a dialect](/sql-syntax-check#choosing-a-dialect) for the available dialects and examples.
+
+## Redundant `trimIndent()` (`KUERY_REDUNDANT_TRIM_INDENT`) {#redundant-trimindent}
 
 With the [`autoTrimIndent`](/basics#automatic-trimindent-opt-in) option enabled, every string
 passed to `add()` / `+` is trimmed automatically, so an explicit `.trimIndent()` left behind is
