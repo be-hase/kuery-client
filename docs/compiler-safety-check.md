@@ -10,7 +10,7 @@ every diagnostic the plugin can report:
 
 | Diagnostic | Fires when | Severity | Enabled |
 |---|---|---|---|
-| [`KUERY_UNSAFE_SQL_STRING`](#unsafe-sql-strings) | `add()` / `+` receives a string the plugin cannot analyze | warning ([`strict`](#strict-mode) → error) | always |
+| [`KUERY_UNSAFE_SQL_STRING`](#unsafe-sql-strings) | Automatic parameter binding cannot be guaranteed for a SQL expression | warning ([`strict`](#strict-mode) → error) | always |
 | [`KUERY_BIND_CALL_IN_SQL_TEMPLATE`](#bind-in-a-string-template) | `bind()` is called inside a string template | always error | always |
 | [`KUERY_SQL_SYNTAX`](/sql-syntax-check) | Statically-known SQL fails to parse | warning ([`strict`](#strict-mode) → error) | [`sqlSyntaxCheck`](/sql-syntax-check) |
 | [`KUERY_SQL_DIALECT`](/sql-syntax-check#choosing-a-dialect) | SQL uses a feature the dialect lacks | warning ([`strict`](#strict-mode) → error) | [`sqlSyntaxCheck` with a dialect](/sql-syntax-check#choosing-a-dialect) |
@@ -27,8 +27,8 @@ anything else — for example a variable — the plugin cannot see the interpola
 string would be executed as raw SQL.
 
 To prevent this from happening silently, the compiler plugin reports a
-`KUERY_UNSAFE_SQL_STRING` **warning** when the argument of `add()` / `+` cannot be fully analyzed
-at compile time. Typical flagged arguments:
+`KUERY_UNSAFE_SQL_STRING` **warning** when it cannot guarantee that interpolation in an `add()` /
+`+` expression will be converted into bind parameters. Typical flagged arguments:
 
 | Flagged argument | Problem |
 |---|---|
