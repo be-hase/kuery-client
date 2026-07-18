@@ -29,6 +29,8 @@ interface KueryClientExtension {
      * is inlined); dynamically assembled blocks are skipped.
      * The checks are lenient and may occasionally produce a false positive — suppress with
      * `@Suppress("KUERY_SQL_SYNTAX")` / `@Suppress("KUERY_SQL_DIALECT")`.
+     *
+     * See https://kuery-client.hsbrysk.dev/sql-syntax-check for details.
      */
     val sqlSyntaxCheck: Property<String>
 
