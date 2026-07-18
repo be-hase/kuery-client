@@ -18,7 +18,7 @@ kueryClient
     }
 ```
 
-Use one fragment when the statement does not need dynamic construction:
+A fragment can also span multiple lines:
 
 ```kotlin
 kueryClient
