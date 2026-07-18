@@ -3,6 +3,7 @@ package dev.hsbrysk.kuery.compiler.fir
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactoryToRendererMap
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticsContainer
 import org.jetbrains.kotlin.diagnostics.SourceElementPositioningStrategies
+import org.jetbrains.kotlin.diagnostics.error0
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
 import org.jetbrains.kotlin.diagnostics.warning0
@@ -12,7 +13,10 @@ import org.jetbrains.kotlin.psi.KtExpression
 internal object KueryClientDiagnostics : KtDiagnosticsContainer() {
     // The property name is the diagnostic name, i.e. the key for @Suppress and -Xwarning-level.
     val KUERY_UNSAFE_SQL_STRING by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
-    val KUERY_BIND_CALL_IN_SQL_TEMPLATE by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
+
+    // An error, not a warning: SQL that fires this always compares against the literal string
+    // ":pN" at runtime, so there is no valid program in which it may be left as-is.
+    val KUERY_BIND_CALL_IN_SQL_TEMPLATE by error0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
     val KUERY_REDUNDANT_TRIM_INDENT by warning0<KtExpression>(SourceElementPositioningStrategies.DEFAULT)
     val KUERY_SQL_SYNTAX by warning1<KtExpression, String>(SourceElementPositioningStrategies.DEFAULT)
     val KUERY_SQL_DIALECT by warning1<KtExpression, String>(SourceElementPositioningStrategies.DEFAULT)
@@ -47,8 +51,7 @@ internal object KueryClientDiagnosticRenderers : BaseDiagnosticRendererFactory()
                 "plugin already converts every interpolated value into a bind parameter, so the placeholder " +
                 "name returned by bind() would itself be re-bound as a new parameter value and the SQL would " +
                 "compare against the literal string ':pN'. Interpolate the value directly (\$value instead " +
-                "of \${bind(value)}), or use addUnsafe() when you need bind(). If this is intentional, " +
-                "annotate the enclosing declaration with @Suppress(\"KUERY_BIND_CALL_IN_SQL_TEMPLATE\").",
+                "of \${bind(value)}), or use addUnsafe() when you need bind().",
         )
         map.put(
             KueryClientDiagnostics.KUERY_SQL_SYNTAX,
