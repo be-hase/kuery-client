@@ -1,5 +1,5 @@
 ---
-description: Build safe static and dynamic SQL with +/add, string-interpolation parameter binding, constants, collections, and reusable Kotlin helpers.
+description: Build safe static and dynamic SQL with +/add, interpolation, constants, collections, reusable helpers, and the lower-level addUnsafe/bind APIs.
 ---
 
 # Building SQL
@@ -271,8 +271,39 @@ class UserRepository(private val kueryClient: KueryClient) {
 }
 ```
 
-For fragments that must be assembled as a string dynamically (e.g. a variable number of placeholders), see
-[Helpers](/helpers).
+For fragments that must be assembled as a string dynamically, use the lower-level APIs described next.
+
+## `addUnsafe()` and `bind()`
+
+Prefer `+` / `add()` and ordinary string interpolation whenever possible. The compiler plugin can
+then bind runtime values automatically and check that the SQL string is safe.
+
+For a fragment that must itself be assembled programmatically—such as a variable number of
+placeholders—`addUnsafe()` appends the completed SQL text without compiler transformation.
+`bind(value)` registers one named parameter and returns its placeholder (for example, `:p0`) for
+that text:
+
+```kotlin
+@OptIn(DelicateKueryClientApi::class)
+fun SqlBuilder.addValues(row: List<Any?>) {
+    require(row.isNotEmpty()) { "row must not be empty" }
+
+    val placeholders = row.joinToString(", ") { value -> bind(value) }
+    addUnsafe("VALUES ($placeholders)")
+}
+```
+
+Both functions require an explicit `@OptIn(DelicateKueryClientApi::class)`. Text passed to
+`addUnsafe()` becomes part of the SQL body as-is, so never include untrusted input in it. Keep
+runtime values in `bind(...)`; the returned placeholders are the only dynamically assembled text
+in the example above.
+
+`bind()` is only for SQL passed to `addUnsafe()`. Do not interpolate its result into `+"..."` or
+`add("...")`: those APIs already bind interpolated expressions, so doing both is a compile error
+([`KUERY_BIND_CALL_IN_SQL_TEMPLATE`](/compiler-safety-check#bind-in-a-string-template)).
+
+For multi-row `INSERT` statements, use the built-in [`values` helper](/helpers#values) instead of
+implementing the example above yourself.
 
 ## Fetch Result
 

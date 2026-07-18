@@ -128,7 +128,7 @@ In order of preference:
 
 ## `bind()` in a string template (`KUERY_BIND_CALL_IN_SQL_TEMPLATE`) {#bind-in-a-string-template}
 
-[`bind()`](/helpers#writing-a-custom-helper) only makes sense together with
+[`bind()`](/basics#addunsafe-and-bind) only makes sense together with
 `addUnsafe()`. Calling it inside a string template passed to `add()` / `+` is reported as a
 `KUERY_BIND_CALL_IN_SQL_TEMPLATE` compile **error**. Interpolated values there are already bound
 automatically, so the placeholder returned by `bind()` would itself be bound as a value. The SQL
@@ -152,7 +152,7 @@ kueryClient.sql {
 
 This diagnostic is an **error regardless of strict mode**. Interpolate the value directly, or use
 `addUnsafe()` when you need `bind()` for dynamically assembled SQL — see
-[Helpers](/helpers#writing-a-custom-helper).
+[`addUnsafe()` and `bind()`](/basics#addunsafe-and-bind).
 
 ## SQL syntax errors (`KUERY_SQL_SYNTAX`) {#sql-syntax-errors}
 
