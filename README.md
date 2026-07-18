@@ -41,8 +41,9 @@ SELECT * FROM users WHERE user_id = :p0  -- :p0 = userId, bound as a named param
       cost. Kuery Client emphasizes writing SQL as it is.
 - 🛡️ **Safe by design**
     - String interpolation is converted into bind parameters by the compiler plugin — never concatenated into
-      the SQL text. A built-in [compiler safety check](https://kuery-client.hsbrysk.dev/compiler-safety-check)
-      warns when it detects a SQL string that cannot be converted safely.
+      the SQL text. Built-in [compile-time checks](https://kuery-client.hsbrysk.dev/compiler-safety-check)
+      warn when they detect a SQL string that cannot be converted safely — and can be escalated to compile
+      errors with the [strict option](https://kuery-client.hsbrysk.dev/compiler-safety-check#strict-mode).
 - 🍃 **Based on spring-data-r2dbc and spring-data-jdbc**
     - Kuery Client is implemented on top of spring-data-r2dbc (coroutines) and spring-data-jdbc (blocking).
       Use whichever you prefer. You can keep using Spring's ecosystem as is, such as `@Transactional`.
@@ -164,7 +165,7 @@ val user: User? = kueryClient
 More details are on the [document site](https://kuery-client.hsbrysk.dev/):
 
 - [Basics](https://kuery-client.hsbrysk.dev/basics) — the SQL builder, dynamic SQL, fetch operations
-- [Compiler Safety Check](https://kuery-client.hsbrysk.dev/compiler-safety-check) — how unsafe SQL strings are caught at compile time
+- [Compile-Time Checks](https://kuery-client.hsbrysk.dev/compiler-safety-check) — the compiler diagnostics that catch unsafe SQL, and the strict option
 - [SQL Syntax Check](https://kuery-client.hsbrysk.dev/sql-syntax-check) — opt-in compile-time validation of your SQL syntax
 - [Transaction](https://kuery-client.hsbrysk.dev/transaction) / [Type Conversion](https://kuery-client.hsbrysk.dev/type-conversion) / [Row Mapping](https://kuery-client.hsbrysk.dev/row-mapping)
 - [Observation](https://kuery-client.hsbrysk.dev/observation) — Micrometer-based metrics, tracing, and logging

@@ -20,7 +20,7 @@ features:
     details: ORM libraries are convenient, but they each require learning their own DSL, which we believe is a steep cost. Kuery Client emphasizes writing SQL as it is.
   - icon: 🛡️
     title: Safe by design
-    details: String interpolation is converted into bind parameters by the compiler plugin — never concatenated into the SQL text. A built-in compiler safety check warns when a SQL string cannot be converted safely.
+    details: String interpolation is converted into bind parameters by the compiler plugin — never concatenated into the SQL text. Built-in compile-time checks warn when a SQL string cannot be converted safely.
     link: /compiler-safety-check
   - icon: 🍃
     title: Based on spring-data-r2dbc and spring-data-jdbc
