@@ -44,10 +44,21 @@ kueryClient {
 `sqlSyntaxCheck` accepts `generic`, `ansi`, `oracle`, `mysql`, `sqlserver`, `mariadb`, `postgresql`, or `h2`.
 Values are case-insensitive and surrounding whitespace is ignored. Any other value fails the Gradle build.
 
-::: tip Recommended starting point
-Enable `strict` in new projects so a SQL string that the compiler cannot safely transform fails the build.
-Enable `sqlSyntaxCheck` when its parser supports the SQL dialect used by the project; it is intentionally opt-in
-because vendor-specific syntax can produce false positives.
+::: tip Recommended settings and planned defaults
+These options were added after Kuery Client's initial releases and remain opt-in today to avoid
+changing the behavior of existing projects. They are intended to become the defaults in a future
+release, equivalent to:
+
+```kotlin
+kueryClient {
+    strict = true
+    autoTrimIndent = true
+    sqlSyntaxCheck = "generic"
+}
+```
+
+New projects can enable them now. Replace `generic` with the project's dialect when supported;
+dialect validation is stricter but can report false positives for uncommon vendor-specific SQL.
 :::
 
 See [Building SQL](/basics#automatic-trimindent-opt-in),
