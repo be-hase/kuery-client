@@ -54,7 +54,7 @@ runtime instead.
 
 Notes:
 
-- `addUnsafe()` is not affected — use it when you need to keep indentation as-is.
+- [`addUnsafe()`](#addunsafe-and-bind) is not affected — use it when you need to keep indentation as-is.
 - An explicit `.trimIndent()` is redundant: it prevents compile-time trimming, so the string is
   trimmed twice at runtime. The compiler reports a `KUERY_REDUNDANT_TRIM_INDENT` warning for such
   calls — remove them when enabling the option.
@@ -62,7 +62,7 @@ Notes:
   string still starts or ends with a blank line, which the automatic trim then drops.)
 - Unlike `.trimIndent()`, `.trimMargin()` is not redundant and does not produce a compiler warning.
   Auto-trim still applies `trimIndent()` to its result, which removes any common indentation left
-  after the margin prefix. Use `addUnsafe()` if that indentation must be preserved.
+  after the margin prefix. Use [`addUnsafe()`](#addunsafe-and-bind) if that indentation must be preserved.
 - The option defaults to `false`, so existing builds are unaffected.
 
 ## Binding Parameters
@@ -279,31 +279,48 @@ Prefer `+` / `add()` and ordinary string interpolation whenever possible. The co
 then bind runtime values automatically and check that the SQL string is safe.
 
 For a fragment that must itself be assembled programmatically—such as a variable number of
-placeholders—`addUnsafe()` appends the completed SQL text without compiler transformation.
+assignments—`addUnsafe()` appends the completed SQL text without compiler transformation.
 `bind(value)` registers one named parameter and returns its placeholder (for example, `:p0`) for
 that text:
 
 ```kotlin
-@OptIn(DelicateKueryClientApi::class)
-fun SqlBuilder.addValues(row: List<Any?>) {
-    require(row.isNotEmpty()) { "row must not be empty" }
-
-    val placeholders = row.joinToString(", ") { value -> bind(value) }
-    addUnsafe("VALUES ($placeholders)")
+enum class UserColumn(val sqlName: String) {
+    USERNAME("username"),
+    EMAIL("email"),
 }
+
+@OptIn(DelicateKueryClientApi::class)
+fun SqlBuilder.addAssignments(values: Map<UserColumn, Any?>) {
+    require(values.isNotEmpty()) { "values must not be empty" }
+
+    val assignments = values.entries.joinToString(", ") { (column, value) ->
+        "${column.sqlName} = ${bind(value)}"
+    }
+    addUnsafe("SET $assignments")
+}
+
+kueryClient.sql {
+    +"UPDATE users"
+    addAssignments(mapOf(UserColumn.USERNAME to username, UserColumn.EMAIL to email))
+    +"WHERE user_id = $userId"
+}
+
+// SQL body:
+// UPDATE users
+// SET username = :p0, email = :p1
+// WHERE user_id = :p2
 ```
 
 Both functions require an explicit `@OptIn(DelicateKueryClientApi::class)`. Text passed to
 `addUnsafe()` becomes part of the SQL body as-is, so never include untrusted input in it. Keep
-runtime values in `bind(...)`; the returned placeholders are the only dynamically assembled text
-in the example above.
+runtime values in `bind(...)`. In the example above, SQL identifiers come only from the closed
+`UserColumn` enum; arbitrary input can never become a column name.
 
 `bind()` is only for SQL passed to `addUnsafe()`. Do not interpolate its result into `+"..."` or
 `add("...")`: those APIs already bind interpolated expressions, so doing both is a compile error
 ([`KUERY_BIND_CALL_IN_SQL_TEMPLATE`](/compiler-safety-check#bind-in-a-string-template)).
 
-For multi-row `INSERT` statements, use the built-in [`values` helper](/helpers#values) instead of
-implementing the example above yourself.
+For multi-row `INSERT` statements, use the built-in [`values` helper](/helpers#values).
 
 ## Fetching Results
 

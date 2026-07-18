@@ -24,8 +24,9 @@ The following are **not** covered by the compatibility guarantee:
 - `kuery-client-compiler` internals. The compiler plugin depends on Kotlin compiler internal APIs and its
   implementation may change at any time.
 
-Declarations annotated with `@DelicateKueryClientApi` (such as `addUnsafe` and `bind`) are covered by the guarantee,
-but require care in use as documented.
+Declarations annotated with `@DelicateKueryClientApi` (such as
+[`addUnsafe()` and `bind()`](/basics#addunsafe-and-bind)) are covered by the guarantee, but require
+care in use as documented.
 
 ## Kotlin version policy
 
