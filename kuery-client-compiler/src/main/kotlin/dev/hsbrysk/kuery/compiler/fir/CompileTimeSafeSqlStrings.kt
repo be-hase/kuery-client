@@ -2,6 +2,7 @@ package dev.hsbrysk.kuery.compiler.fir
 
 import dev.hsbrysk.kuery.compiler.misc.CallableIds
 import org.jetbrains.kotlin.fir.declarations.utils.isConst
+import org.jetbrains.kotlin.fir.declarations.utils.isStatic
 import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirLiteralExpression
@@ -11,8 +12,12 @@ import org.jetbrains.kotlin.fir.expressions.FirWhenBranch
 import org.jetbrains.kotlin.fir.expressions.FirWhenExpression
 import org.jetbrains.kotlin.fir.expressions.unwrapArgument
 import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
+import org.jetbrains.kotlin.fir.symbols.SymbolInternals
+import org.jetbrains.kotlin.fir.symbols.impl.FirFieldSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
 import org.jetbrains.kotlin.fir.types.isNothing
 import org.jetbrains.kotlin.fir.types.resolvedType
+import org.jetbrains.kotlin.types.ConstantValueKind
 
 /**
  * The single definition of a "compile-time-safe" SQL string shape, shared by every FIR checker
@@ -28,8 +33,10 @@ internal object CompileTimeSafeSqlStrings {
         is FirLiteralExpression -> true
         // "SELECT ... $id" (converted into bind parameters by the IR transformation)
         is FirStringConcatenationCall -> true
-        // reference to a const val (a compile-time constant)
-        is FirPropertyAccessExpression -> expression.calleeReference.toResolvedCallableSymbol()?.isConst == true
+        // reference to a compile-time String/Char constant: a Kotlin const val, or a Java
+        // constant field — FIR2IR inlines both into the SQL text (mirrors
+        // SqlTextReconstruction.classifyValue)
+        is FirPropertyAccessExpression -> expression.isConstantRead()
         // "...".trimIndent() / "...".trimMargin(marginPrefix = <literal>)
         is FirFunctionCall ->
             expression.calleeReference.toResolvedCallableSymbol()?.callableId in ALLOWED_CHAIN_METHODS &&
@@ -43,6 +50,21 @@ internal object CompileTimeSafeSqlStrings {
                     ?.let { it.resolvedType.isNothing || isCompileTimeSafe(it) } == true
             }
         else -> false
+    }
+
+    // A Java static final field is a compile-time constant only when it carries a constant
+    // initializer (the ConstantValue attribute); fields computed at class initialization
+    // (e.g. java.io.File.separator) stay unsafe.
+    @OptIn(SymbolInternals::class)
+    private fun FirPropertyAccessExpression.isConstantRead(): Boolean {
+        val symbol = calleeReference.toResolvedCallableSymbol()
+        return when {
+            symbol is FirPropertySymbol && symbol.isConst -> true
+            symbol is FirFieldSymbol && symbol.isStatic && symbol.fir.isVal ->
+                (symbol.fir.initializer as? FirLiteralExpression)?.kind
+                    .let { it == ConstantValueKind.String || it == ConstantValueKind.Char }
+            else -> false
+        }
     }
 }
 

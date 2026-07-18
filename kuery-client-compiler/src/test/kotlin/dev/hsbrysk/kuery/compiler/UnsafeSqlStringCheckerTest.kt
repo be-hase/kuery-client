@@ -259,6 +259,49 @@ class UnsafeSqlStringCheckerTest {
     }
 
     @Test
+    fun `no warning when a Java constant is passed to add`() {
+        // FIR2IR inlines Java compile-time constants (static final String/Char fields with a
+        // constant initializer) into the SQL text just like Kotlin const vals, so the text is
+        // fully determined at compile time.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { add(javax.xml.XMLConstants.XML_NS_PREFIX) }
+                Sql { +javax.xml.XMLConstants.XML_NS_PREFIX }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `warn when a non-constant Java static field is passed to add`() {
+        // java.io.File.separator is static final but computed at class initialization (no
+        // ConstantValue attribute), so its value is not known at compile time.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { add(java.io.File.separator) }
+            }
+            """.trimIndent(),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
     fun `no warning for extension function helpers writing common query parts`() {
         // Mirrors the documented helper style: common WHERE clauses etc. written as
         // SqlBuilder extension functions using add/unaryPlus with string templates.

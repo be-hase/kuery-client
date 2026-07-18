@@ -88,7 +88,7 @@ kueryClient.sql {
     """.trimMargin()
 }
 
-// const val
+// const val; a Java constant (static final String with a constant initializer) works the same
 const val SELECT_ALL_USERS = "SELECT * FROM users"
 kueryClient.sql {
     +SELECT_ALL_USERS
