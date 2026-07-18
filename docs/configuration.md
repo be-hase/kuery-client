@@ -51,13 +51,13 @@ release, equivalent to:
 
 ```kotlin
 kueryClient {
-    strict = true
     autoTrimIndent = true
-    sqlSyntaxCheck = "generic"
+    sqlSyntaxCheck = "mysql"
+    strict = true
 }
 ```
 
-New projects can enable them now. Replace `generic` with the project's dialect when supported;
+New projects can enable them now. Replace `mysql` with the project's dialect when needed;
 dialect validation is stricter but can report false positives for uncommon vendor-specific SQL.
 :::
 
