@@ -165,6 +165,7 @@ More details are on the [document site](https://kuery-client.hsbrysk.dev/):
 
 - [Basics](https://kuery-client.hsbrysk.dev/basics) — the SQL builder, dynamic SQL, fetch operations
 - [Compiler Safety Check](https://kuery-client.hsbrysk.dev/compiler-safety-check) — how unsafe SQL strings are caught at compile time
+- [SQL Syntax Check](https://kuery-client.hsbrysk.dev/sql-syntax-check) — opt-in compile-time validation of your SQL syntax
 - [Transaction](https://kuery-client.hsbrysk.dev/transaction) / [Type Conversion](https://kuery-client.hsbrysk.dev/type-conversion) / [Row Mapping](https://kuery-client.hsbrysk.dev/row-mapping)
 - [Observation](https://kuery-client.hsbrysk.dev/observation) — Micrometer-based metrics, tracing, and logging
 - [Compatibility](https://kuery-client.hsbrysk.dev/compatibility) — supported Kotlin / Spring versions

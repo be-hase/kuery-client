@@ -73,3 +73,8 @@ kotlin {
     }
 }
 ```
+
+## See also
+
+The compiler plugin can also validate the SQL text itself at compile time — see the opt-in
+[SQL Syntax Check](/sql-syntax-check).

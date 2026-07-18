@@ -1,10 +1,15 @@
 package dev.hsbrysk.kuery.gradle
 
+import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
+import assertk.assertions.message
+import dev.hsbrysk.kuery.compiler.SqlSyntaxCheck
 import io.mockk.every
 import io.mockk.mockk
 import org.gradle.testfixtures.ProjectBuilder
@@ -55,6 +60,103 @@ class KueryClientGradlePluginTest {
 
         // then
         assertThat(options.single().toEqualsString()).isEqualTo("autoTrimIndent=true")
+    }
+
+    @Test
+    fun `sqlSyntaxCheck is passed through when set`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set("postgresql")
+
+        // when
+        val options = plugin.applyToCompilation(compilation(project)).get()
+
+        // then
+        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheck=postgresql")
+    }
+
+    @Test
+    fun `autoTrimIndent and sqlSyntaxCheck are both emitted when both are set`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        val extension = project.extensions.getByType(KueryClientExtension::class.java)
+        extension.autoTrimIndent.set(true)
+        extension.sqlSyntaxCheck.set("mysql")
+
+        // when
+        val options = plugin.applyToCompilation(compilation(project)).get()
+
+        // then
+        assertThat(options.map { it.toEqualsString() })
+            .isEqualTo(listOf("autoTrimIndent=true", "sqlSyntaxCheck=mysql"))
+    }
+
+    @Test
+    fun `a mixed-case sqlSyntaxCheck value is accepted and passed through verbatim`() {
+        // The compiler resolves the value case-insensitively, so the plugin must not reject a
+        // valid value on case alone.
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set("Generic")
+
+        // when
+        val options = plugin.applyToCompilation(compilation(project)).get()
+
+        // then
+        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheck=Generic")
+    }
+
+    @Test
+    fun `a whitespace-only sqlSyntaxCheck value is rejected instead of silently disabling the check`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set("  ")
+
+        // when & then
+        assertFailure { plugin.applyToCompilation(compilation(project)).get() }
+            .message()
+            .isNotNull()
+            .contains("kueryClient.sqlSyntaxCheck must be one of")
+    }
+
+    @Test
+    fun `a padded sqlSyntaxCheck value is trimmed and passed through`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set(" mysql ")
+
+        // when
+        val options = plugin.applyToCompilation(compilation(project)).get()
+
+        // then
+        assertThat(options.single().toEqualsString()).isEqualTo("sqlSyntaxCheck=mysql")
+    }
+
+    @Test
+    fun `the supported sqlSyntaxCheck values mirror the SqlSyntaxCheck enum of the compiler plugin`() {
+        // The list is duplicated because the plugin cannot depend on kuery-client-compiler at
+        // runtime; this pin makes sure the mirror cannot drift.
+        assertThat(KueryClientGradlePlugin.SUPPORTED_SQL_SYNTAX_CHECKS)
+            .isEqualTo(SqlSyntaxCheck.entries.map { it.name.lowercase() })
+    }
+
+    @Test
+    fun `an invalid sqlSyntaxCheck value is rejected with the supported values`() {
+        // given
+        val project = ProjectBuilder.builder().build()
+        plugin.apply(project)
+        project.extensions.getByType(KueryClientExtension::class.java).sqlSyntaxCheck.set("db2")
+
+        // when & then
+        assertFailure { plugin.applyToCompilation(compilation(project)).get() }
+            .message()
+            .isNotNull()
+            .contains("must be one of generic, ansi, oracle, mysql, sqlserver, mariadb, postgresql, h2, but was 'db2'")
     }
 
     private fun compilation(platformType: KotlinPlatformType): KotlinCompilation<*> = mockk {

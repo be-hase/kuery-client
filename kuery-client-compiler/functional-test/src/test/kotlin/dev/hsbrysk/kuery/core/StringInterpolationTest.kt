@@ -2,7 +2,9 @@ package dev.hsbrysk.kuery.core
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isTrue
 import io.mockk.InternalPlatformDsl.toStr
+import io.mockk.mockk
 import org.junit.jupiter.api.Test
 
 private const val TABLE = "users"
@@ -420,6 +422,16 @@ class StringInterpolationTest {
     }
 
     @Test
+    fun `a Java static final constant in a template is expanded as raw SQL text`() {
+        // FIR2IR folds Java compile-time constants exactly like Kotlin const vals: the value is
+        // spliced as SQL text, not bound as a parameter.
+        val sql = Sql {
+            +"SELECT * FROM ${javax.xml.XMLConstants.XML_NS_PREFIX}_users"
+        }
+        assertThat(sql).isEqualTo(Sql("SELECT * FROM xml_users"))
+    }
+
+    @Test
     fun `a const val passed directly to add executes as raw SQL text`() {
         // A const val reference is a compile-time constant, so it is accepted without
         // a KUERY_UNSAFE_SQL_STRING warning and executed as raw SQL text.
@@ -601,5 +613,41 @@ class StringInterpolationTest {
                 listOf(NamedSqlParameter("p0", "null")),
             ),
         )
+    }
+
+    @Test
+    fun `the transformation applies inside a SqlBuilder lambda passed to a custom sql overload`() {
+        // The IR rewrite matches add/unaryPlus by their resolved declarations, independent of
+        // the function the lambda is passed to — and a subtype's own `sql` overload is not an
+        // override of the client's, so the sqlId injection must leave the call untouched.
+        // given
+        class Decorated(delegate: KueryBlockingClient) : KueryBlockingClient by delegate {
+            fun sql(
+                block: SqlBuilder.() -> Unit,
+                after: () -> Unit,
+            ): Sql {
+                after()
+                return Sql(block)
+            }
+        }
+
+        val decorated = Decorated(mockk())
+        val id = 1
+        var afterRan = false
+
+        // when
+        val sql = decorated.sql(
+            { +"SELECT * FROM users WHERE id = $id" },
+            { afterRan = true },
+        )
+
+        // then
+        assertThat(sql).isEqualTo(
+            Sql(
+                "SELECT * FROM users WHERE id = :p0",
+                listOf(NamedSqlParameter("p0", 1)),
+            ),
+        )
+        assertThat(afterRan).isTrue()
     }
 }

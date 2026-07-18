@@ -10,6 +10,10 @@ description = "Gradle plugin for the Kuery client compiler."
 
 dependencies {
     implementation(kotlin("gradle-plugin-api"))
+    // Test-only, so the compiler (and its kotlin-compiler-embeddable) never reaches the Gradle
+    // classpath of plugin users. Lets the tests pin SUPPORTED_SQL_SYNTAX_CHECKS to the
+    // SqlSyntaxCheck enum it mirrors.
+    testImplementation(projects.kueryClientCompiler)
 }
 
 buildConfig {

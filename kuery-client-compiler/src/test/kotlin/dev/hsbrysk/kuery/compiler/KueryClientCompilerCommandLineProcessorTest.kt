@@ -33,6 +33,35 @@ class KueryClientCompilerCommandLineProcessorTest {
         assertThat(result.messages).contains("autoTrimIndent must be 'true' or 'false', but was 'True'")
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = ["generic", "ansi", "oracle", "mysql", "sqlserver", "mariadb", "postgresql", "h2", "MySQL"])
+    fun `known sqlSyntaxCheck values are accepted case-insensitively`(value: String) {
+        // when
+        val result = compile(
+            source = "fun unused() {}",
+            pluginOptions = listOf(sqlSyntaxCheckOption(value)),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `an unknown sqlSyntaxCheck value fails with an error listing the supported values`() {
+        // when
+        val result = compile(
+            source = "fun unused() {}",
+            pluginOptions = listOf(sqlSyntaxCheckOption("db2")),
+        )
+
+        // then
+        assertThat(result.exitCode).isNotEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(
+            "sqlSyntaxCheck must be one of generic, ansi, oracle, mysql, sqlserver, mariadb, postgresql, h2, " +
+                "but was 'db2'",
+        )
+    }
+
     private fun compileWithOptionValue(value: String): JvmCompilationResult = compile(
         source = "fun unused() {}",
         pluginOptions = listOf(autoTrimIndentOption(value)),
