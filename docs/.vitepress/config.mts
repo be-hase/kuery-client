@@ -85,9 +85,9 @@ export default defineConfig({
             {
                 text: "Advanced",
                 items: [
-                    {text: "Helpers", link: '/helpers'},
                     {text: "Type Conversion", link: '/type-conversion'},
                     {text: "Observation", link: '/observation'},
+                    {text: "Helpers", link: '/helpers'},
                 ]
             },
             {
