@@ -4,7 +4,7 @@ description: Build safe static and dynamic SQL with +/add, string-interpolation 
 
 # Building SQL
 
-## Building SQL
+## SQL fragments
 
 ### `+` (`unaryPlus`)
 
@@ -34,11 +34,6 @@ kueryClient
 
 `add(...)` is an alias for unary `+`. Its argument is annotated with
 `org.intellij.lang.annotations.Language`, so JetBrains IDEs can provide SQL syntax assistance.
-
-::: info
-`sql { ... }` also has an overload that takes an explicit SQL id — `sql("my-sql-id") { ... }` — which labels
-the query for metrics. See [Observation](/observation#sql-id).
-:::
 
 ### Automatic `trimIndent` (opt-in)
 
