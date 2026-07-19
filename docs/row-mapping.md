@@ -1,5 +1,5 @@
 ---
-description: "How query results are mapped to Kotlin types: single-column scalars, data classes via constructor mapping (snake_case to camelCase), enums, nullability, value class limitations, and raw maps."
+description: "How query results are mapped to Kotlin types: single-column scalars, data classes via constructor mapping (snake_case to camelCase), enums, nullability, value classes, and raw maps."
 ---
 
 # Row Mapping
@@ -88,14 +88,14 @@ your `@ReadingConverter` — it goes down the constructor-mapping path and fails
 match. Receive custom types as properties of a data class instead.
 :::
 
-## Unsupported: Kotlin value classes
+## Kotlin value classes
 
-Kotlin value classes are not supported on the fetch side, in either position:
+Kotlin value classes are supported in both positions on the fetch side:
 
-- As the return type itself (e.g. `single<UserName>()`): `DataClassRowMapper` cannot resolve the
-  parameter names of the value class's constructor and fails at runtime.
-- As a data class property: instantiation fails because the enclosing class's JVM constructor takes
-  the unboxed underlying type. Registering a `@ReadingConverter` for the value class does not help.
+- As the return type itself (e.g. `single<UserName>()`): like a simple type, select one column; its value is
+  read as the underlying type and boxed into the value class.
+- As a data class property: the column matched by parameter name (same `snake_case` / `camelCase` rules as
+  above) is converted to the underlying type and boxed.
 
 ```kotlin
 @JvmInline
@@ -103,11 +103,24 @@ value class UserName(val value: String)
 
 data class User(
     val userId: Int,
-    val username: UserName, // NG: fails at runtime
+    val username: UserName, // <- username column
 )
+
+val names: List<UserName> = kueryClient
+    .sql { +"SELECT username FROM users" }
+    .list()
 ```
 
-Fetch the underlying type (or a regular data class) and wrap it yourself.
+Boxing goes through the primary constructor, so `init` validation runs — an invalid database value fails with
+the same exception the constructor would throw. Value classes wrapping enums (or other value classes) convert
+recursively. A registered `@ReadingConverter` targeting the value class takes precedence over automatic
+boxing; see [Type Conversion](/type-conversion).
+
+The note about SQL `NULL` in multi-row scalar results applies to value class scalars as well: declare the
+property nullable, or handle `null` elements yourself.
+
+Value classes are also supported as bind parameters. See
+[Binding Parameters](/basics#value-classes).
 
 ## Raw maps
 
