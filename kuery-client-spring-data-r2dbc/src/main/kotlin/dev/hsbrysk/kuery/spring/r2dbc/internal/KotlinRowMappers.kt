@@ -189,22 +189,34 @@ private fun boxValueClass(
     target: KClass<*>,
     conversionService: ConversionService,
 ): Any {
+    val boxer = boxers.get(target.java)
+    val converted = convertValue(raw, boxer.underlying, conversionService)
+    return callConstructor { boxer.constructor.call(converted) }
+}
+
+// Caches the resolved (made-accessible) boxing constructor per value class; resolving the
+// primary constructor through kotlin-reflect on every row is measurably slower. ClassValue ties
+// entries to the class itself, so user classloaders are never pinned.
+private val boxers = object : ClassValue<ValueClassBoxer>() {
+    override fun computeValue(type: Class<*>): ValueClassBoxer = ValueClassBoxer(type.kotlin)
+}
+
+private class ValueClassBoxer(target: KClass<*>) {
     val constructor = requireNotNull(target.primaryConstructor) {
         "$target has no primary constructor"
     }.apply {
         // Parity with Spring's mappers, which make non-public constructors accessible.
         isAccessible = true
     }
+
     // The underlying type of a generic value class is a type parameter, so the intended runtime
     // type is unknowable here; fail fast instead of constructing a heap-polluted instance. A
     // registered reading converter targeting the value class is the supported alternative (it
     // wins before boxing is attempted).
-    val underlying = requireNotNull(constructor.parameters.single().type.classifier as? KClass<*>) {
+    val underlying: KClass<*> = requireNotNull(constructor.parameters.single().type.classifier as? KClass<*>) {
         "Cannot automatically box the generic value class $target: its underlying type is a type parameter. " +
             "Register a reading converter targeting $target instead."
     }
-    val converted = convertValue(raw, underlying, conversionService)
-    return callConstructor { constructor.call(converted) }
 }
 
 // Unwrap InvocationTargetException so `init` validation failures (e.g. IllegalArgumentException
