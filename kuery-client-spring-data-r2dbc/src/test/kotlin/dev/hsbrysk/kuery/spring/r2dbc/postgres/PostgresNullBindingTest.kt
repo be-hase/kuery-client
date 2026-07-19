@@ -91,7 +91,7 @@ class PostgresNullBindingTest {
     }
 
     @Test
-    fun `bind value class wrapping a null enum`() = runTest {
+    fun `value class wrapping a null enum is bound as SQL NULL`() = runTest {
         // The bindNull type must be resolved through the write pipeline (enum -> String here),
         // not the raw underlying type, which the driver has no codec for.
         // given
