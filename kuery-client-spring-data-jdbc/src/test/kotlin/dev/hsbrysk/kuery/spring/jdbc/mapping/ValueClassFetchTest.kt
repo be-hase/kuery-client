@@ -6,6 +6,7 @@ import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
+import assertk.assertions.messageContains
 import dev.hsbrysk.kuery.core.list
 import dev.hsbrysk.kuery.core.single
 import dev.hsbrysk.kuery.spring.jdbc.H2TestDatabase
@@ -40,6 +41,28 @@ class ValueClassFetchTest {
 
     @JvmInline
     value class Status(val value: SampleEnum)
+
+    @JvmInline
+    value class Secret private constructor(val value: String) {
+        companion object {
+            fun of(value: String): Secret = Secret(value)
+        }
+    }
+
+    @JvmInline
+    value class Chars(val value: String) : CharSequence {
+        override val length: Int get() = value.length
+
+        override fun get(index: Int): Char = value[index]
+
+        override fun subSequence(
+            startIndex: Int,
+            endIndex: Int,
+        ): CharSequence = value.subSequence(startIndex, endIndex)
+    }
+
+    @JvmInline
+    value class Wrapped<T>(val value: T)
 
     private val kueryClient = h2.kueryClient()
 
@@ -168,6 +191,76 @@ class ValueClassFetchTest {
     }
 
     @Test
+    fun `default value applies when the column for a defaulted parameter is SQL NULL`() {
+        // Mirrors Spring's DataClassRowMapper (BeanUtils.instantiateClass omits null arguments
+        // for optional parameters, so Kotlin default values apply).
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES ('user1')").update()
+
+        // when & then
+        val record: DefaultedRecord = kueryClient.sql {
+            +"SELECT text, CAST(NULL AS VARCHAR) AS opt FROM converter"
+        }.single()
+        assertThat(record.opt).isEqualTo("fallback")
+    }
+
+    @Test
+    fun `mutable body property is populated from a matching column`() {
+        // Mirrors Spring's DataClassRowMapper, which populates non-constructor properties
+        // through setters after constructing the instance.
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES ('user1')").update()
+
+        // when & then
+        val record: MutableRecord = kueryClient.sql {
+            +"SELECT text, 'e' AS extra FROM converter"
+        }.single()
+        assertThat(record.extra).isEqualTo("e")
+    }
+
+    @Test
+    fun `value class with a private constructor is mapped through its constructor`() {
+        // Parity with Spring's mappers, which make non-public constructors accessible.
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES ('user1')").update()
+
+        // when & then
+        val result: Secret = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(result).isEqualTo(Secret.of("user1"))
+    }
+
+    @Test
+    fun `value class implementing an interface is mapped as a fetch type`() {
+        // A CharSequence-implementing value class must not be misrouted to the simple-type path.
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES ('user1')").update()
+
+        // when & then
+        val result: Chars = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(result).isEqualTo(Chars("user1"))
+    }
+
+    @Test
+    fun `generic value class is rejected with a clear error`() {
+        // The underlying type is a type parameter, so automatic boxing cannot know the intended
+        // runtime type; fail fast instead of constructing a heap-polluted instance.
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES ('user1')").update()
+
+        // when & then
+        assertFailure {
+            kueryClient.sql {
+                +"SELECT text FROM converter"
+            }.single(GenericRecord::class)
+        }.isInstanceOf(IllegalArgumentException::class)
+            .messageContains("generic value class")
+    }
+
+    @Test
     fun `a missing column for a constructor parameter throws even if the property is nullable`() {
         // Same exception as the plain data class path (DataClassColumnMismatchTest): the column
         // is resolved via ResultSet.findColumn and the driver error is translated to
@@ -201,6 +294,17 @@ class ValueClassFetchTest {
         val text: UserName,
         val nickname: String?,
     )
+
+    data class DefaultedRecord(
+        val text: UserName,
+        val opt: String = "fallback",
+    )
+
+    data class MutableRecord(val text: UserName) {
+        var extra: String? = null
+    }
+
+    data class GenericRecord(val text: Wrapped<String>)
 
     @ReadingConverter
     class StringToUserNameConverter : Converter<String, UserName> {

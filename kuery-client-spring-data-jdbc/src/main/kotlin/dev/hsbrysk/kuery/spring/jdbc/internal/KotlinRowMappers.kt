@@ -1,16 +1,21 @@
 package dev.hsbrysk.kuery.spring.jdbc.internal
 
+import org.springframework.beans.TypeConverter
+import org.springframework.core.ResolvableType
 import org.springframework.core.convert.ConversionService
+import org.springframework.core.convert.TypeDescriptor
 import org.springframework.jdbc.IncorrectResultSetColumnCountException
+import org.springframework.jdbc.core.DataClassRowMapper
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.support.JdbcUtils
 import java.lang.reflect.InvocationTargetException
 import java.sql.ResultSet
 import java.sql.SQLException
-import java.util.Locale
 import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
+import kotlin.reflect.KParameter
 import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.jvm.isAccessible
+import kotlin.reflect.jvm.javaType
 
 // NOTE: The mapping logic in this file is intentionally duplicated in the r2dbc module
 // (dev.hsbrysk.kuery.spring.r2dbc.internal.KotlinRowMappers); there is no shared
@@ -59,44 +64,90 @@ internal class ValueClassScalarRowMapper(
 }
 
 /**
- * A Kotlin-reflection based replacement for Spring's DataClassRowMapper, used only for classes
- * with value class constructor parameters. Column matching mirrors DataClassRowMapper: the
- * lowercased parameter name first, then its underscored form; an unresolvable column surfaces
- * as the driver's SQLException (translated to BadSqlGrammarException), like the Spring mapper.
+ * A [DataClassRowMapper] for Kotlin classes with value class constructor parameters, which the
+ * Spring implementation cannot instantiate. Only the construction step is replaced: constructor
+ * arguments are resolved with the inherited column matching (the lowercased parameter name, then
+ * its underscored form) and the constructor is invoked through Kotlin reflection (`callBy`),
+ * which handles value class boxing and, like `BeanUtils.instantiateClass`, applies Kotlin
+ * default values by omitting null arguments for optional parameters. Everything else — value
+ * retrieval, non-value-class argument conversion, and setter population of non-constructor
+ * properties — is inherited from the Spring mapper.
  */
 internal class ValueClassPropertyRowMapper(
     kClass: KClass<*>,
-    private val conversionService: ConversionService,
-) : RowMapper<Any> {
+    private val kotlinConversionService: ConversionService,
+) : DataClassRowMapper<Any>(
+    @Suppress("UNCHECKED_CAST")
+    (kClass.java as Class<Any>),
+) {
     private val constructor = requireNotNull(kClass.primaryConstructor) {
         "$kClass has no primary constructor"
+    }.apply {
+        // Parity with Spring's mappers, which make non-public constructors accessible.
+        isAccessible = true
+    }
+    private val parameters = constructor.parameters.map { ConstructorParameter(it) }
+
+    init {
+        conversionService = kotlinConversionService
     }
 
-    override fun mapRow(
+    override fun constructMappedInstance(
         rs: ResultSet,
-        rowNum: Int,
+        tc: TypeConverter,
     ): Any {
-        val args = constructor.parameters.map { parameter ->
-            val index = findColumnIndex(rs, checkNotNull(parameter.name))
-            val target = parameter.type.classifier as? KClass<*>
-            val retrievalType = target?.let {
-                if (it.isValue) ValueClasses.underlyingType(it.java) else it.javaObjectType
+        val args = LinkedHashMap<KParameter, Any?>()
+        for (parameter in parameters) {
+            val index = findColumnIndex(rs, parameter.name)
+            val raw = getColumnValue(rs, index, parameter.retrievalType)
+            val converted = parameter.convert(raw, tc)
+            // Omit null arguments for optional parameters so Kotlin default values apply,
+            // mirroring BeanUtils.instantiateClass.
+            if (converted == null && parameter.parameter.isOptional) {
+                continue
             }
-            val raw = JdbcUtils.getResultSetValue(rs, index, retrievalType)
-            if (target != null) convertValue(raw, target, conversionService) else raw
+            args[parameter.parameter] = converted
         }
-        return callConstructor(constructor, args)
+        return callConstructor { constructor.callBy(args) }
     }
 
     private fun findColumnIndex(
         rs: ResultSet,
         name: String,
     ): Int = try {
-        rs.findColumn(name.lowercase(Locale.US))
+        rs.findColumn(lowerCaseName(name))
     } catch (@Suppress("SwallowedException") ex: SQLException) {
         // Mirrors DataClassRowMapper: fall back to the underscored name; if that also fails,
         // the driver's exception propagates and is translated by Spring.
-        rs.findColumn(JdbcUtils.convertPropertyNameToUnderscoreName(name))
+        rs.findColumn(underscoreName(name))
+    }
+
+    private inner class ConstructorParameter(val parameter: KParameter) {
+        val name = checkNotNull(parameter.name)
+        private val target = parameter.type.classifier as? KClass<*>
+        private val isValueClass = target?.isValue == true
+        val retrievalType: Class<*> = when {
+            target == null -> Any::class.java
+            target.isValue -> ValueClasses.underlyingType(target.java)
+            else -> target.javaObjectType
+        }
+
+        // Carries the full generic type (e.g. List<MyEnum>) so element-wise conversion works,
+        // like Spring's MethodParameter-based TypeDescriptors.
+        private val typeDescriptor: TypeDescriptor? = if (isValueClass) {
+            null
+        } else {
+            runCatching { TypeDescriptor(ResolvableType.forType(parameter.type.javaType), null, null) }.getOrNull()
+        }
+
+        fun convert(
+            raw: Any?,
+            tc: TypeConverter,
+        ): Any? = when {
+            target == null -> raw
+            isValueClass -> convertValue(raw, target, kotlinConversionService)
+            else -> tc.convertIfNecessary(raw, target.javaObjectType, typeDescriptor)
+        }
     }
 }
 
@@ -132,19 +183,26 @@ private fun boxValueClass(
 ): Any {
     val constructor = requireNotNull(target.primaryConstructor) {
         "$target has no primary constructor"
+    }.apply {
+        // Parity with Spring's mappers, which make non-public constructors accessible.
+        isAccessible = true
     }
-    val underlying = constructor.parameters.single().type.classifier as? KClass<*>
-    val converted = if (underlying != null) convertValue(raw, underlying, conversionService) else raw
-    return callConstructor(constructor, listOf(converted))
+    // The underlying type of a generic value class is a type parameter, so the intended runtime
+    // type is unknowable here; fail fast instead of constructing a heap-polluted instance. A
+    // registered reading converter targeting the value class is the supported alternative (it
+    // wins before boxing is attempted).
+    val underlying = requireNotNull(constructor.parameters.single().type.classifier as? KClass<*>) {
+        "Cannot automatically box the generic value class $target: its underlying type is a type parameter. " +
+            "Register a reading converter targeting $target instead."
+    }
+    val converted = convertValue(raw, underlying, conversionService)
+    return callConstructor { constructor.call(converted) }
 }
 
 // Unwrap InvocationTargetException so `init` validation failures (e.g. IllegalArgumentException
 // from require()) surface directly, as they would on a regular constructor call.
-private fun callConstructor(
-    constructor: KFunction<*>,
-    args: List<Any?>,
-): Any = try {
-    checkNotNull(constructor.call(*args.toTypedArray()))
+private fun callConstructor(block: () -> Any?): Any = try {
+    checkNotNull(block())
 } catch (ex: InvocationTargetException) {
     throw ex.targetException
 }
