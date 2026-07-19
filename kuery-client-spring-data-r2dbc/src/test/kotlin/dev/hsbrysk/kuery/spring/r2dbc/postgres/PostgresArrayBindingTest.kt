@@ -289,6 +289,8 @@ class PostgresArrayBindingTest {
         assertThat((record["chars"] as Array<*>).toList()).isEqualTo(listOf("a", "b"))
     }
 
+    // R2DBC-only: only the r2dbc client boxes primitive arrays (the jdbc client passes them to the
+    // driver as-is and binds an untyped null), so there is no jdbc counterpart to these two tests.
     @Test
     fun `value class wrapping a primitive array binds the boxed array`() = runTest {
         // given

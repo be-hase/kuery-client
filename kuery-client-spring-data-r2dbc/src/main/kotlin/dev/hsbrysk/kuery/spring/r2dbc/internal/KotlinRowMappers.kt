@@ -168,7 +168,10 @@ private fun retrieveValueClassColumn(
     retrievalType: Class<*>,
 ): Any? = try {
     readable.get(index, retrievalType)
-} catch (@Suppress("SwallowedException") ex: IllegalArgumentException) {
+} catch (@Suppress("SwallowedException", "TooGenericExceptionCaught") ex: RuntimeException) {
+    // Matches the fallback breadth of Spring's getItemValue (used by the property mapper): a
+    // driver may signal "cannot produce this type" with IllegalArgumentException or its own
+    // R2dbcException (both RuntimeException). Retrying raw lets a reading converter handle it.
     readable.get(index)
 }
 
@@ -255,10 +258,11 @@ private class ValueClassBoxer(target: KClass<*>) {
         if (underlying.isValue) null else ValueClasses.fastBoxOrNull(target.java)
 
     /**
-     * Boxes an underlying value into the value class, unwrapping InvocationTargetException so
-     * `init` validation failures surface directly, as they would on a regular constructor call.
+     * Boxes a non-null underlying value into the value class, unwrapping InvocationTargetException
+     * so `init` validation failures surface directly, as they would on a regular constructor call.
+     * A SQL NULL is mapped to a null value class before boxing, so this is never called with null.
      */
-    fun box(value: Any?): Any = callConstructor {
+    fun box(value: Any): Any = callConstructor {
         val fast = fastBox
         if (fast != null && fast.accepts(value)) fast.box(value) else constructor.call(value)
     }
