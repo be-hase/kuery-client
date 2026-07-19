@@ -92,7 +92,13 @@ internal class DefaultSpringR2dbcKueryClient(
             // Unwrap and re-dispatch so the underlying value goes through the full conversion
             // pipeline again (custom converters, enums, nested value classes, ...).
             val unwrapped = ValueClasses.unbox(value)
-                ?: return bindNull(name, ValueClasses.underlyingType(value.javaClass))
+                ?: run {
+                    // The bindNull type must be what the driver would have received for a
+                    // non-null value (enum -> String, custom write target, nested value class),
+                    // not the raw underlying type, which may have no codec.
+                    val underlying = ValueClasses.underlyingType(value.javaClass)
+                    return bindNull(name, componentWriteTarget(underlying) ?: underlying)
+                }
             return bindValue(name, unwrapped)
         }
 
@@ -313,11 +319,13 @@ internal class DefaultSpringR2dbcKueryClient(
         private fun mapper(returnType: KClass<*>): Function<Readable, Any> {
             val mapper = mapperCache.computeIfAbsent(returnType) {
                 when {
-                    BeanUtils.isSimpleProperty(returnType.java) ->
-                        SingleColumnRowMapper(returnType.javaObjectType, conversionService)
+                    // Checked before isSimpleProperty: a value class implementing e.g.
+                    // CharSequence would otherwise be misrouted to the simple-type path.
                     // Spring's DataClassRowMapper cannot handle value classes; take over only
                     // for those cases and leave everything else on the Spring mapper.
                     returnType.isValue -> ValueClassScalarRowMapper(returnType, conversionService)
+                    BeanUtils.isSimpleProperty(returnType.java) ->
+                        SingleColumnRowMapper(returnType.javaObjectType, conversionService)
                     hasValueClassConstructorParameters(returnType) ->
                         ValueClassPropertyRowMapper(returnType, conversionService)
                     else -> DataClassRowMapper(returnType.java, conversionService)
