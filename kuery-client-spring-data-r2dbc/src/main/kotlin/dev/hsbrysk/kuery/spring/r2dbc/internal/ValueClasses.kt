@@ -60,14 +60,10 @@ internal object ValueClasses {
         private val parameterType: Class<*> = constructorImpl.parameterTypes.single()
 
         /** Whether [value] matches the (erased) underlying type this fast path expects. */
-        fun accepts(value: Any?): Boolean = if (value == null) {
-            !parameterType.isPrimitive
-        } else {
-            ClassUtils.resolvePrimitiveIfNecessary(parameterType).isInstance(value)
-        }
+        fun accepts(value: Any): Boolean = ClassUtils.resolvePrimitiveIfNecessary(parameterType).isInstance(value)
 
         // constructor-impl runs `init`; box-impl wraps the result. May throw
         // InvocationTargetException, which the caller unwraps.
-        fun box(value: Any?): Any? = boxImpl.invoke(null, constructorImpl.invoke(null, value))
+        fun box(value: Any): Any? = boxImpl.invoke(null, constructorImpl.invoke(null, value))
     }
 }
