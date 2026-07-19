@@ -8,9 +8,11 @@ import org.springframework.jdbc.IncorrectResultSetColumnCountException
 import org.springframework.jdbc.core.DataClassRowMapper
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.support.JdbcUtils
+import org.springframework.util.ClassUtils
 import java.lang.reflect.InvocationTargetException
 import java.sql.ResultSet
 import java.sql.SQLException
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.primaryConstructor
@@ -40,10 +42,10 @@ internal fun hasValueClassConstructorParameters(kClass: KClass<*>): Boolean {
  * class takes precedence over automatic boxing. SQL NULL maps to a null row value.
  */
 internal class ValueClassScalarRowMapper(
-    private val kClass: KClass<*>,
-    private val conversionService: ConversionService,
+    kClass: KClass<*>,
+    conversionService: ConversionService,
 ) : RowMapper<Any?> {
-    private val retrievalType = ValueClasses.underlyingType(kClass.java)
+    private val converter = ValueClassColumnConverter(kClass, conversionService)
 
     override fun mapRow(
         rs: ResultSet,
@@ -54,8 +56,8 @@ internal class ValueClassScalarRowMapper(
         if (columnCount != 1) {
             throw IncorrectResultSetColumnCountException(1, columnCount)
         }
-        val raw = JdbcUtils.getResultSetValue(rs, FIRST_COLUMN, retrievalType)
-        return convertValue(raw, kClass, conversionService)
+        val raw = JdbcUtils.getResultSetValue(rs, FIRST_COLUMN, converter.retrievalType)
+        return converter.convert(raw)
     }
 
     companion object {
@@ -125,16 +127,17 @@ internal class ValueClassPropertyRowMapper(
     private inner class ConstructorParameter(val parameter: KParameter) {
         val name = checkNotNull(parameter.name)
         private val target = parameter.type.classifier as? KClass<*>
-        private val isValueClass = target?.isValue == true
+        private val valueClassConverter =
+            if (target?.isValue == true) ValueClassColumnConverter(target, kotlinConversionService) else null
         val retrievalType: Class<*> = when {
             target == null -> Any::class.java
-            target.isValue -> ValueClasses.underlyingType(target.java)
+            valueClassConverter != null -> valueClassConverter.retrievalType
             else -> target.javaObjectType
         }
 
         // Carries the full generic type (e.g. List<MyEnum>) so element-wise conversion works,
         // like Spring's MethodParameter-based TypeDescriptors.
-        private val typeDescriptor: TypeDescriptor? = if (isValueClass) {
+        private val typeDescriptor: TypeDescriptor? = if (valueClassConverter != null) {
             null
         } else {
             runCatching { TypeDescriptor(ResolvableType.forType(parameter.type.javaType), null, null) }.getOrNull()
@@ -145,9 +148,48 @@ internal class ValueClassPropertyRowMapper(
             tc: TypeConverter,
         ): Any? = when {
             target == null -> raw
-            isValueClass -> convertValue(raw, target, kotlinConversionService)
+            valueClassConverter != null -> valueClassConverter.convert(raw)
             else -> tc.convertIfNecessary(raw, target.javaObjectType, typeDescriptor)
         }
+    }
+}
+
+/**
+ * Converts a column value to the value class [target], with the per-row work minimized: the
+ * converter-precedence decision is cached per source class (converter registrations are fixed
+ * once the client is built), and an already-assignable underlying value skips the generic
+ * [convertValue] dispatch entirely.
+ */
+internal class ValueClassColumnConverter(
+    target: KClass<*>,
+    private val conversionService: ConversionService,
+) {
+    private val targetJavaType = target.javaObjectType
+    private val boxer = boxers.get(target.java)
+
+    // The declared underlying classifier (e.g. the inner value class for a nested value class),
+    // NOT the fully-erased JVM type — boxing must still run the inner constructor's validation.
+    private val underlyingJavaType = boxer.underlying.javaObjectType
+
+    // Driver retrieval hint: the fully-erased JVM type of the underlying value.
+    val retrievalType: Class<*> = ValueClasses.underlyingType(target.java)
+
+    private val canConvertCache = ConcurrentHashMap<Class<*>, Boolean>()
+
+    fun convert(raw: Any?): Any? {
+        if (raw == null) {
+            return null
+        }
+        // A registered reading converter targeting the value class takes precedence over boxing.
+        if (canConvertCache.computeIfAbsent(raw.javaClass) { conversionService.canConvert(it, targetJavaType) }) {
+            return conversionService.convert(raw, targetJavaType)
+        }
+        val underlying = if (underlyingJavaType.isInstance(raw)) {
+            raw
+        } else {
+            convertValue(raw, boxer.underlying, conversionService)
+        }
+        return boxer.box(underlying)
     }
 }
 
@@ -183,7 +225,7 @@ private fun boxValueClass(
 ): Any {
     val boxer = boxers.get(target.java)
     val converted = convertValue(raw, boxer.underlying, conversionService)
-    return callConstructor { boxer.constructor.call(converted) }
+    return boxer.box(converted)
 }
 
 // Caches the resolved (made-accessible) boxing constructor per value class; resolving the
@@ -208,6 +250,46 @@ private class ValueClassBoxer(target: KClass<*>) {
     val underlying: KClass<*> = requireNotNull(constructor.parameters.single().type.classifier as? KClass<*>) {
         "Cannot automatically box the generic value class $target: its underlying type is a type parameter. " +
             "Register a reading converter targeting $target instead."
+    }
+
+    // Fast path: the compiler-generated static `constructor-impl` (which contains the `init`
+    // validation) + `box-impl` pair, invoked through plain Java reflection — measurably faster
+    // than KFunction.call. They are part of a value class's stable JVM ABI (compiled callers in
+    // other modules link against them).
+    private val constructorImpl = target.java.declaredMethods
+        .singleOrNull { it.name == "constructor-impl" }
+        ?.apply { isAccessible = true }
+    private val boxImpl = target.java.declaredMethods
+        .singleOrNull { it.name == "box-impl" }
+        ?.apply { isAccessible = true }
+    private val erasedParameterType = constructorImpl?.parameterTypes?.single()
+
+    /**
+     * Boxes an underlying value into the value class, unwrapping InvocationTargetException so
+     * `init` validation failures surface directly, as they would on a regular constructor call.
+     * Falls back to the Kotlin constructor when the value does not match the erased parameter
+     * type (e.g. a boxed inner value class for a nested value class, which kotlin-reflect
+     * unboxes itself).
+     */
+    fun box(value: Any?): Any = try {
+        checkNotNull(
+            if (isFastBoxable(value)) {
+                checkNotNull(boxImpl).invoke(null, checkNotNull(constructorImpl).invoke(null, value))
+            } else {
+                constructor.call(value)
+            },
+        )
+    } catch (ex: InvocationTargetException) {
+        throw ex.targetException
+    }
+
+    private fun isFastBoxable(value: Any?): Boolean {
+        val parameterType = erasedParameterType
+        return when {
+            parameterType == null || boxImpl == null -> false
+            value == null -> !parameterType.isPrimitive
+            else -> ClassUtils.resolvePrimitiveIfNecessary(parameterType).isInstance(value)
+        }
     }
 }
 
