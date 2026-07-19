@@ -23,6 +23,9 @@ class PostgresArrayBindingTest {
     @JvmInline
     value class UserName(val value: String)
 
+    @JvmInline
+    value class Scores(val value: IntArray?)
+
     @WritingConverter
     class StringWrapperToStringConverter : Converter<StringWrapper, String> {
         override fun convert(source: StringWrapper): String = source.value
@@ -35,7 +38,8 @@ class PostgresArrayBindingTest {
             CREATE TABLE users (
                 user_id SERIAL PRIMARY KEY,
                 username VARCHAR(50) NOT NULL,
-                tags TEXT[]
+                tags TEXT[],
+                scores INT[]
             )
             """.trimIndent(),
         ).fetch().awaitRowsUpdated()
@@ -283,6 +287,42 @@ class PostgresArrayBindingTest {
 
         // then
         assertThat((record["chars"] as Array<*>).toList()).isEqualTo(listOf("a", "b"))
+    }
+
+    @Test
+    fun `value class wrapping a primitive array binds the boxed array`() = runTest {
+        // given
+        val scores = Scores(intArrayOf(1, 2))
+
+        // when
+        kueryClient
+            .sql { +"INSERT INTO users (username, scores) VALUES ('scored', $scores)" }
+            .rowsUpdated()
+
+        // then
+        val record = kueryClient
+            .sql { +"SELECT scores FROM users WHERE username = 'scored'" }
+            .singleMap()
+        assertThat((record["scores"] as Array<*>).toList()).isEqualTo(listOf(1, 2))
+    }
+
+    @Test
+    fun `value class wrapping a null primitive array binds SQL NULL`() = runTest {
+        // The bindNull type must be the boxed array type the driver would have received for a
+        // non-null value, not the raw primitive array type, which r2dbc has no codec for.
+        // given
+        val scores = Scores(null)
+
+        // when
+        kueryClient
+            .sql { +"INSERT INTO users (username, scores) VALUES ('scored', $scores)" }
+            .rowsUpdated()
+
+        // then
+        val record = kueryClient
+            .sql { +"SELECT scores FROM users WHERE username = 'scored'" }
+            .singleMap()
+        assertThat(record["scores"]).isEqualTo(null)
     }
 
     companion object {

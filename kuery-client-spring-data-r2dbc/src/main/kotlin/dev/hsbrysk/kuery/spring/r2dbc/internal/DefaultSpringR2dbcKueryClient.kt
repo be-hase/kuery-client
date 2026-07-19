@@ -20,6 +20,7 @@ import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.beans.BeanUtils
+import org.springframework.core.KotlinDetector
 import org.springframework.core.convert.ConversionService
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.dao.TypeMismatchDataAccessException
@@ -88,16 +89,19 @@ internal class DefaultSpringR2dbcKueryClient(
             }
         }
 
-        if (ValueClasses.isValueClass(value.javaClass)) {
+        if (KotlinDetector.isInlineClass(value.javaClass)) {
             // Unwrap and re-dispatch so the underlying value goes through the full conversion
             // pipeline again (custom converters, enums, nested value classes, ...).
             val unwrapped = ValueClasses.unbox(value)
                 ?: run {
                     // The bindNull type must be what the driver would have received for a
-                    // non-null value (enum -> String, custom write target, nested value class),
-                    // not the raw underlying type, which may have no codec.
+                    // non-null value (enum -> String, custom write target, nested value class,
+                    // boxed primitive array), not the raw underlying type, which may have no codec.
                     val underlying = ValueClasses.underlyingType(value.javaClass)
-                    return bindNull(name, componentWriteTarget(underlying) ?: underlying)
+                    val bindNullType = componentWriteTarget(underlying)
+                        ?: PRIMITIVE_ARRAY_TO_OBJECT_ARRAY[underlying]
+                        ?: underlying
+                    return bindNull(name, bindNullType)
                 }
             return bindValue(name, unwrapped)
         }
@@ -149,7 +153,7 @@ internal class DefaultSpringR2dbcKueryClient(
         val targetType = customConversions.getCustomWriteTarget(componentType)
         return when {
             targetType.isPresent -> targetType.get()
-            ValueClasses.isValueClass(componentType) -> {
+            KotlinDetector.isInlineClass(componentType) -> {
                 val underlying = ValueClasses.underlyingType(componentType)
                 componentWriteTarget(underlying) ?: underlying
             }
@@ -165,7 +169,7 @@ internal class DefaultSpringR2dbcKueryClient(
         val targetType = customConversions.getCustomWriteTarget(element::class.java)
         return when {
             targetType.isPresent -> conversionService.convert(element, targetType.get())
-            ValueClasses.isValueClass(element.javaClass) -> convertElement(ValueClasses.unbox(element))
+            KotlinDetector.isInlineClass(element.javaClass) -> convertElement(ValueClasses.unbox(element))
             // composite IN `(a, b) IN ($pairs)` passes each row as an Object[] entry in a Collection
             element is Array<*> -> convertArray(element)
             element is Enum<*> -> element.name
@@ -370,3 +374,17 @@ internal class DefaultSpringR2dbcKueryClient(
         }
     }
 }
+
+// Maps a primitive array type to its boxed (object) array type, the type `boxPrimitiveArray`
+// would produce for a non-null value. Used to pick the `bindNull` type for a value class
+// wrapping a nullable primitive array. ByteArray is excluded: drivers encode byte[] as a single
+// binary value, not an array.
+private val PRIMITIVE_ARRAY_TO_OBJECT_ARRAY: Map<Class<*>, Class<*>> = mapOf(
+    IntArray::class.java to Array<Int>::class.java,
+    LongArray::class.java to Array<Long>::class.java,
+    ShortArray::class.java to Array<Short>::class.java,
+    DoubleArray::class.java to Array<Double>::class.java,
+    FloatArray::class.java to Array<Float>::class.java,
+    BooleanArray::class.java to Array<Boolean>::class.java,
+    CharArray::class.java to Array<Char>::class.java,
+)

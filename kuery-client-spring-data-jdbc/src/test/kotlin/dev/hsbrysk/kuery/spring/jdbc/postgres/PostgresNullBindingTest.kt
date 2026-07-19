@@ -89,7 +89,7 @@ class PostgresNullBindingTest {
     }
 
     @Test
-    fun `bind value class wrapping a null enum`() {
+    fun `value class wrapping a null enum is bound as SQL NULL`() {
         // The jdbc client binds an untyped null, so no type resolution is involved; this mirrors
         // the r2dbc test, where the bindNull type must be resolved through the write pipeline.
         // given
