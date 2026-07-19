@@ -18,6 +18,7 @@ import org.springframework.core.convert.converter.Converter
 import org.springframework.dao.DataRetrievalFailureException
 import org.springframework.data.convert.ReadingConverter
 import org.springframework.r2dbc.core.awaitRowsUpdated
+import java.math.BigDecimal
 
 /**
  * Fetch-side (read) support for Kotlin value classes, in both positions: as the fetch type
@@ -64,6 +65,12 @@ class ValueClassFetchTest {
 
     @JvmInline
     value class Wrapped<T>(val value: T)
+
+    @JvmInline
+    value class Money(val value: BigDecimal)
+
+    @JvmInline
+    value class Wrapper(val value: UserName)
 
     private val kueryClient = h2.kueryClient()
 
@@ -251,6 +258,63 @@ class ValueClassFetchTest {
     }
 
     @Test
+    fun `nested value class is mapped recursively`() = runTest {
+        // given
+        insert("INSERT INTO converter (text) VALUES ('user1')")
+
+        // when & then
+        val record: NestedRecord = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(record.text).isEqualTo(Wrapper(UserName("user1")))
+    }
+
+    @Test
+    fun `generic value class is mapped through a registered reading converter`() = runTest {
+        // A generic value class cannot be boxed automatically, but a registered converter wins
+        // over boxing and must still be consulted (it is not defeated by the boxing fail-fast).
+        // given
+        val kueryClient = h2.kueryClient(listOf(StringToWrappedConverter()))
+        insert("INSERT INTO converter (text) VALUES ('user1')")
+
+        // when & then
+        val record: GenericRecord = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(record.text).isEqualTo(Wrapped("user1"))
+    }
+
+    @Test
+    fun `a reading converter maps a column the underlying type cannot read`() = runTest {
+        // The underlying type (BigDecimal) cannot read the VARCHAR value directly; the raw value
+        // must still reach the registered converter targeting the value class.
+        // given
+        val kueryClient = h2.kueryClient(listOf(StringToMoneyConverter()))
+        insert("INSERT INTO converter (text) VALUES ('\$10.00')")
+
+        // when & then
+        val result: Money = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(result).isEqualTo(Money(BigDecimal("10.00")))
+    }
+
+    @Test
+    fun `nullable value class property maps to null when the underlying converter returns null`() = runTest {
+        // A converter for the underlying type may return null (the Converter contract allows it);
+        // the value class must map to null rather than being boxed around null.
+        // given
+        val kueryClient = h2.kueryClient(listOf(BlankToNullBigDecimalConverter()))
+        insert("INSERT INTO converter (text) VALUES ('')")
+
+        // when & then
+        val record: NullableMoneyRecord = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(record.text).isNull()
+    }
+
+    @Test
     fun `a missing column for a constructor parameter throws even if the property is nullable`() = runTest {
         // Same exception as the plain data class path (DataClassColumnMismatchTest). The jdbc
         // module reports BadSqlGrammarException instead.
@@ -295,9 +359,28 @@ class ValueClassFetchTest {
 
     data class GenericRecord(val text: Wrapped<String>)
 
+    data class NestedRecord(val text: Wrapper)
+
+    data class NullableMoneyRecord(val text: Money?)
+
     @ReadingConverter
     class StringToUserNameConverter : Converter<String, UserName> {
         override fun convert(source: String): UserName = UserName("custom:$source")
+    }
+
+    @ReadingConverter
+    class StringToWrappedConverter : Converter<String, Wrapped<String>> {
+        override fun convert(source: String): Wrapped<String> = Wrapped(source)
+    }
+
+    @ReadingConverter
+    class StringToMoneyConverter : Converter<String, Money> {
+        override fun convert(source: String): Money = Money(BigDecimal(source.removePrefix("$")))
+    }
+
+    @ReadingConverter
+    class BlankToNullBigDecimalConverter : Converter<String, BigDecimal?> {
+        override fun convert(source: String): BigDecimal? = source.ifBlank { null }?.let { BigDecimal(it) }
     }
 
     companion object {
