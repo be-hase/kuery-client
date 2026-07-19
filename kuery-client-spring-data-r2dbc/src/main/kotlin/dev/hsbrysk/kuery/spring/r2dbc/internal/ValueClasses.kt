@@ -23,8 +23,6 @@ internal object ValueClasses {
         }
     }
 
-    fun isValueClass(clazz: Class<*>): Boolean = clazz.isAnnotationPresent(JvmInline::class.java)
-
     /**
      * Returns the underlying value of a boxed value class instance. May be null when the
      * underlying type is nullable (e.g. `value class Opt(val value: String?)`).
