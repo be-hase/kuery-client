@@ -36,6 +36,7 @@ gradle-plugin-maven-publish = { module = "com.vanniktech:gradle-maven-publish-pl
 
 [plugins]
 buildconfig = { id = "com.github.gmazzo.buildconfig", version = "6.0.10" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin-core" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin-core" }
 plugin-publish = { id = "com.gradle.plugin-publish", version = "2.1.1" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
