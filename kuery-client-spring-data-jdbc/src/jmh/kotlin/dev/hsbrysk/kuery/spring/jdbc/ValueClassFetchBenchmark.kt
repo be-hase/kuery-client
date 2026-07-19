@@ -19,10 +19,10 @@ import java.util.concurrent.TimeUnit
 
 /*
 Benchmark                                        Mode  Cnt    Score   Error  Units
-ValueClassFetchBenchmark.plainDataClassList      avgt    2  313.668          us/op
-ValueClassFetchBenchmark.stringScalarList        avgt    2   38.732          us/op
-ValueClassFetchBenchmark.valueClassPropertyList  avgt    2  301.377          us/op
-ValueClassFetchBenchmark.valueClassScalarList    avgt    2   81.169          us/op
+ValueClassFetchBenchmark.plainDataClassList      avgt    2  275.379          us/op
+ValueClassFetchBenchmark.stringScalarList        avgt    2   39.763          us/op
+ValueClassFetchBenchmark.valueClassPropertyList  avgt    2  267.776          us/op
+ValueClassFetchBenchmark.valueClassScalarList    avgt    2   44.170          us/op
  */
 
 /**
@@ -33,8 +33,9 @@ ValueClassFetchBenchmark.valueClassScalarList    avgt    2   81.169          us/
  *   support must not change their per-row cost.
  * - [valueClassPropertyList] / [valueClassScalarList] exercise the new Kotlin-reflection based
  *   mappers, quantifying the per-row cost of value class boxing. With the cached boxing
- *   constructor, value class property mapping is on par with the plain Spring mapper; the
- *   scalar path adds ~40ns per row over a plain String scalar for the boxing itself.
+ *   constructor, the `constructor-impl`/`box-impl` fast path, and the cached
+ *   converter-precedence decision, value class mapping is on par with the plain Spring mapper
+ *   (scalar: ~+11% over a plain String scalar; property: parity).
  */
 @OptIn(DelicateKueryClientApi::class)
 @State(Scope.Benchmark)

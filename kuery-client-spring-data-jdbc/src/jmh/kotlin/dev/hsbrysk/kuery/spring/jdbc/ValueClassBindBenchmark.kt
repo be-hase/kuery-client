@@ -19,10 +19,10 @@ import java.util.concurrent.TimeUnit
 
 /*
 Benchmark                                    Mode  Cnt   Score   Error  Units
-ValueClassBindBenchmark.bindString           avgt    2   5.755          us/op
-ValueClassBindBenchmark.bindStringIn100      avgt    2  42.101          us/op
-ValueClassBindBenchmark.bindValueClass       avgt    2   5.854          us/op
-ValueClassBindBenchmark.bindValueClassIn100  avgt    2  43.715          us/op
+ValueClassBindBenchmark.bindString           avgt    2   6.094          us/op
+ValueClassBindBenchmark.bindStringIn100      avgt    2  42.664          us/op
+ValueClassBindBenchmark.bindValueClass       avgt    2   5.776          us/op
+ValueClassBindBenchmark.bindValueClassIn100  avgt    2  44.864          us/op
  */
 
 /**
