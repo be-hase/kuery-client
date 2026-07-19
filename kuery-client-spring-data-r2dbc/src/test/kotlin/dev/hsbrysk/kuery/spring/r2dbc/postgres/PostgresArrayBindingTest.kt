@@ -20,6 +20,9 @@ class PostgresArrayBindingTest {
 
     data class StringWrapper(val value: String)
 
+    @JvmInline
+    value class UserName(val value: String)
+
     @WritingConverter
     class StringWrapperToStringConverter : Converter<StringWrapper, String> {
         override fun convert(source: StringWrapper): String = source.value
@@ -71,6 +74,40 @@ class PostgresArrayBindingTest {
 
         // then
         assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind value class array to ANY predicate`() = runTest {
+        // given
+        val usernames = arrayOf(UserName("HOGE"), UserName("FUGA"))
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE username = ANY($usernames) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind all-null value class array to a native array column`() = runTest {
+        // given
+        val tags = arrayOf<UserName?>(null, null)
+
+        // when
+        val count = kueryClient
+            .sql { +"INSERT INTO users (username, tags) VALUES ('tagged', $tags)" }
+            .rowsUpdated()
+
+        // then
+        assertThat(count).isEqualTo(1L)
+
+        val record = kueryClient
+            .sql { +"SELECT tags FROM users WHERE username = 'tagged'" }
+            .singleMap()
+        val stored = record["tags"] as Array<*>
+        assertThat(stored.toList()).isEqualTo(listOf(null, null))
     }
 
     @Test

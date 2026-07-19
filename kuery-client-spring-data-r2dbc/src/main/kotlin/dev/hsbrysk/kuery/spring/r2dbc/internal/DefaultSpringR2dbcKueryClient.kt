@@ -70,35 +70,51 @@ internal class DefaultSpringR2dbcKueryClient(
         }
     }
 
-    private fun GenericExecuteSpec.bind(parameter: NamedSqlParameter): GenericExecuteSpec {
-        val value = checkNotNull(parameter.value)
+    private fun GenericExecuteSpec.bind(parameter: NamedSqlParameter): GenericExecuteSpec =
+        bindValue(parameter.name, checkNotNull(parameter.value))
 
+    private fun GenericExecuteSpec.bindValue(
+        name: String,
+        value: Any,
+    ): GenericExecuteSpec {
         val targetType = customConversions.getCustomWriteTarget(value::class.java)
         if (targetType.isPresent) {
             // The Converter contract allows a null result; bind it as SQL NULL of the target type.
             val converted = conversionService.convert(value, targetType.get())
             return if (converted != null) {
-                bind(parameter.name, converted)
+                bind(name, converted)
             } else {
-                bindNull(parameter.name, targetType.get())
+                bindNull(name, targetType.get())
             }
         }
 
-        return when (value) {
-            is Collection<*> -> bind(parameter.name, convertCollection(value))
-            is Array<*> -> bind(parameter.name, convertArray(value))
-            // R2DBC drivers' array codecs accept only object arrays, so box primitive arrays.
-            // ByteArray is excluded: drivers encode byte[] as a single binary value, not an array.
-            is IntArray -> bind(parameter.name, value.toTypedArray())
-            is LongArray -> bind(parameter.name, value.toTypedArray())
-            is ShortArray -> bind(parameter.name, value.toTypedArray())
-            is DoubleArray -> bind(parameter.name, value.toTypedArray())
-            is FloatArray -> bind(parameter.name, value.toTypedArray())
-            is BooleanArray -> bind(parameter.name, value.toTypedArray())
-            is CharArray -> bind(parameter.name, value.toTypedArray())
-            is Enum<*> -> bind(parameter.name, value.name)
-            else -> bind(parameter.name, value)
+        if (ValueClasses.isValueClass(value.javaClass)) {
+            // Unwrap and re-dispatch so the underlying value goes through the full conversion
+            // pipeline again (custom converters, enums, nested value classes, ...).
+            val unwrapped = ValueClasses.unbox(value)
+                ?: return bindNull(name, ValueClasses.underlyingType(value.javaClass))
+            return bindValue(name, unwrapped)
         }
+
+        return when (value) {
+            is Collection<*> -> bind(name, convertCollection(value))
+            is Array<*> -> bind(name, convertArray(value))
+            is Enum<*> -> bind(name, value.name)
+            else -> bind(name, boxPrimitiveArray(value) ?: value)
+        }
+    }
+
+    // R2DBC drivers' array codecs accept only object arrays, so box primitive arrays.
+    // ByteArray is excluded: drivers encode byte[] as a single binary value, not an array.
+    private fun boxPrimitiveArray(value: Any): Array<*>? = when (value) {
+        is IntArray -> value.toTypedArray()
+        is LongArray -> value.toTypedArray()
+        is ShortArray -> value.toTypedArray()
+        is DoubleArray -> value.toTypedArray()
+        is FloatArray -> value.toTypedArray()
+        is BooleanArray -> value.toTypedArray()
+        is CharArray -> value.toTypedArray()
+        else -> null
     }
 
     // NOTE: The conversion helpers below (convertCollection / convertArray / componentWriteTarget /
@@ -127,6 +143,10 @@ internal class DefaultSpringR2dbcKueryClient(
         val targetType = customConversions.getCustomWriteTarget(componentType)
         return when {
             targetType.isPresent -> targetType.get()
+            ValueClasses.isValueClass(componentType) -> {
+                val underlying = ValueClasses.underlyingType(componentType)
+                componentWriteTarget(underlying) ?: underlying
+            }
             Enum::class.java.isAssignableFrom(componentType) -> String::class.java
             else -> null
         }
@@ -139,6 +159,7 @@ internal class DefaultSpringR2dbcKueryClient(
         val targetType = customConversions.getCustomWriteTarget(element::class.java)
         return when {
             targetType.isPresent -> conversionService.convert(element, targetType.get())
+            ValueClasses.isValueClass(element.javaClass) -> convertElement(ValueClasses.unbox(element))
             // composite IN `(a, b) IN ($pairs)` passes each row as an Object[] entry in a Collection
             element is Array<*> -> convertArray(element)
             element is Enum<*> -> element.name

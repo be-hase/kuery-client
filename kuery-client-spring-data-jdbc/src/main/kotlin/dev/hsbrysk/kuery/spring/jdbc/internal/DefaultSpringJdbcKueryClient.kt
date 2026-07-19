@@ -62,20 +62,31 @@ internal class DefaultSpringJdbcKueryClient(
         }
     }
 
-    private fun StatementSpec.bind(parameter: NamedSqlParameter): StatementSpec {
-        val value = checkNotNull(parameter.value)
+    private fun StatementSpec.bind(parameter: NamedSqlParameter): StatementSpec =
+        bindValue(parameter.name, checkNotNull(parameter.value))
 
+    private fun StatementSpec.bindValue(
+        name: String,
+        value: Any,
+    ): StatementSpec {
         val targetType = customConversions.getCustomWriteTarget(value::class.java)
         if (targetType.isPresent) {
             // The Converter contract allows a null result; bind it as SQL NULL.
-            return param(parameter.name, conversionService.convert(value, targetType.get()))
+            return param(name, conversionService.convert(value, targetType.get()))
+        }
+
+        if (ValueClasses.isValueClass(value.javaClass)) {
+            // Unwrap and re-dispatch so the underlying value goes through the full conversion
+            // pipeline again (custom converters, enums, nested value classes, ...).
+            val unwrapped = ValueClasses.unbox(value) ?: return param(name, null)
+            return bindValue(name, unwrapped)
         }
 
         return when (value) {
-            is Collection<*> -> param(parameter.name, convertCollection(value))
-            is Array<*> -> param(parameter.name, convertArray(value))
-            is Enum<*> -> param(parameter.name, value.name)
-            else -> param(parameter.name, value)
+            is Collection<*> -> param(name, convertCollection(value))
+            is Array<*> -> param(name, convertArray(value))
+            is Enum<*> -> param(name, value.name)
+            else -> param(name, value)
         }
     }
 
@@ -105,6 +116,10 @@ internal class DefaultSpringJdbcKueryClient(
         val targetType = customConversions.getCustomWriteTarget(componentType)
         return when {
             targetType.isPresent -> targetType.get()
+            ValueClasses.isValueClass(componentType) -> {
+                val underlying = ValueClasses.underlyingType(componentType)
+                componentWriteTarget(underlying) ?: underlying
+            }
             Enum::class.java.isAssignableFrom(componentType) -> String::class.java
             else -> null
         }
@@ -117,6 +132,7 @@ internal class DefaultSpringJdbcKueryClient(
         val targetType = customConversions.getCustomWriteTarget(element::class.java)
         return when {
             targetType.isPresent -> conversionService.convert(element, targetType.get())
+            ValueClasses.isValueClass(element.javaClass) -> convertElement(ValueClasses.unbox(element))
             // composite IN `(a, b) IN ($pairs)` passes each row as an Object[] entry in a Collection
             element is Array<*> -> convertArray(element)
             element is Enum<*> -> element.name
