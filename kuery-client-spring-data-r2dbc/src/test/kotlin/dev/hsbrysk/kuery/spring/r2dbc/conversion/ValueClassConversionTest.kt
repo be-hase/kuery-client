@@ -34,6 +34,12 @@ class ValueClassConversionTest {
     @JvmInline
     value class Outer(val inner: UserName)
 
+    @JvmInline
+    value class OptionalStatus(val value: SampleEnum?)
+
+    @JvmInline
+    value class OptionalName(val value: UserName?)
+
     private val kueryClient = h2.kueryClient()
 
     @BeforeEach
@@ -103,6 +109,62 @@ class ValueClassConversionTest {
     }
 
     @Test
+    fun `value class wrapping a null enum is bound as SQL NULL`() = runTest {
+        // given
+        kueryClient.sql {
+            +"INSERT INTO converter (text) VALUES (${OptionalStatus(null)})"
+        }.rowsUpdated()
+
+        // when & then
+        val map = kueryClient.sql {
+            +"SELECT * FROM converter"
+        }.singleMap()
+        assertThat(map["text"]).isNull()
+    }
+
+    @Test
+    fun `value class wrapping a nullable value class is unwrapped recursively`() = runTest {
+        // given
+        kueryClient.sql {
+            +"INSERT INTO converter (text) VALUES (${OptionalName(UserName("hoge"))})"
+        }.rowsUpdated()
+
+        // when & then
+        val map = kueryClient.sql {
+            +"SELECT * FROM converter"
+        }.singleMap()
+        assertThat(map["text"]).isEqualTo("hoge")
+    }
+
+    @Test
+    fun `value class wrapping a null value class is bound as SQL NULL`() = runTest {
+        // given
+        kueryClient.sql {
+            +"INSERT INTO converter (text) VALUES (${OptionalName(null)})"
+        }.rowsUpdated()
+
+        // when & then
+        val map = kueryClient.sql {
+            +"SELECT * FROM converter"
+        }.singleMap()
+        assertThat(map["text"]).isNull()
+    }
+
+    @Test
+    fun `file-private value class is bound as its underlying value`() = runTest {
+        // given
+        kueryClient.sql {
+            +"INSERT INTO converter (text) VALUES (${PrivateName("hoge")})"
+        }.rowsUpdated()
+
+        // when & then
+        val map = kueryClient.sql {
+            +"SELECT * FROM converter"
+        }.singleMap()
+        assertThat(map["text"]).isEqualTo("hoge")
+    }
+
+    @Test
     fun `value class in an IN clause matches the row stored by its underlying value`() = runTest {
         // given
         kueryClient.sql {
@@ -157,3 +219,8 @@ class ValueClassConversionTest {
         private val h2 = H2TestDatabase()
     }
 }
+
+// A top-level private value class compiles to a package-private JVM class, exercising the
+// accessibility handling of the unbox reflection.
+@JvmInline
+private value class PrivateName(val value: String)

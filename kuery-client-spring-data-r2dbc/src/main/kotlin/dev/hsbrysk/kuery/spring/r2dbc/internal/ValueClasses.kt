@@ -1,18 +1,27 @@
 package dev.hsbrysk.kuery.spring.r2dbc.internal
 
+import org.springframework.util.ClassUtils
 import java.lang.reflect.Method
-import java.util.concurrent.ConcurrentHashMap
 
 // NOTE: This object is intentionally duplicated in the jdbc module
 // (dev.hsbrysk.kuery.spring.jdbc.internal.ValueClasses); there is no shared Spring-dependent
 // module to host it. Keep both copies in sync.
 /**
  * Reflection helpers for Kotlin value classes (`@JvmInline`), used to transparently bind a value
- * class as its underlying value. Works without kotlin-reflect: `@JvmInline` is runtime-visible
- * and the compiler-generated `unbox-impl` method exposes the underlying value.
+ * class as its underlying value. Uses plain Java reflection (`@JvmInline` is runtime-visible and
+ * the compiler-generated `unbox-impl` method exposes the underlying value), which keeps the
+ * per-parameter bind hot path free of kotlin-reflect machinery.
  */
 internal object ValueClasses {
-    private val unboxMethodCache = ConcurrentHashMap<Class<*>, Method>()
+    // ClassValue (instead of a Class-keyed map) so cached entries are tied to the class itself
+    // and never pin user classloaders (e.g. across Spring DevTools restarts).
+    private val unboxMethods = object : ClassValue<Method>() {
+        override fun computeValue(type: Class<*>): Method = type.getDeclaredMethod("unbox-impl").apply {
+            // The method is public, but the declaring class may not be (e.g. a file-private
+            // value class compiles to a package-private JVM class).
+            isAccessible = true
+        }
+    }
 
     fun isValueClass(clazz: Class<*>): Boolean = clazz.isAnnotationPresent(JvmInline::class.java)
 
@@ -20,28 +29,12 @@ internal object ValueClasses {
      * Returns the underlying value of a boxed value class instance. May be null when the
      * underlying type is nullable (e.g. `value class Opt(val value: String?)`).
      */
-    fun unbox(value: Any): Any? = unboxMethod(value.javaClass).invoke(value)
+    fun unbox(value: Any): Any? = unboxMethods.get(value.javaClass).invoke(value)
 
     /**
      * The JVM type of the underlying value, e.g. `UserName` -> `String`. Primitives are boxed
      * (`Int` -> `java.lang.Integer`) because callers use this as an object array component type.
      */
-    fun underlyingType(clazz: Class<*>): Class<*> = unboxMethod(clazz).returnType.boxed()
-
-    private fun unboxMethod(clazz: Class<*>): Method = unboxMethodCache.computeIfAbsent(clazz) {
-        it.getDeclaredMethod("unbox-impl")
-    }
-
-    private val primitiveToBoxed: Map<Class<*>, Class<*>> = listOf(
-        Boolean::class,
-        Byte::class,
-        Short::class,
-        Char::class,
-        Int::class,
-        Long::class,
-        Float::class,
-        Double::class,
-    ).associate { it.javaPrimitiveType!! to it.javaObjectType }
-
-    private fun Class<*>.boxed(): Class<*> = primitiveToBoxed[this] ?: this
+    fun underlyingType(clazz: Class<*>): Class<*> =
+        ClassUtils.resolvePrimitiveIfNecessary(unboxMethods.get(clazz).returnType)
 }

@@ -12,6 +12,13 @@ import java.sql.Types
 class PostgresNullBindingTest {
     private val kueryClient = postgres.kueryClient()
 
+    enum class SampleEnum {
+        HOGE,
+    }
+
+    @JvmInline
+    value class OptionalStatus(val value: SampleEnum?)
+
     @BeforeEach
     fun setUp() {
         postgres.jdbcClient.sql(
@@ -79,6 +86,28 @@ class PostgresNullBindingTest {
 
         // then
         assertThat(count).isEqualTo(1L)
+    }
+
+    @Test
+    fun `bind value class wrapping a null enum`() {
+        // The jdbc client binds an untyped null, so no type resolution is involved; this mirrors
+        // the r2dbc test, where the bindNull type must be resolved through the write pipeline.
+        // given
+        val username = OptionalStatus(null)
+        val email = "user1@example.com"
+
+        // when
+        val count = kueryClient
+            .sql { +"INSERT INTO users (username, email) VALUES ($username, $email)" }
+            .rowsUpdated()
+
+        // then
+        assertThat(count).isEqualTo(1L)
+
+        val record = kueryClient
+            .sql { +"SELECT * FROM users WHERE email = $email" }
+            .singleMap()
+        assertThat(record["username"]).isNull()
     }
 
     @Test
