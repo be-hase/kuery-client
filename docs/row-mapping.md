@@ -116,6 +116,10 @@ the same exception the constructor would throw. Value classes wrapping enums (or
 recursively. A registered `@ReadingConverter` targeting the value class takes precedence over automatic
 boxing; see [Type Conversion](/type-conversion).
 
+Generic value classes (e.g. `value class Wrapped<T>(val value: T)`) cannot be boxed automatically — the
+underlying type is a type parameter — and are rejected with an error. Register a `@ReadingConverter` for them
+instead.
+
 The note about SQL `NULL` in multi-row scalar results applies to value class scalars as well: declare the
 property nullable, or handle `null` elements yourself.
 
