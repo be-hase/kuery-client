@@ -14,6 +14,13 @@ import org.springframework.r2dbc.core.awaitRowsUpdated
 class PostgresNullBindingTest {
     private val kueryClient = postgres.kueryClient()
 
+    enum class SampleEnum {
+        HOGE,
+    }
+
+    @JvmInline
+    value class OptionalStatus(val value: SampleEnum?)
+
     @BeforeEach
     fun setUp() = runTest {
         postgres.databaseClient.sql(
@@ -81,6 +88,28 @@ class PostgresNullBindingTest {
 
         // then
         assertThat(count).isEqualTo(1L)
+    }
+
+    @Test
+    fun `bind value class wrapping a null enum`() = runTest {
+        // The bindNull type must be resolved through the write pipeline (enum -> String here),
+        // not the raw underlying type, which the driver has no codec for.
+        // given
+        val username = OptionalStatus(null)
+        val email = "user1@example.com"
+
+        // when
+        val count = kueryClient
+            .sql { +"INSERT INTO users (username, email) VALUES ($username, $email)" }
+            .rowsUpdated()
+
+        // then
+        assertThat(count).isEqualTo(1L)
+
+        val record = kueryClient
+            .sql { +"SELECT * FROM users WHERE email = $email" }
+            .singleMap()
+        assertThat(record["username"]).isNull()
     }
 
     @Test
