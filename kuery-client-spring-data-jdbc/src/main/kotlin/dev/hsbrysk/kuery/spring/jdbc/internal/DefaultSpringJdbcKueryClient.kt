@@ -14,6 +14,7 @@ import dev.hsbrysk.kuery.spring.jdbc.SqlIdInjector
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
 import org.springframework.beans.BeanUtils
+import org.springframework.core.KotlinDetector
 import org.springframework.core.convert.ConversionService
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.data.jdbc.core.convert.JdbcCustomConversions
@@ -75,7 +76,7 @@ internal class DefaultSpringJdbcKueryClient(
             return param(name, conversionService.convert(value, targetType.get()))
         }
 
-        if (ValueClasses.isValueClass(value.javaClass)) {
+        if (KotlinDetector.isInlineClass(value.javaClass)) {
             // Unwrap and re-dispatch so the underlying value goes through the full conversion
             // pipeline again (custom converters, enums, nested value classes, ...).
             val unwrapped = ValueClasses.unbox(value) ?: return param(name, null)
@@ -116,7 +117,7 @@ internal class DefaultSpringJdbcKueryClient(
         val targetType = customConversions.getCustomWriteTarget(componentType)
         return when {
             targetType.isPresent -> targetType.get()
-            ValueClasses.isValueClass(componentType) -> {
+            KotlinDetector.isInlineClass(componentType) -> {
                 val underlying = ValueClasses.underlyingType(componentType)
                 componentWriteTarget(underlying) ?: underlying
             }
@@ -132,7 +133,7 @@ internal class DefaultSpringJdbcKueryClient(
         val targetType = customConversions.getCustomWriteTarget(element::class.java)
         return when {
             targetType.isPresent -> conversionService.convert(element, targetType.get())
-            ValueClasses.isValueClass(element.javaClass) -> convertElement(ValueClasses.unbox(element))
+            KotlinDetector.isInlineClass(element.javaClass) -> convertElement(ValueClasses.unbox(element))
             // composite IN `(a, b) IN ($pairs)` passes each row as an Object[] entry in a Collection
             element is Array<*> -> convertArray(element)
             element is Enum<*> -> element.name
