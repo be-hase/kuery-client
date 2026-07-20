@@ -119,7 +119,11 @@ internal class DefaultSpringJdbcKueryClient(
             targetType.isPresent -> targetType.get()
             KotlinDetector.isInlineClass(componentType) -> {
                 val underlying = ValueClasses.underlyingType(componentType)
-                componentWriteTarget(underlying) ?: underlying
+                // A generic value class erases its underlying to Object, which is no useful array
+                // component type (pgjdbc rejects Object[]); return null so the caller infers the
+                // concrete type from the unwrapped elements. Empty/all-null generic value class
+                // arrays cannot be inferred and are left as Object[] (documented as unsupported).
+                if (underlying == Any::class.java) null else componentWriteTarget(underlying) ?: underlying
             }
             Enum::class.java.isAssignableFrom(componentType) -> String::class.java
             else -> null

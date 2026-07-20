@@ -25,6 +25,9 @@ class PostgresArrayBindingTest {
     @JvmInline
     value class UserName(val value: String)
 
+    @JvmInline
+    value class Wrapped<T>(val value: T)
+
     @WritingConverter
     class StringWrapperToStringConverter : Converter<StringWrapper, String> {
         override fun convert(source: StringWrapper): String = source.value
@@ -81,6 +84,23 @@ class PostgresArrayBindingTest {
     fun `bind value class array to ANY predicate`() {
         // given
         val usernames = arrayOf(UserName("HOGE"), UserName("FUGA"))
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE username = ANY($usernames) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind generic value class array infers the element type`() {
+        // A generic value class's underlying erases to Object; the concrete component type
+        // (String[]) must be inferred from the unwrapped elements, not left as Object[] which
+        // pgjdbc rejects.
+        // given
+        val usernames = arrayOf(Wrapped("HOGE"), Wrapped("FUGA"))
 
         // when
         val list = kueryClient
