@@ -80,6 +80,9 @@ class ValueClassFetchTest {
     @JvmInline
     value class Flag(val value: Boolean)
 
+    @JvmInline
+    value class OptionalUserName(val value: String?)
+
     private val kueryClient = h2.kueryClient()
 
     @BeforeEach
@@ -114,6 +117,50 @@ class ValueClassFetchTest {
             +"SELECT text FROM converter ORDER BY id"
         }.list<UserName>()
         assertThat(result).isEqualTo(listOf(UserName("user1"), null))
+    }
+
+    @Test
+    fun `nullable-underlying value class scalar keeps SQL NULL as an inner null`() {
+        // The underlying type is nullable, so SQL NULL is taken into the value class as an inner
+        // null (OptionalUserName(null)), mirroring the write side which binds such a value as SQL
+        // NULL. This differs from the non-null-underlying scalar, which maps SQL NULL to a null
+        // element.
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES ('user1'), (NULL)").update()
+
+        // when & then
+        val result: List<OptionalUserName> = kueryClient.sql {
+            +"SELECT text FROM converter ORDER BY id"
+        }.list()
+        assertThat(result).isEqualTo(listOf(OptionalUserName("user1"), OptionalUserName(null)))
+    }
+
+    @Test
+    fun `nullable-underlying value class property maps SQL NULL to an inner null`() {
+        // The property is non-null but its underlying type is nullable, so SQL NULL is taken into
+        // the value class as OptionalUserName(null) rather than failing.
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES (NULL)").update()
+
+        // when & then
+        val record: OptRecord = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(record.text).isEqualTo(OptionalUserName(null))
+    }
+
+    @Test
+    fun `doubly nullable value class property maps SQL NULL to the outer null`() {
+        // Both the property and the underlying type are nullable, so SQL NULL cannot be resolved
+        // unambiguously; it maps to the outer null (property is null), not OptionalUserName(null).
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES (NULL)").update()
+
+        // when & then
+        val record: OptNullableRecord = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(record.text).isNull()
     }
 
     @Test
@@ -444,6 +491,10 @@ class ValueClassFetchTest {
     data class NestedRecord(val text: Wrapper)
 
     data class NullableMoneyRecord(val text: Money?)
+
+    data class OptRecord(val text: OptionalUserName)
+
+    data class OptNullableRecord(val text: OptionalUserName?)
 
     @ReadingConverter
     class StringToUserNameConverter : Converter<String, UserName> {
