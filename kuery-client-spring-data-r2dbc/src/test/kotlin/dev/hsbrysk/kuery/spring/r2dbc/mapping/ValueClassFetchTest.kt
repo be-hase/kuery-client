@@ -72,6 +72,12 @@ class ValueClassFetchTest {
     @JvmInline
     value class Wrapper(val value: UserName)
 
+    @JvmInline
+    value class StringId(val value: String)
+
+    @JvmInline
+    value class Amount(val value: Int)
+
     private val kueryClient = h2.kueryClient()
 
     @BeforeEach
@@ -285,6 +291,35 @@ class ValueClassFetchTest {
     }
 
     @Test
+    fun `a reading converter from the raw column type wins over coercion to the underlying type`() = runTest {
+        // The BIGINT id column is retrieved raw as Long, so a Converter<Long, StringId> is applied
+        // before the driver could coerce the value to the underlying String.
+        // given
+        val kueryClient = h2.kueryClient(listOf(LongToStringIdConverter()))
+        insert("INSERT INTO converter (text) VALUES ('x')")
+
+        // when & then
+        val result: StringId = kueryClient.sql {
+            +"SELECT id FROM converter"
+        }.single()
+        assertThat(result).isEqualTo(StringId("custom:1"))
+    }
+
+    @Test
+    fun `value class underlying type is coerced from the raw column type when no converter matches`() = runTest {
+        // The BIGINT id is retrieved raw as Long and coerced to the Int underlying via the
+        // ConversionService (no converter targets Amount).
+        // given
+        insert("INSERT INTO converter (text) VALUES ('x')")
+
+        // when & then
+        val result: Amount = kueryClient.sql {
+            +"SELECT id FROM converter"
+        }.single()
+        assertThat(result).isEqualTo(Amount(1))
+    }
+
+    @Test
     fun `a reading converter maps a column the underlying type cannot read`() = runTest {
         // The underlying type (BigDecimal) cannot read the VARCHAR value directly; the raw value
         // must still reach the registered converter targeting the value class.
@@ -381,6 +416,11 @@ class ValueClassFetchTest {
     @ReadingConverter
     class BlankToNullBigDecimalConverter : Converter<String, BigDecimal?> {
         override fun convert(source: String): BigDecimal? = source.ifBlank { null }?.let { BigDecimal(it) }
+    }
+
+    @ReadingConverter
+    class LongToStringIdConverter : Converter<Long, StringId> {
+        override fun convert(source: Long): StringId = StringId("custom:$source")
     }
 
     companion object {
