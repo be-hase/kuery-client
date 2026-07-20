@@ -214,8 +214,8 @@ automatic unwrapping. See [Type Conversion](/type-conversion).
 The element type of a generic value class array (e.g. `arrayOf(Wrapped("a"))` where
 `value class Wrapped<T>(val value: T)`) is inferred from the unwrapped elements, so a non-empty array binds
 correctly. An **empty or all-`null`** generic value class array cannot be inferred — there is nothing to infer
-from and the underlying type is erased — and is left as `Object[]`, which most drivers reject. Use a concrete
-(non-generic) value class, or the underlying array type, in that case.
+from and the underlying type is erased — so no driver-compatible array type can be produced and most drivers
+reject it. Use a concrete (non-generic) value class, or the underlying array type, in that case.
 :::
 
 Value classes are also supported on the fetch side. See [Row Mapping](/row-mapping#kotlin-value-classes).
