@@ -14,6 +14,8 @@ Without any configuration:
 
 - Types the driver supports natively (numbers, strings, date/time types, and so on) are passed through unchanged.
 - Enums are written by their name (`Enum.name`) and read back by name.
+- Kotlin value classes are written as their underlying value and read back by boxing the column value through
+  the constructor.
 
 Custom converters registered via `converters(...)` take precedence over these defaults. For example, registering
 a `@WritingConverter` from your enum to `Int` overrides the write-by-name default for that enum.
@@ -98,5 +100,5 @@ The blocking client uses the same SQL and mapping code without `suspend`.
 
 Conversion is performed per bound value and per mapped column. A non-simple custom type used as the top-level
 return type does not automatically use its `@ReadingConverter`; put it in a mapped data class property instead.
-Kotlin value classes have additional fetch-side limitations. See [Custom types](/row-mapping#custom-types) and
-[Unsupported Kotlin value classes](/row-mapping#unsupported-kotlin-value-classes) in Row Mapping.
+(Kotlin value classes are the exception: they work in both positions without converters. See
+[Kotlin value classes](/row-mapping#kotlin-value-classes) in Row Mapping.)

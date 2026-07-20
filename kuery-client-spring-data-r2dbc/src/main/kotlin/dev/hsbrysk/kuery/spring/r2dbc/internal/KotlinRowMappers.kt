@@ -166,12 +166,19 @@ internal class ValueClassPropertyRowMapper(
             runCatching { TypeDescriptor(ResolvableType.forType(parameter.type.javaType), null, null) }.getOrNull()
         }
 
+        // Whether the property (the outer position) is declared nullable.
+        private val outerNullable = parameter.type.isMarkedNullable
+
         fun convert(
             raw: Any?,
             tc: TypeConverter,
             retrieveTyped: (Class<*>) -> Any?,
         ): Any? = when {
             target == null -> raw
+            // Outer-priority: a nullable property takes SQL NULL as the outer null, not into the
+            // value class. This also decides the doubly-nullable case (nullable property + nullable
+            // underlying), where SQL NULL is ambiguous, in favour of the outer null.
+            valueClassConverter != null && raw == null && outerNullable -> null
             valueClassConverter != null -> valueClassConverter.convert(raw, retrieveTyped)
             else -> tc.convertIfNecessary(raw, target.javaObjectType, typeDescriptor)
         }
@@ -202,12 +209,24 @@ internal class ValueClassColumnConverter(
 
     private val canConvertCache = ConcurrentHashMap<Class<*>, Boolean>()
 
+    // Whether SQL NULL should be taken into the value class as an inner null (X(null)). True only
+    // when the underlying type is nullable; false when it is non-null or cannot be determined
+    // (a generic value class, whose boxer resolution fail-fasts — never let that fire here).
+    private val nullableUnderlying: Boolean by lazy {
+        runCatching { boxer.underlyingNullable }.getOrDefault(false)
+    }
+
     /**
      * Converts the [raw] column value (retrieved with no type hint) to the value class.
      * [retrieveTyped] re-reads the same column asking the driver for a given type; it is used to
      * preserve driver coercions (e.g. a numeric column to a `Boolean` underlying) that the
      * ConversionService cannot perform, and must return the raw value if the driver cannot produce
      * the requested type.
+     *
+     * SQL NULL is taken into the value class as an inner null (X(null)) when the underlying type is
+     * nullable, mirroring the write side which binds such a value as SQL NULL; otherwise it maps to
+     * a null value class. (A nullable property short-circuits to the outer null before reaching
+     * here; see [ValueClassPropertyRowMapper].)
      *
      * A registered reading converter wins over automatic boxing whether it is keyed on the raw
      * column type or on the type the driver produces for the underlying retrieval, so the priority
@@ -222,7 +241,7 @@ internal class ValueClassColumnConverter(
         retrieveTyped: (Class<*>) -> Any?,
     ): Any? {
         if (raw == null) {
-            return null
+            return if (nullableUnderlying) boxer.boxNull() else null
         }
         // (1) A reading converter keyed on the raw column type takes precedence over boxing.
         if (canConvert(raw.javaClass)) {
@@ -287,6 +306,10 @@ private class ValueClassBoxer(target: KClass<*>) {
             "Register a reading converter targeting $target instead."
     }
 
+    // Whether the underlying type is declared nullable (e.g. `value class X(val v: String?)`), so
+    // SQL NULL can be taken into the value class as X(null) instead of a null value class.
+    val underlyingNullable: Boolean = constructor.parameters.single().type.isMarkedNullable
+
     // Fast path: the compiler-generated static `constructor-impl` (which contains the `init`
     // validation) + `box-impl` pair, invoked through plain Java reflection — measurably faster
     // than KFunction.call. They are part of a value class's stable JVM ABI (compiled callers in
@@ -305,6 +328,13 @@ private class ValueClassBoxer(target: KClass<*>) {
         val fast = fastBox
         if (fast != null && fast.accepts(value)) fast.box(value) else constructor.call(value)
     }
+
+    /**
+     * Boxes a null underlying value into X(null), running `init` validation. Only valid when
+     * [underlyingNullable]. Goes through the Kotlin constructor (not the fast path, whose `accepts`
+     * is non-null); this runs only on SQL NULL rows, so it is off the hot path.
+     */
+    fun boxNull(): Any = callConstructor { constructor.call(null) }
 }
 
 // Unwrap InvocationTargetException so `init` validation failures (e.g. IllegalArgumentException

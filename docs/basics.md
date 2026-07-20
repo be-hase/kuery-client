@@ -188,6 +188,38 @@ kueryClient
 If you want a different representation, register a custom `@WritingConverter` — it takes precedence over the
 default. See [Type Conversion](/type-conversion).
 
+### Value classes
+
+A Kotlin value class is bound as its underlying value. This also applies to value classes inside collections
+and arrays, and the unwrapped value goes through the usual conversion rules again — so a value class wrapping
+an enum is bound by the enum's name.
+
+```kotlin
+@JvmInline
+value class UserName(val value: String)
+
+val name = UserName("hoge")
+kueryClient
+    .sql {
+        +"SELECT * FROM users WHERE username = $name"
+        // bound as the string 'hoge'
+    }
+```
+
+A value class wrapping a nullable type is bound as SQL `NULL` when the wrapped value is null. If you want a
+different representation, register a custom `@WritingConverter` for the value class — it takes precedence over
+automatic unwrapping. See [Type Conversion](/type-conversion).
+
+::: warning Generic value classes in arrays
+The element type of a generic value class array (e.g. `arrayOf(Wrapped("a"))` where
+`value class Wrapped<T>(val value: T)`) is inferred from the unwrapped elements, so a non-empty array binds
+correctly. An **empty or all-`null`** generic value class array cannot be inferred — there is nothing to infer
+from and the underlying type is erased — so no driver-compatible array type can be produced and most drivers
+reject it. Use a concrete (non-generic) value class, or the underlying array type, in that case.
+:::
+
+Value classes are also supported on the fetch side. See [Row Mapping](/row-mapping#kotlin-value-classes).
+
 ### Null values
 
 A `null` value is bound as SQL `NULL`. Be careful with comparison operators: `column = NULL` never matches

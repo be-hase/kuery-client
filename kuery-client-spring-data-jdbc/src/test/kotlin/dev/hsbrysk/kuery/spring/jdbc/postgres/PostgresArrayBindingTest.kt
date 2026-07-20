@@ -112,6 +112,22 @@ class PostgresArrayBindingTest {
     }
 
     @Test
+    fun `bind generic value class array of a non-string type infers the element type`() {
+        // The inferred component type follows the actual unwrapped elements (Integer[] here),
+        // not a hardcoded String[].
+        // given
+        val ids = arrayOf(Wrapped(1), Wrapped(2))
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($ids) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
     fun `bind all-null value class array to a native array column`() {
         // given
         val tags = arrayOf<UserName?>(null, null)
