@@ -93,7 +93,7 @@ match. Receive custom types as properties of a data class instead.
 Kotlin value classes are supported in both positions on the fetch side:
 
 - As the return type itself (e.g. `single<UserName>()`): like a simple type, select one column; its value is
-  read as the underlying type and boxed into the value class.
+  converted to the underlying type and boxed into the value class.
 - As a data class property: the column matched by parameter name (same `snake_case` / `camelCase` rules as
   above) is converted to the underlying type and boxed.
 
