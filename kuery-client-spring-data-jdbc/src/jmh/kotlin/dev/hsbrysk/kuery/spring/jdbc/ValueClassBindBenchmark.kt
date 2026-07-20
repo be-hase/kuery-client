@@ -6,18 +6,19 @@ import dev.hsbrysk.kuery.core.single
 import org.h2.jdbcx.JdbcDataSource
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.BenchmarkMode
-import org.openjdk.jmh.annotations.Measurement
 import org.openjdk.jmh.annotations.Mode
 import org.openjdk.jmh.annotations.OutputTimeUnit
 import org.openjdk.jmh.annotations.Scope
 import org.openjdk.jmh.annotations.Setup
 import org.openjdk.jmh.annotations.State
-import org.openjdk.jmh.annotations.Warmup
 import org.openjdk.jmh.infra.Blackhole
 import org.springframework.jdbc.core.simple.JdbcClient
 import java.util.concurrent.TimeUnit
 
 /*
+Run settings (fork = 1, 1 warmup + 2 measurement iterations of 2s) come from conventions.jmh, so
+Cnt = 2 and there is no error interval; the scores below are a single directional measurement.
+
 Benchmark                                    Mode  Cnt   Score   Error  Units
 ValueClassBindBenchmark.bindString           avgt    2   6.094          us/op
 ValueClassBindBenchmark.bindStringIn100      avgt    2  42.664          us/op
@@ -30,15 +31,15 @@ ValueClassBindBenchmark.bindValueClassIn100  avgt    2  44.864          us/op
  *
  * The String variants are the baseline existing (non-value-class) users hit; value class
  * support adds one `isAnnotationPresent` check per bound value / collection element to that
- * path — sub-nanosecond against a multi-microsecond query. The IN variants bind a 100-element
- * collection to amplify the per-element cost (unwrapping adds ~16ns per element).
+ * path — sub-nanosecond against a multi-microsecond query, so the single-value String/value-class
+ * scores sit within run-to-run noise of each other here. The IN variants bind a 100-element
+ * collection to amplify the per-element unwrapping cost (a few tens of ns per element in this
+ * measurement).
  */
 @OptIn(DelicateKueryClientApi::class)
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 1, time = 2)
-@Measurement(iterations = 3, time = 2)
 open class ValueClassBindBenchmark {
     @JvmInline
     value class UserName(val value: String)

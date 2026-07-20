@@ -6,18 +6,19 @@ import dev.hsbrysk.kuery.core.list
 import org.h2.jdbcx.JdbcDataSource
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.BenchmarkMode
-import org.openjdk.jmh.annotations.Measurement
 import org.openjdk.jmh.annotations.Mode
 import org.openjdk.jmh.annotations.OutputTimeUnit
 import org.openjdk.jmh.annotations.Scope
 import org.openjdk.jmh.annotations.Setup
 import org.openjdk.jmh.annotations.State
-import org.openjdk.jmh.annotations.Warmup
 import org.openjdk.jmh.infra.Blackhole
 import org.springframework.jdbc.core.simple.JdbcClient
 import java.util.concurrent.TimeUnit
 
 /*
+Run settings (fork = 1, 1 warmup + 2 measurement iterations of 2s) come from conventions.jmh, so
+Cnt = 2 and there is no error interval; the scores below are a single directional measurement.
+
 Benchmark                                        Mode  Cnt    Score   Error  Units
 ValueClassFetchBenchmark.plainDataClassList      avgt    2  275.379          us/op
 ValueClassFetchBenchmark.stringScalarList        avgt    2   39.763          us/op
@@ -33,16 +34,16 @@ ValueClassFetchBenchmark.valueClassScalarList    avgt    2   44.170          us/
  *   support must not change their per-row cost.
  * - [valueClassPropertyList] / [valueClassScalarList] exercise the new Kotlin-reflection based
  *   mappers, quantifying the per-row cost of value class boxing. With the cached boxing
- *   constructor, the `constructor-impl`/`box-impl` fast path, and the cached
- *   converter-precedence decision, value class mapping is on par with the plain Spring mapper
- *   (scalar: ~+11% over a plain String scalar; property: parity).
+ *   constructor, the `constructor-impl`/`box-impl` fast path, and the cached converter-precedence
+ *   decision, in this measurement value class mapping came out close to the plain Spring mapper:
+ *   the value class scalar was modestly slower than a plain String scalar and the value class
+ *   property landed in the same range as the plain data class. Single fork, no error interval —
+ *   read the numbers as directional.
  */
 @OptIn(DelicateKueryClientApi::class)
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 1, time = 2)
-@Measurement(iterations = 3, time = 2)
 open class ValueClassFetchBenchmark {
     @JvmInline
     value class UserName(val value: String)

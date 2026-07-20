@@ -2,15 +2,16 @@ package dev.hsbrysk.kuery.spring.jdbc
 
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.BenchmarkMode
-import org.openjdk.jmh.annotations.Measurement
 import org.openjdk.jmh.annotations.Mode
 import org.openjdk.jmh.annotations.OutputTimeUnit
 import org.openjdk.jmh.annotations.Scope
 import org.openjdk.jmh.annotations.State
-import org.openjdk.jmh.annotations.Warmup
 import java.util.concurrent.TimeUnit
 
 /*
+Run settings (fork = 1, 1 warmup + 2 measurement iterations of 2s) come from conventions.jmh, so
+Cnt = 2 and there is no error interval; the scores below are a single directional measurement.
+
 Benchmark                                                 Mode  Cnt  Score   Error  Units
 ValueClassCheckBenchmark.classValueCachedOnPlainClass     avgt    2  1.347          ns/op
 ValueClassCheckBenchmark.isAnnotationPresentOnPlainClass  avgt    2  0.903          ns/op
@@ -21,14 +22,12 @@ ValueClassCheckBenchmark.isAnnotationPresentOnValueClass  avgt    2  1.569      
  * Measures the per-bind overhead that value class support adds for users who do NOT use value
  * classes: one `isAnnotationPresent(JvmInline)` call per bound value / collection element.
  * The ClassValue variant is the candidate replacement if the annotation lookup turns out to be
- * expensive — it is not: the JDK caches annotation data per class, so the direct check is
- * sub-nanosecond and a ClassValue would actually be slower.
+ * expensive; in this measurement it was not — the JDK caches annotation data per class, so the
+ * direct check came out sub-nanosecond and the ClassValue was, if anything, slightly slower.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@Warmup(iterations = 1, time = 2)
-@Measurement(iterations = 3, time = 2)
 open class ValueClassCheckBenchmark {
     @JvmInline
     value class UserName(val value: String)
