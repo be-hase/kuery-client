@@ -130,7 +130,8 @@ How a SQL `NULL` maps depends on whether the value class's **underlying** type i
   same note as [simple types](#simple-types) above).
 - **Nullable underlying** (`value class OptionalUserName(val value: String?)`): a `NULL` is taken *into* the
   value class as `OptionalUserName(null)`, mirroring how such a value is bound on the write side (so it
-  round-trips). A nullable property (`OptionalUserName?`) instead maps `NULL` to the outer `null`.
+  round-trips). A nullable property (`OptionalUserName?`) instead maps `NULL` to the outer `null`: both the
+  property and the underlying could hold the `NULL`, so it is ambiguous, and the outer `null` wins.
 
 For a nullable underlying, a scalar fetch always produces `OptionalUserName(null)` (never a `null` element):
 the element type is non-null (`list<T : Any>`), so element nullability cannot be requested. Use a data class
