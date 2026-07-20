@@ -20,6 +20,7 @@ import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.beans.BeanUtils
+import org.springframework.core.KotlinDetector
 import org.springframework.core.convert.ConversionService
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.dao.TypeMismatchDataAccessException
@@ -70,35 +71,60 @@ internal class DefaultSpringR2dbcKueryClient(
         }
     }
 
-    private fun GenericExecuteSpec.bind(parameter: NamedSqlParameter): GenericExecuteSpec {
-        val value = checkNotNull(parameter.value)
+    private fun GenericExecuteSpec.bind(parameter: NamedSqlParameter): GenericExecuteSpec =
+        bindValue(parameter.name, checkNotNull(parameter.value))
 
+    private fun GenericExecuteSpec.bindValue(
+        name: String,
+        value: Any,
+    ): GenericExecuteSpec {
         val targetType = customConversions.getCustomWriteTarget(value::class.java)
         if (targetType.isPresent) {
             // The Converter contract allows a null result; bind it as SQL NULL of the target type.
             val converted = conversionService.convert(value, targetType.get())
             return if (converted != null) {
-                bind(parameter.name, converted)
+                bind(name, converted)
             } else {
-                bindNull(parameter.name, targetType.get())
+                bindNull(name, targetType.get())
             }
         }
 
-        return when (value) {
-            is Collection<*> -> bind(parameter.name, convertCollection(value))
-            is Array<*> -> bind(parameter.name, convertArray(value))
-            // R2DBC drivers' array codecs accept only object arrays, so box primitive arrays.
-            // ByteArray is excluded: drivers encode byte[] as a single binary value, not an array.
-            is IntArray -> bind(parameter.name, value.toTypedArray())
-            is LongArray -> bind(parameter.name, value.toTypedArray())
-            is ShortArray -> bind(parameter.name, value.toTypedArray())
-            is DoubleArray -> bind(parameter.name, value.toTypedArray())
-            is FloatArray -> bind(parameter.name, value.toTypedArray())
-            is BooleanArray -> bind(parameter.name, value.toTypedArray())
-            is CharArray -> bind(parameter.name, value.toTypedArray())
-            is Enum<*> -> bind(parameter.name, value.name)
-            else -> bind(parameter.name, value)
+        if (KotlinDetector.isInlineClass(value.javaClass)) {
+            // Unwrap and re-dispatch so the underlying value goes through the full conversion
+            // pipeline again (custom converters, enums, nested value classes, ...).
+            val unwrapped = ValueClasses.unbox(value)
+                ?: run {
+                    // The bindNull type must be what the driver would have received for a
+                    // non-null value (enum -> String, custom write target, nested value class,
+                    // boxed primitive array), not the raw underlying type, which may have no codec.
+                    val underlying = ValueClasses.underlyingType(value.javaClass)
+                    val bindNullType = componentWriteTarget(underlying)
+                        ?: PRIMITIVE_ARRAY_TO_OBJECT_ARRAY[underlying]
+                        ?: underlying
+                    return bindNull(name, bindNullType)
+                }
+            return bindValue(name, unwrapped)
         }
+
+        return when (value) {
+            is Collection<*> -> bind(name, convertCollection(value))
+            is Array<*> -> bind(name, convertArray(value))
+            is Enum<*> -> bind(name, value.name)
+            else -> bind(name, boxPrimitiveArray(value) ?: value)
+        }
+    }
+
+    // R2DBC drivers' array codecs accept only object arrays, so box primitive arrays.
+    // ByteArray is excluded: drivers encode byte[] as a single binary value, not an array.
+    private fun boxPrimitiveArray(value: Any): Array<*>? = when (value) {
+        is IntArray -> value.toTypedArray()
+        is LongArray -> value.toTypedArray()
+        is ShortArray -> value.toTypedArray()
+        is DoubleArray -> value.toTypedArray()
+        is FloatArray -> value.toTypedArray()
+        is BooleanArray -> value.toTypedArray()
+        is CharArray -> value.toTypedArray()
+        else -> null
     }
 
     // NOTE: The conversion helpers below (convertCollection / convertArray / componentWriteTarget /
@@ -127,6 +153,15 @@ internal class DefaultSpringR2dbcKueryClient(
         val targetType = customConversions.getCustomWriteTarget(componentType)
         return when {
             targetType.isPresent -> targetType.get()
+            KotlinDetector.isInlineClass(componentType) -> {
+                val underlying = ValueClasses.underlyingType(componentType)
+                // A generic value class erases its underlying to Object, which is no useful array
+                // component type (drivers reject Object[]); return null so the caller infers the
+                // concrete type from the unwrapped elements. An empty or all-null such array cannot
+                // be inferred — no driver-compatible component type can be produced and most drivers
+                // reject it (documented as unsupported).
+                if (underlying == Any::class.java) null else componentWriteTarget(underlying) ?: underlying
+            }
             Enum::class.java.isAssignableFrom(componentType) -> String::class.java
             else -> null
         }
@@ -139,6 +174,7 @@ internal class DefaultSpringR2dbcKueryClient(
         val targetType = customConversions.getCustomWriteTarget(element::class.java)
         return when {
             targetType.isPresent -> conversionService.convert(element, targetType.get())
+            KotlinDetector.isInlineClass(element.javaClass) -> convertElement(ValueClasses.unbox(element))
             // composite IN `(a, b) IN ($pairs)` passes each row as an Object[] entry in a Collection
             element is Array<*> -> convertArray(element)
             element is Enum<*> -> element.name
@@ -338,3 +374,17 @@ private object NullValue
 
 @Suppress("UNCHECKED_CAST")
 private fun <T : Any> Any.unwrapNullValue(): T? = if (this === NullValue) null else this as T
+
+// Maps a primitive array type to its boxed (object) array type, the type `boxPrimitiveArray`
+// would produce for a non-null value. Used to pick the `bindNull` type for a value class
+// wrapping a nullable primitive array. ByteArray is excluded: drivers encode byte[] as a single
+// binary value, not an array.
+private val PRIMITIVE_ARRAY_TO_OBJECT_ARRAY: Map<Class<*>, Class<*>> = mapOf(
+    IntArray::class.java to Array<Int>::class.java,
+    LongArray::class.java to Array<Long>::class.java,
+    ShortArray::class.java to Array<Short>::class.java,
+    DoubleArray::class.java to Array<Double>::class.java,
+    FloatArray::class.java to Array<Float>::class.java,
+    BooleanArray::class.java to Array<Boolean>::class.java,
+    CharArray::class.java to Array<Char>::class.java,
+)

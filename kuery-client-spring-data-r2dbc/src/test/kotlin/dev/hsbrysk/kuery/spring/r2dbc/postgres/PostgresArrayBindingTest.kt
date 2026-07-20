@@ -20,6 +20,15 @@ class PostgresArrayBindingTest {
 
     data class StringWrapper(val value: String)
 
+    @JvmInline
+    value class UserName(val value: String)
+
+    @JvmInline
+    value class Scores(val value: IntArray?)
+
+    @JvmInline
+    value class Wrapped<T>(val value: T)
+
     @WritingConverter
     class StringWrapperToStringConverter : Converter<StringWrapper, String> {
         override fun convert(source: StringWrapper): String = source.value
@@ -32,7 +41,8 @@ class PostgresArrayBindingTest {
             CREATE TABLE users (
                 user_id SERIAL PRIMARY KEY,
                 username VARCHAR(50) NOT NULL,
-                tags TEXT[]
+                tags TEXT[],
+                scores INT[]
             )
             """.trimIndent(),
         ).fetch().awaitRowsUpdated()
@@ -71,6 +81,73 @@ class PostgresArrayBindingTest {
 
         // then
         assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind value class array to ANY predicate`() = runTest {
+        // given
+        val usernames = arrayOf(UserName("HOGE"), UserName("FUGA"))
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE username = ANY($usernames) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind generic value class array infers the element type`() = runTest {
+        // A generic value class's underlying erases to Object; the concrete component type
+        // (String[]) must be inferred from the unwrapped elements, not left as Object[] which
+        // the driver rejects.
+        // given
+        val usernames = arrayOf(Wrapped("HOGE"), Wrapped("FUGA"))
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE username = ANY($usernames) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind generic value class array of a non-string type infers the element type`() = runTest {
+        // The inferred component type follows the actual unwrapped elements (Integer[] here),
+        // not a hardcoded String[].
+        // given
+        val ids = arrayOf(Wrapped(1), Wrapped(2))
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($ids) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind all-null value class array to a native array column`() = runTest {
+        // given
+        val tags = arrayOf<UserName?>(null, null)
+
+        // when
+        val count = kueryClient
+            .sql { +"INSERT INTO users (username, tags) VALUES ('tagged', $tags)" }
+            .rowsUpdated()
+
+        // then
+        assertThat(count).isEqualTo(1L)
+
+        val record = kueryClient
+            .sql { +"SELECT tags FROM users WHERE username = 'tagged'" }
+            .singleMap()
+        val stored = record["tags"] as Array<*>
+        assertThat(stored.toList()).isEqualTo(listOf(null, null))
     }
 
     @Test
@@ -246,6 +323,44 @@ class PostgresArrayBindingTest {
 
         // then
         assertThat((record["chars"] as Array<*>).toList()).isEqualTo(listOf("a", "b"))
+    }
+
+    // R2DBC-only: only the r2dbc client boxes primitive arrays (the jdbc client passes them to the
+    // driver as-is and binds an untyped null), so there is no jdbc counterpart to these two tests.
+    @Test
+    fun `value class wrapping a primitive array binds the boxed array`() = runTest {
+        // given
+        val scores = Scores(intArrayOf(1, 2))
+
+        // when
+        kueryClient
+            .sql { +"INSERT INTO users (username, scores) VALUES ('scored', $scores)" }
+            .rowsUpdated()
+
+        // then
+        val record = kueryClient
+            .sql { +"SELECT scores FROM users WHERE username = 'scored'" }
+            .singleMap()
+        assertThat((record["scores"] as Array<*>).toList()).isEqualTo(listOf(1, 2))
+    }
+
+    @Test
+    fun `value class wrapping a null primitive array binds SQL NULL`() = runTest {
+        // The bindNull type must be the boxed array type the driver would have received for a
+        // non-null value, not the raw primitive array type, which r2dbc has no codec for.
+        // given
+        val scores = Scores(null)
+
+        // when
+        kueryClient
+            .sql { +"INSERT INTO users (username, scores) VALUES ('scored', $scores)" }
+            .rowsUpdated()
+
+        // then
+        val record = kueryClient
+            .sql { +"SELECT scores FROM users WHERE username = 'scored'" }
+            .singleMap()
+        assertThat(record["scores"]).isEqualTo(null)
     }
 
     companion object {

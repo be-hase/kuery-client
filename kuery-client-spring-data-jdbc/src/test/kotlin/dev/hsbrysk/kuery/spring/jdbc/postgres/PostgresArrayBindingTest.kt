@@ -22,6 +22,12 @@ class PostgresArrayBindingTest {
 
     data class StringWrapper(val value: String)
 
+    @JvmInline
+    value class UserName(val value: String)
+
+    @JvmInline
+    value class Wrapped<T>(val value: T)
+
     @WritingConverter
     class StringWrapperToStringConverter : Converter<StringWrapper, String> {
         override fun convert(source: StringWrapper): String = source.value
@@ -72,6 +78,73 @@ class PostgresArrayBindingTest {
 
         // then
         assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind value class array to ANY predicate`() {
+        // given
+        val usernames = arrayOf(UserName("HOGE"), UserName("FUGA"))
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE username = ANY($usernames) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind generic value class array infers the element type`() {
+        // A generic value class's underlying erases to Object; the concrete component type
+        // (String[]) must be inferred from the unwrapped elements, not left as Object[] which
+        // pgjdbc rejects.
+        // given
+        val usernames = arrayOf(Wrapped("HOGE"), Wrapped("FUGA"))
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE username = ANY($usernames) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind generic value class array of a non-string type infers the element type`() {
+        // The inferred component type follows the actual unwrapped elements (Integer[] here),
+        // not a hardcoded String[].
+        // given
+        val ids = arrayOf(Wrapped(1), Wrapped(2))
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE user_id = ANY($ids) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind all-null value class array to a native array column`() {
+        // given
+        val tags = arrayOf<UserName?>(null, null)
+
+        // when
+        val count = kueryClient
+            .sql { +"INSERT INTO users (username, tags) VALUES ('tagged', $tags)" }
+            .rowsUpdated()
+
+        // then
+        assertThat(count).isEqualTo(1L)
+
+        val record = kueryClient
+            .sql { +"SELECT tags FROM users WHERE username = 'tagged'" }
+            .singleMap()
+        val stored = (record["tags"] as SqlArray).array as Array<*>
+        assertThat(stored.toList()).isEqualTo(listOf(null, null))
     }
 
     @Test
