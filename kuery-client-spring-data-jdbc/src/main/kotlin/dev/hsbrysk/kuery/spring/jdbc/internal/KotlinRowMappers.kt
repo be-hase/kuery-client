@@ -205,7 +205,15 @@ internal class ValueClassColumnConverter(
      * preserve driver coercions (e.g. a numeric column to a `Boolean` underlying) that the
      * ConversionService cannot perform, and must return the raw value if the driver cannot produce
      * the requested type.
+     *
+     * A registered reading converter wins over automatic boxing whether it is keyed on the raw
+     * column type or on the type the driver produces for the underlying retrieval, so the priority
+     * is: (1) converter on the raw type, (2) box a raw value already of the underlying type,
+     * (3) delegate a nested value class, (4) driver typed retrieval, (5) converter on the typed
+     * type, (6) box the typed value (converting through the ConversionService if the driver could
+     * not produce the underlying type).
      */
+    @Suppress("ReturnCount") // Sequential guard clauses for the retrieval priority read best flat.
     fun convert(
         raw: Any?,
         retrieveTyped: (Class<*>) -> Any?,
@@ -213,38 +221,43 @@ internal class ValueClassColumnConverter(
         if (raw == null) {
             return null
         }
-        // A registered reading converter keyed on the raw column type takes precedence over boxing
-        // (and over the driver's coercion to the underlying type).
-        if (canConvertCache.computeIfAbsent(raw.javaClass) { conversionService.canConvert(it, targetJavaType) }) {
+        // (1) A reading converter keyed on the raw column type takes precedence over boxing.
+        if (canConvert(raw.javaClass)) {
             return conversionService.convert(raw, targetJavaType)
         }
-        // No converter: box. Resolving `boxer` here (lazily) means a generic value class without a
-        // converter fails now, with the descriptive fail-fast message, rather than at construction.
-        val underlying = when {
-            underlyingJavaType.isInstance(raw) -> raw
-            underlyingConverter != null -> underlyingConverter?.convert(raw, retrieveTyped)
-            else -> coerceToUnderlying(raw, retrieveTyped)
+        // Resolving `boxer` here (lazily) means a generic value class without a converter fails now,
+        // with the descriptive fail-fast message, rather than at construction.
+        // (2) The raw value is already the underlying type (a converter on it was ruled out above).
+        if (underlyingJavaType.isInstance(raw)) {
+            return boxer.box(raw)
         }
-        // A converter for the underlying type may legitimately return null (the Converter contract
-        // allows it); map it to null instead of boxing null, which would fail for a non-null type.
+        // (3) A nested value class runs the same priority for its own level.
+        val nested = underlyingConverter
+        if (nested != null) {
+            return nested.convert(raw, retrieveTyped)?.let { boxer.box(it) }
+        }
+        // (4) Ask the driver for the underlying type; it coerces where the ConversionService cannot
+        // (e.g. a numeric column to a Boolean underlying). Falls back to the raw value if it cannot.
+        val typed = retrieveTyped(underlyingJavaType) ?: raw
+        // (5) A reading converter keyed on the type the driver produced (e.g. a String for an enum
+        // column) also wins over boxing. When the driver fell back to the raw value, its type was
+        // already ruled out in (1), so this is a cached miss.
+        if (canConvert(typed.javaClass)) {
+            return conversionService.convert(typed, targetJavaType)
+        }
+        // (6) No converter: box, converting to the underlying type through the ConversionService if
+        // the driver could not produce it. A converter for the underlying type may legitimately
+        // return null (the Converter contract allows it); map it to null instead of boxing null.
+        val underlying = if (underlyingJavaType.isInstance(typed)) {
+            typed
+        } else {
+            conversionService.convert(typed, underlyingJavaType)
+        }
         return underlying?.let { boxer.box(it) }
     }
 
-    // Prefer the driver's typed retrieval of the underlying value (it coerces where the
-    // ConversionService cannot, e.g. a numeric column to a Boolean underlying); if the driver
-    // produced a different type (e.g. a String for an enum underlying) or could not produce the
-    // requested type, convert it through the ConversionService.
-    private fun coerceToUnderlying(
-        raw: Any,
-        retrieveTyped: (Class<*>) -> Any?,
-    ): Any? {
-        val candidate = retrieveTyped(underlyingJavaType) ?: raw
-        return if (underlyingJavaType.isInstance(candidate)) {
-            candidate
-        } else {
-            conversionService.convert(candidate, underlyingJavaType)
-        }
-    }
+    private fun canConvert(source: Class<*>): Boolean =
+        canConvertCache.computeIfAbsent(source) { conversionService.canConvert(it, targetJavaType) }
 }
 
 private val boxers = object : ClassValue<ValueClassBoxer>() {

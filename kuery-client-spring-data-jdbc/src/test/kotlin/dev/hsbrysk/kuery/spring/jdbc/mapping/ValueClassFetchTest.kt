@@ -334,6 +334,24 @@ class ValueClassFetchTest {
     }
 
     @Test
+    fun `a reading converter from the driver typed value wins over automatic boxing`() {
+        // The BIGINT id has no Converter<Long, StringId>, so it is retrieved typed as the String
+        // underlying (ResultSet.getString); a Converter<String, StringId> keyed on that produced
+        // type must still win over automatic boxing (which would yield StringId("1")).
+        // jdbc-only: r2dbc-h2 does not coerce a numeric column to a String via readable.get, so the
+        // driver never produces the typed String there (same limitation as the Boolean case above).
+        // given
+        val kueryClient = h2.kueryClient(listOf(StringToStringIdConverter()))
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES ('x')").update()
+
+        // when & then
+        val result: StringId = kueryClient.sql {
+            +"SELECT id FROM converter"
+        }.single()
+        assertThat(result).isEqualTo(StringId("typed:1"))
+    }
+
+    @Test
     fun `value class underlying type is coerced from the raw column type when no converter matches`() {
         // The BIGINT id is retrieved raw as Long and coerced to the Int underlying via the
         // ConversionService (no converter targets Amount).
@@ -450,6 +468,11 @@ class ValueClassFetchTest {
     @ReadingConverter
     class LongToStringIdConverter : Converter<Long, StringId> {
         override fun convert(source: Long): StringId = StringId("custom:$source")
+    }
+
+    @ReadingConverter
+    class StringToStringIdConverter : Converter<String, StringId> {
+        override fun convert(source: String): StringId = StringId("typed:$source")
     }
 
     companion object {

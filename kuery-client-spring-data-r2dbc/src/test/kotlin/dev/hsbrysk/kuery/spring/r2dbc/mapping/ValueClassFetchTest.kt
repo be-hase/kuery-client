@@ -305,11 +305,18 @@ class ValueClassFetchTest {
         assertThat(result).isEqualTo(StringId("custom:1"))
     }
 
-    // NOTE: the jdbc counterpart `driver coercion remains available when no reading converter
-    // matches` (BIGINT -> Boolean via ResultSet.getBoolean) is jdbc-only: r2dbc-h2's
-    // `readable.get(index, Boolean)` does not coerce a numeric column to Boolean, so that specific
-    // value class was never mappable on r2dbc-h2. The driver-typed retrieval path itself is still
-    // exercised on r2dbc by the coercion tests here (the raw type differs from the underlying).
+    // NOTE: two jdbc counterparts are jdbc-only because r2dbc-h2's `readable.get(index, type)` does
+    // not coerce a numeric column to a different type (it returns the raw value or throws), so the
+    // driver never produces a differently-typed value here:
+    //   - `driver coercion remains available when no reading converter matches`
+    //     (BIGINT -> Boolean via ResultSet.getBoolean).
+    //   - `a reading converter from the driver typed value wins over automatic boxing`
+    //     (BIGINT retrieved as the String underlying, then a Converter<String, StringId> applied).
+    // Both need a driver that coerces the column to the requested type (e.g. jdbc-h2's getString /
+    // getBoolean, or a real driver such as postgres reading a native enum as a String); on r2dbc
+    // the identical mapping code handles them once the driver produces the coerced type. The
+    // driver-typed retrieval path itself is still exercised on r2dbc by the coercion tests here
+    // (the raw type differs from the underlying).
 
     @Test
     fun `value class underlying type is coerced from the raw column type when no converter matches`() = runTest {
