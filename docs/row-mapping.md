@@ -120,8 +120,21 @@ Generic value classes (e.g. `value class Wrapped<T>(val value: T)`) cannot be bo
 underlying type is a type parameter — and are rejected with an error. Register a `@ReadingConverter` for them
 instead.
 
-The note about SQL `NULL` in multi-row scalar results applies to value class scalars as well: declare the
-property nullable, or handle `null` elements yourself.
+### Nullable columns
+
+How a SQL `NULL` maps depends on whether the value class's **underlying** type is nullable:
+
+- **Non-null underlying** (`value class UserName(val value: String)`): a `NULL` cannot be held inside the
+  value class. As a data class property, declare it nullable (`UserName?`) so `NULL` maps to `null`; a
+  non-nullable property fails. As a scalar (`list<UserName>()`), a `NULL` is kept as a `null` element (the
+  same note as [simple types](#simple-types) above).
+- **Nullable underlying** (`value class OptionalUserName(val value: String?)`): a `NULL` is taken *into* the
+  value class as `OptionalUserName(null)`, mirroring how such a value is bound on the write side (so it
+  round-trips). A nullable property (`OptionalUserName?`) instead maps `NULL` to the outer `null`.
+
+For a nullable underlying, a scalar fetch always produces `OptionalUserName(null)` (never a `null` element):
+the element type is non-null (`list<T : Any>`), so element nullability cannot be requested. Use a data class
+with an `OptionalUserName?` property if you need the outer `null`.
 
 Value classes are also supported as bind parameters. See
 [Binding Parameters](/basics#value-classes).
