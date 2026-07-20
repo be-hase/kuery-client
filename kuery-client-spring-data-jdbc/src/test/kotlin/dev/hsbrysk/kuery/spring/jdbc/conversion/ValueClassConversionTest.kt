@@ -39,6 +39,12 @@ class ValueClassConversionTest {
     @JvmInline
     value class OptionalName(val value: UserName?)
 
+    @JvmInline
+    value class Age(val value: Int)
+
+    @JvmInline
+    value class OptionalAge(val value: Int?)
+
     private val kueryClient = h2.kueryClient()
 
     @BeforeEach
@@ -140,6 +146,29 @@ class ValueClassConversionTest {
         // given
         kueryClient.sql {
             +"INSERT INTO converter (text) VALUES (${OptionalName(null)})"
+        }.rowsUpdated()
+
+        // when & then
+        val map = kueryClient.sql {
+            +"SELECT * FROM converter"
+        }.singleMap()
+        assertThat(map["text"]).isNull()
+    }
+
+    @Test
+    fun `value class wrapping a primitive is bound as its underlying value`() {
+        // when & then
+        val value: Int = kueryClient.sql {
+            +"SELECT ${Age(42)}"
+        }.single()
+        assertThat(value).isEqualTo(42)
+    }
+
+    @Test
+    fun `value class wrapping a null primitive is bound as SQL NULL`() {
+        // given
+        kueryClient.sql {
+            +"INSERT INTO converter (text) VALUES (${OptionalAge(null)})"
         }.rowsUpdated()
 
         // when & then
