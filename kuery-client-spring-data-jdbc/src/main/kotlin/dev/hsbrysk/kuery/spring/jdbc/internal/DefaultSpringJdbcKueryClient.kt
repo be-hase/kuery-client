@@ -121,8 +121,9 @@ internal class DefaultSpringJdbcKueryClient(
                 val underlying = ValueClasses.underlyingType(componentType)
                 // A generic value class erases its underlying to Object, which is no useful array
                 // component type (pgjdbc rejects Object[]); return null so the caller infers the
-                // concrete type from the unwrapped elements. Empty/all-null generic value class
-                // arrays cannot be inferred and are left as Object[] (documented as unsupported).
+                // concrete type from the unwrapped elements. An empty or all-null such array cannot
+                // be inferred — no driver-compatible component type can be produced and most drivers
+                // reject it (documented as unsupported).
                 if (underlying == Any::class.java) null else componentWriteTarget(underlying) ?: underlying
             }
             Enum::class.java.isAssignableFrom(componentType) -> String::class.java
