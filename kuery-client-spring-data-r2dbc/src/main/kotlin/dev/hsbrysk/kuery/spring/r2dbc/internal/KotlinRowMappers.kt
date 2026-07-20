@@ -47,7 +47,7 @@ internal class ValueClassScalarRowMapper(
     private val converter = ValueClassColumnConverter(kClass, conversionService)
 
     override fun apply(readable: Readable): Any {
-        val raw = retrieveValueClassColumn(readable, FIRST_COLUMN, converter.retrievalType)
+        val raw = readable.get(FIRST_COLUMN)
         return converter.convert(raw) ?: NullValue
     }
 
@@ -90,10 +90,15 @@ internal class ValueClassPropertyRowMapper(
         val args = LinkedHashMap<KParameter, Any?>()
         for (parameter in parameters) {
             val index = findColumnIndex(itemMetadatas, parameter)
-            // Value class columns retrieve their (erased) underlying type; getItemValue already
-            // retries raw on failure so a reading converter can handle a driver-incompatible
-            // column. Non-value-class parameters keep Spring's TypeDescriptor-based conversion.
-            val raw = getItemValue(readable, index, parameter.retrievalType)
+            // Value class columns are retrieved raw (no type hint) so a reading converter keyed on
+            // the column's own type wins over the driver coercing the value to the underlying type;
+            // the boxing path converts the raw value to the underlying via the ConversionService.
+            // Non-value-class parameters keep Spring's TypeDescriptor-based conversion (full generics).
+            val raw = if (parameter.isValueClass) {
+                readable.get(index)
+            } else {
+                getItemValue(readable, index, parameter.retrievalType)
+            }
             val converted = parameter.convert(raw, tc)
             // Omit null arguments for optional parameters so Kotlin default values apply,
             // mirroring BeanUtils.instantiateClass.
@@ -134,11 +139,11 @@ internal class ValueClassPropertyRowMapper(
         private val target = parameter.type.classifier as? KClass<*>
         private val valueClassConverter =
             if (target?.isValue == true) ValueClassColumnConverter(target, kotlinConversionService) else null
-        val retrievalType: Class<*> = when {
-            target == null -> Any::class.java
-            valueClassConverter != null -> valueClassConverter.retrievalType
-            else -> target.javaObjectType
-        }
+        val isValueClass = valueClassConverter != null
+
+        // Retrieval hint for the non-value-class (Spring TypeDescriptor) path only; value class
+        // columns are retrieved raw.
+        val retrievalType: Class<*> = target?.javaObjectType ?: Any::class.java
 
         // Carries the full generic type (e.g. List<MyEnum>) so element-wise conversion works,
         // like Spring's MethodParameter-based TypeDescriptors.
@@ -159,24 +164,8 @@ internal class ValueClassPropertyRowMapper(
     }
 }
 
-// A value class's retrieval type is its (erased) underlying type, which the driver may be unable
-// to produce for the column (e.g. a VARCHAR column mapped to a BigDecimal-underlying value class
-// through a reading converter). Retry raw so the ConversionService/converter can handle it.
-private fun retrieveValueClassColumn(
-    readable: Readable,
-    index: Int,
-    retrievalType: Class<*>,
-): Any? = try {
-    readable.get(index, retrievalType)
-} catch (@Suppress("SwallowedException", "TooGenericExceptionCaught") ex: RuntimeException) {
-    // Matches the fallback breadth of Spring's getItemValue (used by the property mapper): a
-    // driver may signal "cannot produce this type" with IllegalArgumentException or its own
-    // R2dbcException (both RuntimeException). Retrying raw lets a reading converter handle it.
-    readable.get(index)
-}
-
 /**
- * Converts a column value to the value class [target]. The per-row work is minimized: the
+ * Converts a raw column value to the value class [target]. The per-row work is minimized: the
  * converter-precedence decision is cached per source class (converter registrations are fixed
  * once the client is built), an already-assignable underlying value skips the ConversionService,
  * and a nested value class is handled by a recursive converter (so it shares the same caching and
@@ -188,10 +177,6 @@ internal class ValueClassColumnConverter(
     private val conversionService: ConversionService,
 ) {
     private val targetJavaType = target.javaObjectType
-
-    // Driver retrieval hint: the fully-erased JVM type of the underlying value. Safe to resolve
-    // eagerly even for a generic value class (unbox-impl erases to Object).
-    val retrievalType: Class<*> = ValueClasses.underlyingType(target.java)
 
     private val boxer by lazy { boxers.get(target.java) }
     private val underlyingJavaType by lazy { boxer.underlying.javaObjectType }
