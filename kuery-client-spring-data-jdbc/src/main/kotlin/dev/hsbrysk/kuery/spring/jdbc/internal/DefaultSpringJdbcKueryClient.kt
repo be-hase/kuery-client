@@ -264,13 +264,18 @@ internal class DefaultSpringJdbcKueryClient(
 
             @Suppress("UNCHECKED_CAST")
             val mapper = rowMapperCache.computeIfAbsent(returnType) {
-                // Align with Spring Data JDBC's [DefaultJdbcClient] behavior
-                if (BeanUtils.isSimpleProperty(returnType.java)) {
-                    SingleColumnRowMapper(returnType.java).apply {
+                when {
+                    // Checked before isSimpleProperty: a value class implementing e.g.
+                    // CharSequence would otherwise be misrouted to the simple-type path.
+                    // Spring's DataClassRowMapper cannot handle value classes; take over only
+                    // for those cases and leave everything else on the Spring mapper.
+                    returnType.isValue -> ValueClassScalarRowMapper(returnType, cs)
+                    // Align with Spring Data JDBC's [DefaultJdbcClient] behavior
+                    BeanUtils.isSimpleProperty(returnType.java) -> SingleColumnRowMapper(returnType.java).apply {
                         setConversionService(cs)
                     }
-                } else {
-                    DataClassRowMapper(returnType.java).apply {
+                    hasValueClassConstructorParameters(returnType) -> ValueClassPropertyRowMapper(returnType, cs)
+                    else -> DataClassRowMapper(returnType.java).apply {
                         setConversionService(cs)
                     }
                 }

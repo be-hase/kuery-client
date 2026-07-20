@@ -7,9 +7,10 @@ import java.lang.reflect.Method
 // (dev.hsbrysk.kuery.spring.jdbc.internal.ValueClasses); there is no shared Spring-dependent
 // module to host it. Keep both copies in sync.
 /**
- * Reflection helpers for Kotlin value classes (`@JvmInline`), used to transparently bind a value
- * class as its underlying value. Uses plain Java reflection (`@JvmInline` is runtime-visible and
- * the compiler-generated `unbox-impl` method exposes the underlying value), which keeps the
+ * Reflection over the compiler-generated JVM ABI of Kotlin value classes (`@JvmInline`). This is
+ * the single owner of the mangled member names — `unbox-impl` (used on the write path to bind a
+ * value class as its underlying value) and the `constructor-impl` / `box-impl` pair (used on the
+ * read path to box an underlying value back into a value class). Plain Java reflection keeps the
  * per-parameter bind hot path free of kotlin-reflect machinery.
  */
 internal object ValueClasses {
@@ -35,4 +36,34 @@ internal object ValueClasses {
      */
     fun underlyingType(clazz: Class<*>): Class<*> =
         ClassUtils.resolvePrimitiveIfNecessary(unboxMethods.get(clazz).returnType)
+
+    /**
+     * The `constructor-impl` (which contains the `init` validation) + `box-impl` pair for boxing
+     * an underlying value into [valueClass] through plain Java reflection. Null when the class
+     * does not expose exactly one of each (e.g. a value class with a secondary constructor), in
+     * which case callers fall back to the kotlin-reflect constructor.
+     */
+    fun fastBoxOrNull(valueClass: Class<*>): FastBox? {
+        val constructorImpl = valueClass.singleDeclaredMethodOrNull("constructor-impl") ?: return null
+        val boxImpl = valueClass.singleDeclaredMethodOrNull("box-impl") ?: return null
+        return FastBox(constructorImpl, boxImpl)
+    }
+
+    private fun Class<*>.singleDeclaredMethodOrNull(name: String): Method? =
+        declaredMethods.singleOrNull { it.name == name }?.apply { isAccessible = true }
+
+    /** Boxes an underlying value into a value class via its static `constructor-impl`/`box-impl`. */
+    class FastBox internal constructor(
+        private val constructorImpl: Method,
+        private val boxImpl: Method,
+    ) {
+        private val parameterType: Class<*> = constructorImpl.parameterTypes.single()
+
+        /** Whether [value] matches the (erased) underlying type this fast path expects. */
+        fun accepts(value: Any): Boolean = ClassUtils.resolvePrimitiveIfNecessary(parameterType).isInstance(value)
+
+        // constructor-impl runs `init`; box-impl wraps the result. May throw
+        // InvocationTargetException, which the caller unwraps.
+        fun box(value: Any): Any? = boxImpl.invoke(null, constructorImpl.invoke(null, value))
+    }
 }

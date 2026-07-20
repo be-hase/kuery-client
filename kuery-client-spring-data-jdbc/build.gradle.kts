@@ -11,6 +11,9 @@ dependencies {
 
     api(libs.spring.data.jdbc)
 
+    // Value class mapping (boxing through the primary constructor) needs full Kotlin reflection.
+    implementation(kotlin("reflect"))
+
     testImplementation(platform(libs.spring.boot.bom))
     testImplementation("com.h2database:h2")
     testImplementation("com.mysql:mysql-connector-j")

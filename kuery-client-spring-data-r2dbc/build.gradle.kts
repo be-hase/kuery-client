@@ -14,6 +14,9 @@ dependencies {
     api(libs.kotlin.coroutines.core)
     api(libs.kotlin.coroutines.reactor)
 
+    // Value class mapping (boxing through the primary constructor) needs full Kotlin reflection.
+    implementation(kotlin("reflect"))
+
     // Required only to compile against ObservationThreadLocalAccessor.KEY (a compile-time
     // constant inlined into the bytecode), so it is not needed at runtime.
     compileOnly(libs.micrometer.context.propagation)

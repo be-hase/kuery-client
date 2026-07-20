@@ -233,7 +233,7 @@ internal class DefaultSpringR2dbcKueryClient(
             // NULL scalar values are kept as null elements, like the JDBC client. The declared
             // element type cannot express this, but type erasure makes it observable the same way.
             @Suppress("UNCHECKED_CAST")
-            return if (mapper is SingleColumnRowMapper) {
+            return if (isScalarMapper(mapper)) {
                 values.map { it.unwrapNullValue<T>() } as List<T>
             } else {
                 values as List<T>
@@ -256,7 +256,7 @@ internal class DefaultSpringR2dbcKueryClient(
             val mapper = mapper(returnType)
             val flow = spec.map(mapper).all().sqlId(sqlId).asFlow()
             @Suppress("UNCHECKED_CAST")
-            return if (mapper is SingleColumnRowMapper) {
+            return if (isScalarMapper(mapper)) {
                 flow.map { it.unwrapNullValue<T>() } as Flow<T>
             } else {
                 flow as Flow<T>
@@ -322,19 +322,30 @@ internal class DefaultSpringR2dbcKueryClient(
             it.put(SpringR2dbcKueryClient.SQL_ID_REACTOR_CONTEXT_KEY, sqlId)
         }
 
-        // Only the [SingleColumnRowMapper] (simple scalar) path can emit [NullValue] sentinels,
-        // which the terminal operators must unwrap; the DataClassRowMapper path never does.
+        // Only the scalar mappers ([SingleColumnRowMapper] / [ValueClassScalarRowMapper]) can emit
+        // [NullValue] sentinels, which the terminal operators must unwrap; the data class paths
+        // never do.
         private fun mapper(returnType: KClass<*>): Function<Readable, Any> {
             val mapper = mapperCache.computeIfAbsent(returnType) {
-                if (BeanUtils.isSimpleProperty(returnType.java)) {
-                    SingleColumnRowMapper(returnType.javaObjectType, conversionService)
-                } else {
-                    DataClassRowMapper(returnType.java, conversionService)
+                when {
+                    // Checked before isSimpleProperty: a value class implementing e.g.
+                    // CharSequence would otherwise be misrouted to the simple-type path.
+                    // Spring's DataClassRowMapper cannot handle value classes; take over only
+                    // for those cases and leave everything else on the Spring mapper.
+                    returnType.isValue -> ValueClassScalarRowMapper(returnType, conversionService)
+                    BeanUtils.isSimpleProperty(returnType.java) ->
+                        SingleColumnRowMapper(returnType.javaObjectType, conversionService)
+                    hasValueClassConstructorParameters(returnType) ->
+                        ValueClassPropertyRowMapper(returnType, conversionService)
+                    else -> DataClassRowMapper(returnType.java, conversionService)
                 }
             }
             @Suppress("UNCHECKED_CAST")
             return mapper as Function<Readable, Any>
         }
+
+        private fun isScalarMapper(mapper: Function<Readable, Any>): Boolean =
+            mapper is SingleColumnRowMapper || mapper is ValueClassScalarRowMapper
     }
 
     // A Readable-based counterpart of Spring JDBC's SingleColumnRowMapper:
@@ -368,12 +379,6 @@ internal class DefaultSpringR2dbcKueryClient(
         }
     }
 }
-
-// Sentinel for a SQL NULL scalar value flowing through a Reactor pipeline, which cannot carry null.
-private object NullValue
-
-@Suppress("UNCHECKED_CAST")
-private fun <T : Any> Any.unwrapNullValue(): T? = if (this === NullValue) null else this as T
 
 // Maps a primitive array type to its boxed (object) array type, the type `boxPrimitiveArray`
 // would produce for a non-null value. Used to pick the `bindNull` type for a value class
