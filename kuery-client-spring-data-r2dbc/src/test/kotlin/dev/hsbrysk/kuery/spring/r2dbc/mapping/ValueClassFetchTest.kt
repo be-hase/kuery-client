@@ -305,6 +305,12 @@ class ValueClassFetchTest {
         assertThat(result).isEqualTo(StringId("custom:1"))
     }
 
+    // NOTE: the jdbc counterpart `driver coercion remains available when no reading converter
+    // matches` (BIGINT -> Boolean via ResultSet.getBoolean) is jdbc-only: r2dbc-h2's
+    // `readable.get(index, Boolean)` does not coerce a numeric column to Boolean, so that specific
+    // value class was never mappable on r2dbc-h2. The driver-typed retrieval path itself is still
+    // exercised on r2dbc by the coercion tests here (the raw type differs from the underlying).
+
     @Test
     fun `value class underlying type is coerced from the raw column type when no converter matches`() = runTest {
         // The BIGINT id is retrieved raw as Long and coerced to the Int underlying via the

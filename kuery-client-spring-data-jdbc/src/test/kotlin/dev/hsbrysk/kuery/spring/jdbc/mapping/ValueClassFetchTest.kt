@@ -77,6 +77,9 @@ class ValueClassFetchTest {
     @JvmInline
     value class Amount(val value: Int)
 
+    @JvmInline
+    value class Flag(val value: Boolean)
+
     private val kueryClient = h2.kueryClient()
 
     @BeforeEach
@@ -313,6 +316,21 @@ class ValueClassFetchTest {
             +"SELECT id FROM converter"
         }.single()
         assertThat(result).isEqualTo(StringId("custom:1"))
+    }
+
+    @Test
+    fun `driver coercion remains available when no reading converter matches`() {
+        // The ConversionService has no Long -> Boolean converter; the driver's typed retrieval
+        // (ResultSet.getBoolean) must still coerce the BIGINT value to the Boolean underlying.
+        // jdbc-only: r2dbc-h2 does not coerce a numeric column to Boolean via readable.get.
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES ('x')").update()
+
+        // when & then
+        val result: Flag = kueryClient.sql {
+            +"SELECT id FROM converter"
+        }.single()
+        assertThat(result).isEqualTo(Flag(true))
     }
 
     @Test
