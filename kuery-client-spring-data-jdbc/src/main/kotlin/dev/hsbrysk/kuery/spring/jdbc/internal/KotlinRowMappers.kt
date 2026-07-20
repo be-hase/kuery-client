@@ -56,12 +56,25 @@ internal class ValueClassScalarRowMapper(
             throw IncorrectResultSetColumnCountException(1, columnCount)
         }
         val raw = JdbcUtils.getResultSetValue(rs, FIRST_COLUMN)
-        return converter.convert(raw)
+        return converter.convert(raw) { type -> retrieveTyped(rs, FIRST_COLUMN, type, raw) }
     }
 
     companion object {
         private const val FIRST_COLUMN = 1
     }
+}
+
+// Re-reads the column as [type], returning [raw] if the driver cannot produce that type so the
+// caller can fall back to the ConversionService.
+private fun retrieveTyped(
+    rs: ResultSet,
+    index: Int,
+    type: Class<*>,
+    raw: Any?,
+): Any? = try {
+    JdbcUtils.getResultSetValue(rs, index, type)
+} catch (@Suppress("SwallowedException") ex: SQLException) {
+    raw
 }
 
 /**
@@ -109,7 +122,7 @@ internal class ValueClassPropertyRowMapper(
             } else {
                 getColumnValue(rs, index, parameter.retrievalType)
             }
-            val converted = parameter.convert(raw, tc)
+            val converted = parameter.convert(raw, tc) { type -> retrieveTyped(rs, index, type, raw) }
             // Omit null arguments for optional parameters so Kotlin default values apply,
             // mirroring BeanUtils.instantiateClass.
             if (converted == null && parameter.parameter.isOptional) {
@@ -153,9 +166,10 @@ internal class ValueClassPropertyRowMapper(
         fun convert(
             raw: Any?,
             tc: TypeConverter,
+            retrieveTyped: (Class<*>) -> Any?,
         ): Any? = when {
             target == null -> raw
-            valueClassConverter != null -> valueClassConverter.convert(raw)
+            valueClassConverter != null -> valueClassConverter.convert(raw, retrieveTyped)
             else -> tc.convertIfNecessary(raw, target.javaObjectType, typeDescriptor)
         }
     }
@@ -185,11 +199,22 @@ internal class ValueClassColumnConverter(
 
     private val canConvertCache = ConcurrentHashMap<Class<*>, Boolean>()
 
-    fun convert(raw: Any?): Any? {
+    /**
+     * Converts the [raw] column value (retrieved with no type hint) to the value class.
+     * [retrieveTyped] re-reads the same column asking the driver for a given type; it is used to
+     * preserve driver coercions (e.g. a numeric column to a `Boolean` underlying) that the
+     * ConversionService cannot perform, and must return the raw value if the driver cannot produce
+     * the requested type.
+     */
+    fun convert(
+        raw: Any?,
+        retrieveTyped: (Class<*>) -> Any?,
+    ): Any? {
         if (raw == null) {
             return null
         }
-        // A registered reading converter targeting the value class takes precedence over boxing.
+        // A registered reading converter keyed on the raw column type takes precedence over boxing
+        // (and over the driver's coercion to the underlying type).
         if (canConvertCache.computeIfAbsent(raw.javaClass) { conversionService.canConvert(it, targetJavaType) }) {
             return conversionService.convert(raw, targetJavaType)
         }
@@ -197,12 +222,28 @@ internal class ValueClassColumnConverter(
         // converter fails now, with the descriptive fail-fast message, rather than at construction.
         val underlying = when {
             underlyingJavaType.isInstance(raw) -> raw
-            underlyingConverter != null -> underlyingConverter?.convert(raw)
-            else -> conversionService.convert(raw, underlyingJavaType)
+            underlyingConverter != null -> underlyingConverter?.convert(raw, retrieveTyped)
+            else -> coerceToUnderlying(raw, retrieveTyped)
         }
         // A converter for the underlying type may legitimately return null (the Converter contract
         // allows it); map it to null instead of boxing null, which would fail for a non-null type.
         return underlying?.let { boxer.box(it) }
+    }
+
+    // Prefer the driver's typed retrieval of the underlying value (it coerces where the
+    // ConversionService cannot, e.g. a numeric column to a Boolean underlying); if the driver
+    // produced a different type (e.g. a String for an enum underlying) or could not produce the
+    // requested type, convert it through the ConversionService.
+    private fun coerceToUnderlying(
+        raw: Any,
+        retrieveTyped: (Class<*>) -> Any?,
+    ): Any? {
+        val candidate = retrieveTyped(underlyingJavaType) ?: raw
+        return if (underlyingJavaType.isInstance(candidate)) {
+            candidate
+        } else {
+            conversionService.convert(candidate, underlyingJavaType)
+        }
     }
 }
 
