@@ -214,6 +214,53 @@ class SqlSyntaxCheckerReconstructionTest {
     }
 
     @Test
+    fun `no warning when a string const in a template expands to valid SQL`() {
+        // A single-literal String const is folded into the SQL text (like a Java constant), so
+        // the runtime SQL is "SELECT * FROM users" — valid.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            const val SELECT = "SELECT"
+
+            fun query() {
+                Sql { +"${'$'}SELECT * FROM users" }
+            }
+            """.trimIndent(),
+            allWarningsAsErrors = true,
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+    }
+
+    @Test
+    fun `warn when a string const in a template expands to broken SQL`() {
+        // The const's own text is spliced into the reconstructed SQL, so its content participates
+        // in the parse: "SELCT * FROM users" fails to parse.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            const val KEYWORD = "SELCT"
+
+            fun query() {
+                Sql { +"${'$'}KEYWORD * FROM users" }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
     fun `no warning when a template value mutates the builder`() {
         // The value expression runs before the enclosing add at runtime and emits its own line,
         // so the block's SQL is not what the template alone suggests — it must be skipped.
