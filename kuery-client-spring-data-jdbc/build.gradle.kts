@@ -2,6 +2,7 @@ plugins {
     id("conventions.preset.base")
     id("conventions.public-api")
     id("conventions.maven-publish")
+    id("conventions.jmh")
 }
 
 description = "Kuery client implementation using spring-data-jdbc."
@@ -23,4 +24,7 @@ dependencies {
     testImplementation(libs.micrometer.observation.test)
 
     kotlinCompilerPluginClasspath(projects.kueryClientCompiler)
+
+    jmhImplementation(platform(libs.spring.boot.bom))
+    jmhImplementation("com.h2database:h2")
 }
