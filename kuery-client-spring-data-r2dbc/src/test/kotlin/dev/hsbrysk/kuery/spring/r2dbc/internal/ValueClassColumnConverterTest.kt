@@ -53,13 +53,16 @@ class ValueClassColumnConverterTest {
         converters.forEach { addConverter(it) }
     }
 
+    // Asserts the driver typed retrieval is not consulted when an earlier rule already resolves the value.
+    private val noDriverRetrieval: (Class<*>) -> Any? = { error("driver typed retrieval must not run for this case") }
+
     @Test
     fun `a reading converter keyed on the raw column type wins over boxing`() {
         // given
         val converter = ValueClassColumnConverter(StringId::class, conversionService(LongToStringIdConverter()))
 
         // when & then
-        val result = converter.convert(1L) { error("driver retrieval must not run when a raw-type converter matches") }
+        val result = converter.convert(1L, noDriverRetrieval)
         assertThat(result).isEqualTo(StringId("raw:1"))
     }
 
@@ -69,7 +72,7 @@ class ValueClassColumnConverterTest {
         val converter = ValueClassColumnConverter(UserName::class, conversionService())
 
         // when & then
-        val result = converter.convert("x") { error("driver retrieval must not run when the raw value is the underlying type") }
+        val result = converter.convert("x", noDriverRetrieval)
         assertThat(result).isEqualTo(UserName("x"))
     }
 
