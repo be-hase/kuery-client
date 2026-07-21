@@ -4,11 +4,15 @@ plugins {
     // published, and its contract classes are excluded from explicit API mode and ABI checks.
 }
 
-description = "Shared contract tests and fixtures for the spring-data modules. Not published."
+description = "Shared contract tests for the spring-data modules. Not published."
 
 dependencies {
-    api(projects.kueryClientSpringDataJdbc)
-    api(projects.kueryClientSpringDataR2dbc)
+    // Depends only on the core interfaces, never on the jdbc/r2dbc implementations, so that one
+    // module's test classpath is not polluted with the sibling implementation. Each module keeps
+    // its ContractDatabase implementation in its own src/test.
+    api(projects.kueryClientCore)
+    api(libs.kotlin.coroutines.core)
+    api(libs.micrometer.observation)
 
     // Contract tests live in the main source set, so test libraries must be declared explicitly
     // (conventions.kotlin only adds them to testImplementation).
@@ -16,10 +20,6 @@ dependencies {
     api("org.junit.jupiter:junit-jupiter-api")
     api(libs.assertk)
     api(libs.kotlin.coroutines.test)
-
-    api(platform(libs.spring.boot.bom))
-    api("com.h2database:h2")
-    api("io.r2dbc:r2dbc-h2")
 
     kotlinCompilerPluginClasspath(projects.kueryClientCompiler)
 }

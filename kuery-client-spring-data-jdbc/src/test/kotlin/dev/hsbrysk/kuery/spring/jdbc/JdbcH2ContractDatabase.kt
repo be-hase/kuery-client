@@ -1,17 +1,18 @@
-package dev.hsbrysk.kuery.spring.testing
+package dev.hsbrysk.kuery.spring.jdbc
 
 import dev.hsbrysk.kuery.core.KueryBlockingClient
 import dev.hsbrysk.kuery.core.KueryClient
-import dev.hsbrysk.kuery.spring.jdbc.SpringJdbcKueryClient
+import dev.hsbrysk.kuery.spring.testing.BlockingKueryClientAdapter
+import dev.hsbrysk.kuery.spring.testing.ContractDatabase
 import io.micrometer.observation.ObservationRegistry
 import org.h2.jdbcx.JdbcDataSource
 import org.springframework.jdbc.core.simple.JdbcClient
 import java.util.UUID
 
 /**
- * In-memory H2 database backed by the jdbc implementation, for contract tests that exercise
- * Kuery Client's own layer (interpolation, FetchSpec, converters, ...). Driver-dependent behavior
- * is tested against real databases in the `mysql` / `postgres` packages instead.
+ * In-memory H2 [ContractDatabase] backed by the jdbc implementation, for contract tests that
+ * exercise Kuery Client's own layer (interpolation, FetchSpec, converters, ...). Driver-dependent
+ * behavior is tested against real databases in the `mysql` / `postgres` packages instead.
  *
  * `DATABASE_TO_UPPER=FALSE` + `CASE_INSENSITIVE_IDENTIFIERS=TRUE` makes H2 keep identifiers as
  * written while matching them case-insensitively, mirroring MySQL's behavior.

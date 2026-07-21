@@ -3,37 +3,19 @@ package dev.hsbrysk.kuery.spring.testing.contract.conversion
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import dev.hsbrysk.kuery.core.single
-import dev.hsbrysk.kuery.spring.testing.ContractDatabase
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 /**
  * Contract shared by the jdbc and r2dbc modules. Each module runs it via a concrete subclass
- * that supplies its [ContractDatabase].
+ * that supplies its `ContractDatabase`.
  */
-abstract class EnumConversionContract {
-    protected abstract val database: ContractDatabase
-
-    // lazy: `database` is not resolvable yet while this base class initializes.
-    private val kueryClient by lazy { database.kueryClient() }
-
+abstract class EnumConversionContract : ConverterContractBase() {
     enum class SampleEnum {
         HOGE,
     }
 
     data class Record(val text: SampleEnum)
-
-    @BeforeEach
-    fun beforeEach() {
-        database.setUpForConverterTest()
-    }
-
-    @AfterEach
-    fun afterEach() {
-        database.tearDownForConverterTest()
-    }
 
     @Test
     fun `enum is stored as its name and mapped back to the enum`() = runTest {

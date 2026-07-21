@@ -1,6 +1,6 @@
 package dev.hsbrysk.kuery.spring.r2dbc.conversion
 
-import dev.hsbrysk.kuery.spring.testing.R2dbcH2ContractDatabase
+import dev.hsbrysk.kuery.spring.r2dbc.R2dbcH2ContractDatabase
 import dev.hsbrysk.kuery.spring.testing.contract.conversion.EnumConversionContract
 
 class EnumConversionTest : EnumConversionContract() {
