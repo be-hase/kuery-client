@@ -27,5 +27,11 @@ dependencies {
     implementation(libs.assertk)
     implementation(libs.kotlin.coroutines.test)
 
+    // The mapping/usage contracts assert Spring's shared data-access exceptions
+    // (EmptyResultDataAccessException, ...), which live in spring-tx's org.springframework.dao
+    // package; both implementation modules already have it on their runtime classpath.
+    implementation(platform(libs.spring.boot.bom))
+    implementation("org.springframework:spring-tx")
+
     kotlinCompilerPluginClasspath(projects.kueryClientCompiler)
 }
