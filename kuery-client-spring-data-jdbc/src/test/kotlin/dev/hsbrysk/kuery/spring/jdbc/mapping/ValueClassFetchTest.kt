@@ -8,7 +8,9 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import assertk.assertions.messageContains
 import dev.hsbrysk.kuery.core.list
+import dev.hsbrysk.kuery.core.sequence
 import dev.hsbrysk.kuery.core.single
+import dev.hsbrysk.kuery.core.singleOrNull
 import dev.hsbrysk.kuery.spring.jdbc.H2TestDatabase
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -133,6 +135,70 @@ class ValueClassFetchTest {
             +"SELECT text FROM converter ORDER BY id"
         }.list()
         assertThat(result).isEqualTo(listOf(OptionalUserName("user1"), OptionalUserName(null)))
+    }
+
+    @Test
+    fun `sequence keeps a SQL NULL value class scalar as a null element`() {
+        // The scalar mapper maps a SQL NULL row to a null element; sequence() must preserve it
+        // (non-null underlying type), like list().
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES ('user1'), (NULL)").update()
+
+        // when & then
+        val result: List<UserName?> = kueryClient.sql {
+            +"SELECT text FROM converter ORDER BY id"
+        }.sequence<UserName>().toList()
+        assertThat(result).isEqualTo(listOf(UserName("user1"), null))
+    }
+
+    @Test
+    fun `sequence maps a nullable-underlying value class scalar SQL NULL to an inner null`() {
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES ('user1'), (NULL)").update()
+
+        // when & then
+        val result: List<OptionalUserName> = kueryClient.sql {
+            +"SELECT text FROM converter ORDER BY id"
+        }.sequence<OptionalUserName>().toList()
+        assertThat(result).isEqualTo(listOf(OptionalUserName("user1"), OptionalUserName(null)))
+    }
+
+    @Test
+    fun `singleOrNull maps a SQL NULL value class scalar to null`() {
+        // The scalar mapper maps the SQL NULL row to a null element; singleOrNull() must return it
+        // as null (non-null underlying type).
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES (NULL)").update()
+
+        // when & then
+        val result: UserName? = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.singleOrNull()
+        assertThat(result).isNull()
+    }
+
+    @Test
+    fun `singleOrNull maps a nullable-underlying value class scalar SQL NULL to an inner null`() {
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES (NULL)").update()
+
+        // when & then
+        val result: OptionalUserName? = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.singleOrNull()
+        assertThat(result).isEqualTo(OptionalUserName(null))
+    }
+
+    @Test
+    fun `singleOrNull returns a value class scalar when a row matches`() {
+        // given
+        h2.jdbcClient.sql("INSERT INTO converter (text) VALUES ('user1')").update()
+
+        // when & then
+        val result: UserName? = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.singleOrNull()
+        assertThat(result).isEqualTo(UserName("user1"))
     }
 
     @Test
