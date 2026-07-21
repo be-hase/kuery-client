@@ -1,11 +1,12 @@
 package dev.hsbrysk.kuery.spring.r2dbc.observation
 
 import com.example.spring.r2dbc.UserRepository
+import dev.hsbrysk.kuery.core.KueryClient
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.spring.r2dbc.R2dbcH2ContractDatabase
 import dev.hsbrysk.kuery.spring.r2dbc.SpringR2dbcKueryClient
 import dev.hsbrysk.kuery.spring.testing.contract.observation.ObservationContract
-import io.micrometer.observation.tck.TestObservationRegistry
+import io.micrometer.observation.ObservationRegistry
 import io.micrometer.observation.tck.TestObservationRegistryAssert
 import io.r2dbc.spi.Connection
 import io.r2dbc.spi.ConnectionFactory
@@ -23,6 +24,15 @@ import reactor.core.publisher.Flux
 class ObservationTest : ObservationContract() {
     override val database get() = h2
 
+    override fun conventionKueryClient(
+        observationRegistry: ObservationRegistry,
+        observationConvention: KueryClientFetchObservationConvention,
+    ): KueryClient = SpringR2dbcKueryClient.builder()
+        .connectionFactory(h2.connectionFactory)
+        .observationRegistry(observationRegistry)
+        .observationConvention(observationConvention)
+        .build()
+
     // Streaming via Flow and cancellation are r2dbc-specific, so they are tested here against
     // the real API rather than through the contract.
 
@@ -36,30 +46,6 @@ class ObservationTest : ObservationContract() {
     fun `flow does not record an observation`() = runTest {
         UserRepository(kueryClient).flow().collect()
         TestObservationRegistryAssert.assertThat(registry).doesNotHaveAnyObservation()
-    }
-
-    @Test
-    fun `a custom observationConvention replaces the default convention`() = runTest {
-        // given
-        val customRegistry = TestObservationRegistry.create()
-        val convention = object : KueryClientFetchObservationConvention {
-            override fun getName(): String = "custom.fetches"
-        }
-        val client = SpringR2dbcKueryClient.builder()
-            .connectionFactory(h2.connectionFactory)
-            .observationRegistry(customRegistry)
-            .observationConvention(convention)
-            .build()
-
-        // when
-        client.sql { +"SELECT * FROM users" }.listMap()
-
-        // then
-        TestObservationRegistryAssert.assertThat(customRegistry)
-            .hasObservationWithNameEqualTo("custom.fetches")
-            .that()
-            .hasBeenStarted()
-            .hasBeenStopped()
     }
 
     @Test

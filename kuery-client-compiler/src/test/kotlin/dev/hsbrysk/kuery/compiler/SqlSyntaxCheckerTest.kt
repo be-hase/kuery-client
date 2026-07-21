@@ -658,7 +658,7 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
-    fun `warn for sql calls through an intersection-typed receiver`() {
+    fun `a sql call through an intersection-typed receiver triggers a SQL syntax warning`() {
         // A smart cast on an unbounded type parameter produces an intersection type
         // (T & KueryBlockingClient); the call must still be recognized as a client sql call.
         // when
@@ -681,7 +681,7 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
-    fun `no warning when an add argument is a non-trim method chain`() {
+    fun `a non-trim method chain add argument does not trigger a SQL syntax warning`() {
         // Only trimIndent/trimMargin chains are reconstructable; any other chain makes the text
         // statically unknown, so the block is skipped instead of guessing (the chains already
         // draw KUERY_UNSAFE_SQL_STRING).

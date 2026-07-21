@@ -4,7 +4,9 @@ import assertk.assertFailure
 import assertk.assertions.isInstanceOf
 import com.example.spring.testing.UserRepository
 import dev.hsbrysk.kuery.core.KueryClient
+import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.spring.testing.ContractDatabase
+import io.micrometer.observation.ObservationRegistry
 import io.micrometer.observation.tck.TestObservationRegistry
 import io.micrometer.observation.tck.TestObservationRegistryAssert
 import kotlinx.coroutines.test.runTest
@@ -32,6 +34,17 @@ abstract class ObservationContract {
     protected val kueryClient: KueryClient by lazy { database.kueryClient(observationRegistry = registry) }
 
     private val userRepository by lazy { UserRepository(kueryClient) }
+
+    /**
+     * A client built with the given [observationRegistry] and [observationConvention]. Not
+     * expressible through [ContractDatabase] (whose `kueryClient` has no convention parameter),
+     * so each concrete subclass builds it directly with its own module's builder — mirrors
+     * `SqlIdGenerationDefaultContract.capturingKueryClient`.
+     */
+    protected abstract fun conventionKueryClient(
+        observationRegistry: ObservationRegistry,
+        observationConvention: KueryClientFetchObservationConvention,
+    ): KueryClient
 
     @BeforeEach
     fun setUpUsersTable() {
@@ -163,6 +176,26 @@ abstract class ObservationContract {
             .hasBeenStarted()
             .hasBeenStopped()
             .hasError()
+    }
+
+    @Test
+    fun `a custom observationConvention replaces the default convention`() = runTest {
+        // given
+        val customRegistry = TestObservationRegistry.create()
+        val convention = object : KueryClientFetchObservationConvention {
+            override fun getName(): String = "custom.fetches"
+        }
+        val client = conventionKueryClient(customRegistry, convention)
+
+        // when
+        client.sql { +"SELECT * FROM users" }.listMap()
+
+        // then
+        TestObservationRegistryAssert.assertThat(customRegistry)
+            .hasObservationWithNameEqualTo("custom.fetches")
+            .that()
+            .hasBeenStarted()
+            .hasBeenStopped()
     }
 
     protected fun assertObservation(

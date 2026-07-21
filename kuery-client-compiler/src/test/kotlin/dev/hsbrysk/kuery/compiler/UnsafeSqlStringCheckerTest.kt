@@ -225,7 +225,7 @@ class UnsafeSqlStringCheckerTest {
     }
 
     @Test
-    fun `warn when trimMargin is called with a non-literal prefix`() {
+    fun `a non-literal trimMargin prefix triggers an unsafe SQL string warning`() {
         // The margin prefix changes the resulting SQL text, so a non-literal prefix means the
         // text is not fully determined at compile time even though the receiver is a literal.
         // when
@@ -245,7 +245,7 @@ class UnsafeSqlStringCheckerTest {
     }
 
     @Test
-    fun `warn when trimIndent is chained on a non-literal receiver`() {
+    fun `trimIndent chained on a non-literal receiver triggers an unsafe SQL string warning`() {
         // The chain whitelist only makes the trim call transparent; it must not make an unsafe
         // receiver safe.
         // when
@@ -265,7 +265,7 @@ class UnsafeSqlStringCheckerTest {
     }
 
     @Test
-    fun `warn when a non-null asserted string is passed to add`() {
+    fun `a non-null asserted string passed to add triggers an unsafe SQL string warning`() {
         // An expression shape the checker does not model (here FirCheckNotNullCall) must default
         // to unsafe, not silently pass.
         // when
