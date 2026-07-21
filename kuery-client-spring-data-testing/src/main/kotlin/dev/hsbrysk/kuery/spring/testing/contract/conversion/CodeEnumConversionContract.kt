@@ -52,7 +52,7 @@ abstract class CodeEnumConversionContract {
 
     @AfterEach
     fun dropCodeEnumTable() {
-        database.execute("DROP TABLE code_enum")
+        database.execute("DROP TABLE IF EXISTS code_enum")
     }
 
     interface CodeEnum<T> {

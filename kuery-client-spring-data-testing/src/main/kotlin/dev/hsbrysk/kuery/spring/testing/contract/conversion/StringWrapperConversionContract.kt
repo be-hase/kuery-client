@@ -14,11 +14,10 @@ import org.springframework.data.convert.WritingConverter
  * that supplies its `ContractDatabase`.
  */
 abstract class StringWrapperConversionContract : ConverterContractBase() {
-    override val converters: List<Any>
-        get() = listOf(
-            StringWrapperToStringConverter(),
-            StringToStringWrapperConverter(),
-        )
+    override fun createConverters(): List<Any> = listOf(
+        StringWrapperToStringConverter(),
+        StringToStringWrapperConverter(),
+    )
 
     data class StringWrapper(val value: String)
 

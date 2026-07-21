@@ -18,11 +18,10 @@ import org.springframework.data.convert.WritingConverter
  * on each concrete subclass rather than part of this contract.
  */
 abstract class CollectionConversionContract : ConverterContractBase() {
-    override val converters: List<Any>
-        get() = listOf(
-            StringWrapperToStringConverter(),
-            StringToStringWrapperConverter(),
-        )
+    override fun createConverters(): List<Any> = listOf(
+        StringWrapperToStringConverter(),
+        StringToStringWrapperConverter(),
+    )
 
     data class StringWrapper(val value: String)
 

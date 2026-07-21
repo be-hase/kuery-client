@@ -16,8 +16,7 @@ import org.springframework.data.convert.WritingConverter
  * that supplies its `ContractDatabase`.
  */
 abstract class NullReturningWritingConverterContract : ConverterContractBase() {
-    override val converters: List<Any>
-        get() = listOf(NullableTextToStringConverter())
+    override fun createConverters(): List<Any> = listOf(NullableTextToStringConverter())
 
     data class NullableText(val value: String?)
 
