@@ -12,15 +12,21 @@ import org.junit.jupiter.api.Test
 
 /**
  * Contract shared by the jdbc and r2dbc modules. Each module runs it via a concrete subclass
- * that supplies its `ContractDatabase`. Module-specific null-binding behavior (the typed escape
- * hatch API and the value-class-wrapping-a-null-enum mechanics) stays on the concrete
- * subclasses.
+ * that supplies its `ContractDatabase`. The typed-null escape hatch uses a module-specific API,
+ * so that test stays on the concrete subclasses.
  */
 abstract class PostgresNullBindingContract {
     protected abstract val database: ContractDatabase
 
     // lazy: `database` is not resolvable yet while this base class initializes.
     protected val kueryClient: KueryClient by lazy { database.kueryClient() }
+
+    enum class SampleEnum {
+        HOGE,
+    }
+
+    @JvmInline
+    value class OptionalStatus(val value: SampleEnum?)
 
     @BeforeEach
     fun setUpUsersTable() {
@@ -117,5 +123,29 @@ abstract class PostgresNullBindingContract {
 
         // then
         assertThat(record["v"]).isNull()
+    }
+
+    @Test
+    fun `value class wrapping a null enum is bound as SQL NULL`() = runTest {
+        // The bindNull type must be resolved through the write pipeline (enum -> String here),
+        // not the raw underlying type, which the driver has no codec for. On jdbc this resolves
+        // to an untyped null, so no type resolution is actually observable there, but the
+        // expected outcome (SQL NULL round-trips) is the same on both implementations.
+        // given
+        val username = OptionalStatus(null)
+        val email = "user1@example.com"
+
+        // when
+        val count = kueryClient
+            .sql { +"INSERT INTO users (username, email) VALUES ($username, $email)" }
+            .rowsUpdated()
+
+        // then
+        assertThat(count).isEqualTo(1L)
+
+        val record = kueryClient
+            .sql { +"SELECT * FROM users WHERE email = $email" }
+            .singleMap()
+        assertThat(record["username"]).isNull()
     }
 }
