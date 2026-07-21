@@ -12,8 +12,11 @@ import org.junit.jupiter.api.BeforeEach
 abstract class ConverterContractBase {
     protected abstract val database: ContractDatabase
 
+    /** Converters registered on [kueryClient]. Contracts with a fixed converter set override this. */
+    protected open val converters: List<Any> get() = emptyList()
+
     // lazy: `database` is not resolvable yet while this base class initializes.
-    protected val kueryClient: KueryClient by lazy { database.kueryClient() }
+    protected val kueryClient: KueryClient by lazy { database.kueryClient(converters) }
 
     @BeforeEach
     fun setUpConverterTable() {

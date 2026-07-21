@@ -25,6 +25,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-mysql")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation(libs.micrometer.observation.test)
+    testImplementation(libs.kotlin.coroutines.test)
 
     kotlinCompilerPluginClasspath(projects.kueryClientCompiler)
 

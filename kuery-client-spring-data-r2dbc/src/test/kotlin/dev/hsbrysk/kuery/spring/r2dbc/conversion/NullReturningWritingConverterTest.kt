@@ -1,69 +1,12 @@
 package dev.hsbrysk.kuery.spring.r2dbc.conversion
 
-import assertk.assertThat
-import assertk.assertions.isEqualTo
-import assertk.assertions.isNull
-import dev.hsbrysk.kuery.spring.r2dbc.H2TestDatabase
-import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.core.convert.converter.Converter
-import org.springframework.data.convert.WritingConverter
+import dev.hsbrysk.kuery.spring.r2dbc.R2dbcH2ContractDatabase
+import dev.hsbrysk.kuery.spring.testing.contract.conversion.NullReturningWritingConverterContract
 
-/**
- * Spring's [Converter] contract allows returning null; a null result must be bound as SQL NULL
- * (the same way Spring Data itself writes null-converted properties).
- */
-class NullReturningWritingConverterTest {
-    private val kueryClient = h2.kueryClient(listOf(NullableTextToStringConverter()))
-
-    data class NullableText(val value: String?)
-
-    @WritingConverter
-    class NullableTextToStringConverter : Converter<NullableText, String?> {
-        override fun convert(source: NullableText): String? = source.value
-    }
-
-    @BeforeEach
-    fun beforeEach() = runTest {
-        h2.setUpForConverterTest()
-    }
-
-    @AfterEach
-    fun afterEach() = runTest {
-        h2.tearDownForConverterTest()
-    }
-
-    @Test
-    fun `null converter result is bound as SQL NULL`() = runTest {
-        // given
-        kueryClient.sql {
-            +"INSERT INTO converter (text) VALUES (${NullableText(null)})"
-        }.rowsUpdated()
-
-        // when & then
-        val map = kueryClient.sql {
-            +"SELECT * FROM converter"
-        }.singleMap()
-        assertThat(map["text"]).isNull()
-    }
-
-    @Test
-    fun `non-null converter result is bound as the converted value`() = runTest {
-        // given
-        kueryClient.sql {
-            +"INSERT INTO converter (text) VALUES (${NullableText("hoge")})"
-        }.rowsUpdated()
-
-        // when & then
-        val map = kueryClient.sql {
-            +"SELECT * FROM converter"
-        }.singleMap()
-        assertThat(map["text"]).isEqualTo("hoge")
-    }
+class NullReturningWritingConverterTest : NullReturningWritingConverterContract() {
+    override val database get() = h2
 
     companion object {
-        private val h2 = H2TestDatabase()
+        private val h2 = R2dbcH2ContractDatabase()
     }
 }

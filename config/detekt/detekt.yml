@@ -9,6 +9,11 @@ coroutines:
   RedundantSuspendModifier:
     active: false
 
+complexity:
+  TooManyFunctions:
+    # kuery-client-spring-data-testing holds shared contract tests in its main source set.
+    excludes: [ '**/src/test/**', '**/src/functionalTest/**', '**/kuery-client-spring-data-testing/**' ]
+
 naming:
   FunctionNaming:
     # kuery-client-spring-data-testing holds shared contract tests in its main source set.
