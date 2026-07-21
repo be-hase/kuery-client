@@ -23,6 +23,7 @@ dependencies {
     // constant inlined into the bytecode), so it is not needed at runtime.
     compileOnly(libs.micrometer.context.propagation)
 
+    testImplementation(projects.kueryClientSpringDataTesting)
     testImplementation(platform(libs.spring.boot.bom))
     testImplementation("com.mysql:mysql-connector-j")
     testImplementation("io.asyncer:r2dbc-mysql")

@@ -92,9 +92,15 @@ All modules apply `conventions.preset.base` (= `conventions.kotlin` + `conventio
 - Structure test bodies with lowercase `// given` / `// when` / `// then` comments (`// when & then` when combined). Omit them for trivial one/two-line tests or repetitive structures — don't paste them mechanically.
 - **One test function = one spec.** If multiple independently specifiable behaviors live in one function (happy path + error path, different behavior per type, etc.), split them. Do NOT split: (a) side-by-side tests where the contrast itself is the point, (b) incremental examples of the same rule (n=1/n=2), (c) tests exercising a single conditional expression with different inputs.
 
-### jdbc / r2dbc Mirror Convention
+### jdbc / r2dbc Shared Contract Tests
 
-The `kuery-client-spring-data-jdbc` and `kuery-client-spring-data-r2dbc` test suites mirror each other by feature subpackage (`conversion` / `mapping` / `usage` / `observation` / `sqlid` / `mysql` / `postgres`). Corresponding tests must use **identical class and method names** across both modules. One-sided classes are allowed only for genuinely one-sided features (e.g., Reactor context on r2dbc, `Sequence` on jdbc).
+Behavior specified identically for both spring-data modules is written **once** as an abstract contract class in `kuery-client-spring-data-testing` (in its `main` source set, package `dev.hsbrysk.kuery.spring.testing.contract.<subpackage>`), against the suspending `KueryClient` API. Each module runs it via a concrete subclass in its own `src/test` with the same class name as before (e.g., `EnumConversionTest : EnumConversionContract`) that only supplies a `ContractDatabase` (jdbc adapts its blocking client via `BlockingKueryClientAdapter`). Module-specific extra cases go directly on the concrete subclass.
+
+Dependency rule: `kuery-client-spring-data-testing` depends only on `kuery-client-core` and test libraries — never on the jdbc/r2dbc implementations, so one module's test classpath is not polluted with the sibling implementation. `ContractDatabase` implementations (e.g., `JdbcH2ContractDatabase`) therefore live in each module's own `src/test`. Keep `ContractDatabase` itself minimal (client creation + raw `execute`); scenario-specific setup such as table DDL belongs to the contract classes.
+
+Contract scope for streaming: contracts may use `flow`/`flowMap` (jdbc runs them through the sequence-to-flow adapter) but must only assert on the **results** — values, mapping, order. Streaming **semantics** — lazy execution, cancellation, resource release, coroutine/Reactor context propagation, actual suspension — must not be asserted through the adapter; test them per module against the real API. Likewise, genuinely one-sided behavior (Reactor context on r2dbc, `Sequence` / `maxRows` / `queryTimeoutSeconds` on jdbc, transactions) stays as plain tests in the owning module.
+
+Migration is in progress: test pairs not yet migrated to contracts still follow the legacy mirror convention — corresponding tests use **identical class and method names** across both modules. When touching a mirrored pair, keep both sides in sync or migrate the pair to a contract.
 
 ### Database Test Matrix
 

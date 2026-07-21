@@ -17,6 +17,7 @@ dependencies {
     // The JDBC mapper adapter still invokes Kotlin primary constructors directly.
     implementation(kotlin("reflect"))
 
+    testImplementation(projects.kueryClientSpringDataTesting)
     testImplementation(platform(libs.spring.boot.bom))
     testImplementation("com.h2database:h2")
     testImplementation("com.mysql:mysql-connector-j")
