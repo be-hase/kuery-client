@@ -1,134 +1,14 @@
 package dev.hsbrysk.kuery.spring.jdbc.postgres
 
-import assertk.assertFailure
-import assertk.assertThat
-import assertk.assertions.cause
-import assertk.assertions.isEqualTo
-import assertk.assertions.isInstanceOf
-import assertk.assertions.isNotNull
-import assertk.assertions.messageContains
-import dev.hsbrysk.kuery.core.values
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.jdbc.BadSqlGrammarException
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
-import java.util.UUID
+import dev.hsbrysk.kuery.spring.jdbc.jdbcExceptionProfile
+import dev.hsbrysk.kuery.spring.testing.contract.postgres.PostgresValuesHelperContract
 
-/**
- * How PostgreSQL's parameter type inference interacts with the values() helper:
- *
- * - Binding properly typed Java objects (java.util.UUID, OffsetDateTime, ...) works, including
- *   rows that mix null and non-null values in the same column.
- * - Binding Strings for typed columns (UUID, TIMESTAMPTZ, ...) is rejected, because the JDBC
- *   driver declares string parameters as varchar and PostgreSQL does not implicitly cast them.
- *   The workaround is an explicit cast right after the placeholder (see PostgresCastBindingTest),
- *   which the values() helper cannot emit today.
- */
-class PostgresValuesHelperTest {
-    private val kueryClient = postgres.kueryClient()
+class PostgresValuesHelperTest : PostgresValuesHelperContract() {
+    override val database get() = postgres
 
-    @BeforeEach
-    fun setUp() {
-        postgres.jdbcClient.sql(
-            """
-            CREATE TABLE documents (
-                id UUID PRIMARY KEY,
-                parent_id UUID,
-                created_at TIMESTAMPTZ NOT NULL
-            )
-            """.trimIndent(),
-        ).update()
-    }
-
-    @AfterEach
-    fun tearDown() {
-        postgres.jdbcClient.sql("DROP TABLE documents").update()
-    }
-
-    @Test
-    fun `values with non-null typed rows`() {
-        // given
-        val createdAt = OffsetDateTime.of(2026, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)
-        val input = listOf(
-            listOf(UUID.randomUUID(), UUID.randomUUID(), createdAt),
-            listOf(UUID.randomUUID(), UUID.randomUUID(), createdAt),
-        )
-
-        // when
-        val rowsUpdated = kueryClient.sql {
-            +"INSERT INTO documents (id, parent_id, created_at)"
-            values(input)
-        }.rowsUpdated()
-
-        // then
-        assertThat(rowsUpdated).isEqualTo(2L)
-    }
-
-    @Test
-    fun `values mixing null and non-null rows on a typed column`() {
-        // given
-        val createdAt = OffsetDateTime.of(2026, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)
-        val input = listOf(
-            listOf(UUID.randomUUID(), UUID.randomUUID(), createdAt),
-            listOf(UUID.randomUUID(), null, createdAt),
-        )
-
-        // when
-        val rowsUpdated = kueryClient.sql {
-            +"INSERT INTO documents (id, parent_id, created_at)"
-            values(input)
-        }.rowsUpdated()
-
-        // then
-        assertThat(rowsUpdated).isEqualTo(2L)
-    }
-
-    @Test
-    fun `values mixing conflicting parameter types in one column is rejected`() {
-        // PostgreSQL unifies the parameter types of a VALUES column across rows. A null is sent
-        // without type information and simply adopts the column type (see the test above), but
-        // a single String-typed row poisons the whole multi-row VALUES even when every other
-        // row is properly typed: the column's common type resolves to varchar and then fails
-        // against the uuid target column. (Historically this surfaced as "VALUES types
-        // character varying and uuid cannot be matched" on older driver/server combinations.)
-
-        // given
-        val createdAt = OffsetDateTime.of(2026, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)
-        val input = listOf(
-            listOf(UUID.randomUUID(), UUID.randomUUID(), createdAt),
-            listOf(UUID.randomUUID(), "0f14d0ab-9605-4a62-a9e4-5ed26688389b", createdAt),
-        )
-
-        // when & then
-        assertFailure {
-            kueryClient.sql {
-                +"INSERT INTO documents (id, parent_id, created_at)"
-                values(input)
-            }.rowsUpdated()
-        }.isInstanceOf(BadSqlGrammarException::class)
-            .cause().isNotNull()
-            .messageContains("is of type uuid but expression is of type character varying")
-    }
-
-    @Test
-    fun `values binding strings for typed columns is rejected`() {
-        // given
-        val input = listOf(
-            listOf("0f14d0ab-9605-4a62-a9e4-5ed26688389b", null, "2026-01-01 00:00:00+00"),
-        )
-
-        // when & then
-        assertFailure {
-            kueryClient.sql {
-                +"INSERT INTO documents (id, parent_id, created_at)"
-                values(input)
-            }.rowsUpdated()
-        }.isInstanceOf(BadSqlGrammarException::class)
-    }
+    override val exceptionProfile get() = jdbcExceptionProfile
 
     companion object {
-        private val postgres = PostgresTestContainer
+        private val postgres = JdbcPostgresContractDatabase()
     }
 }

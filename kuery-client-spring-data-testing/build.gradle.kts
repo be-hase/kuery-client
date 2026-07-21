@@ -24,6 +24,7 @@ dependencies {
     // runtime classpath.
     implementation(platform(libs.junit.bom))
     implementation("org.junit.jupiter:junit-jupiter-api")
+    implementation("org.junit.jupiter:junit-jupiter-params")
     implementation(libs.assertk)
     implementation(libs.kotlin.coroutines.test)
 

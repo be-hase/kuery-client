@@ -1,91 +1,11 @@
 package dev.hsbrysk.kuery.spring.jdbc.mysql
 
-import assertk.assertThat
-import assertk.assertions.isEqualTo
-import assertk.assertions.isNull
-import dev.hsbrysk.kuery.core.single
-import dev.hsbrysk.kuery.core.singleOrNull
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import dev.hsbrysk.kuery.spring.testing.contract.mysql.MySqlByteArrayBindingContract
 
-/**
- * A ByteArray must be bound as a single binary value (e.g. `BINARY(16)` keys), never expanded
- * like a collection.
- */
-class MySqlByteArrayBindingTest {
-    private val kueryClient = mysql.kueryClient()
-
-    @BeforeEach
-    fun setUp() {
-        mysql.jdbcClient.sql(
-            """
-            CREATE TABLE binaries (
-                id BINARY(16) PRIMARY KEY,
-                data VARBINARY(255) NOT NULL
-            )
-            """.trimIndent(),
-        ).update()
-    }
-
-    @AfterEach
-    fun tearDown() {
-        mysql.jdbcClient.sql("DROP TABLE binaries").update()
-    }
-
-    @Test
-    fun `bind ByteArray as a single binary value`() {
-        // given
-        val id = ByteArray(16) { it.toByte() }
-        val data = byteArrayOf(1, 2, 3)
-
-        // when
-        val inserted = kueryClient
-            .sql { +"INSERT INTO binaries (id, data) VALUES ($id, $data)" }
-            .rowsUpdated()
-
-        // then
-        assertThat(inserted).isEqualTo(1L)
-
-        val stored = kueryClient
-            .sql { +"SELECT data FROM binaries WHERE id = $id" }
-            .single<ByteArray>()
-        assertThat(stored.toList()).isEqualTo(data.toList())
-    }
-
-    @Test
-    fun `bind the same ByteArray twice in one statement`() {
-        // given
-        val id = ByteArray(16) { it.toByte() }
-        val data = byteArrayOf(1, 2, 3)
-        kueryClient
-            .sql { +"INSERT INTO binaries (id, data) VALUES ($id, $data)" }
-            .rowsUpdated()
-
-        // when
-        val count = kueryClient
-            .sql { +"SELECT COUNT(*) FROM binaries WHERE id = $id AND data = $data AND data = $data" }
-            .single<Long>()
-
-        // then
-        assertThat(count).isEqualTo(1L)
-    }
-
-    @Test
-    fun `singleOrNull ByteArray returns null when no row matches`() {
-        // given
-        val id = ByteArray(16) { it.toByte() }
-
-        // when
-        val stored = kueryClient
-            .sql { +"SELECT data FROM binaries WHERE id = $id" }
-            .singleOrNull<ByteArray>()
-
-        // then
-        assertThat(stored).isNull()
-    }
+class MySqlByteArrayBindingTest : MySqlByteArrayBindingContract() {
+    override val database get() = mysql
 
     companion object {
-        private val mysql = MySqlTestContainer
+        private val mysql = JdbcMySqlContractDatabase()
     }
 }
