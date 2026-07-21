@@ -3,16 +3,27 @@ package dev.hsbrysk.kuery.spring.jdbc.observation
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.example.spring.jdbc.UserRepository
+import dev.hsbrysk.kuery.core.KueryClient
+import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.spring.jdbc.JdbcH2ContractDatabase
+import dev.hsbrysk.kuery.spring.testing.BlockingKueryClientAdapter
 import dev.hsbrysk.kuery.spring.testing.contract.observation.ObservationContract
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationHandler
+import io.micrometer.observation.ObservationRegistry
 import io.micrometer.observation.tck.TestObservationRegistry
 import io.micrometer.observation.tck.TestObservationRegistryAssert
 import org.junit.jupiter.api.Test
 
 class ObservationTest : ObservationContract() {
     override val database get() = h2
+
+    override fun conventionKueryClient(
+        observationRegistry: ObservationRegistry,
+        observationConvention: KueryClientFetchObservationConvention,
+    ): KueryClient = BlockingKueryClientAdapter(
+        h2.blockingClient(observationRegistry = observationRegistry, observationConvention = observationConvention),
+    )
 
     // Streaming via Sequence and the Micrometer scope lifecycle are jdbc-specific, so they are
     // tested here against the real blocking API rather than through the contract.

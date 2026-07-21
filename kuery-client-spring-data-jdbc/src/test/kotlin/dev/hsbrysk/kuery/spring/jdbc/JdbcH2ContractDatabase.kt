@@ -2,6 +2,7 @@ package dev.hsbrysk.kuery.spring.jdbc
 
 import dev.hsbrysk.kuery.core.KueryBlockingClient
 import dev.hsbrysk.kuery.core.KueryClient
+import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.spring.testing.BlockingKueryClientAdapter
 import dev.hsbrysk.kuery.spring.testing.ContractDatabase
 import io.micrometer.observation.ObservationRegistry
@@ -31,11 +32,13 @@ class JdbcH2ContractDatabase : ContractDatabase {
     fun blockingClient(
         converters: List<Any> = emptyList(),
         observationRegistry: ObservationRegistry? = null,
+        observationConvention: KueryClientFetchObservationConvention? = null,
     ): KueryBlockingClient = SpringJdbcKueryClient.builder()
         .dataSource(dataSource)
         .converters(converters)
         .apply {
             observationRegistry?.let { observationRegistry(it) }
+            observationConvention?.let { observationConvention(it) }
         }
         .build()
 

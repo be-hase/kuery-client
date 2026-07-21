@@ -4,6 +4,7 @@ package dev.hsbrysk.kuery.spring.data.internal
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isNull
 import dev.hsbrysk.kuery.core.KueryClientInternalApi
 import org.junit.jupiter.api.Test
@@ -34,6 +35,9 @@ class ValueClassColumnConverterTest {
 
     @JvmInline
     value class Money(val value: BigDecimal)
+
+    @JvmInline
+    value class MoneyBox(val value: Money)
 
     class LongToStringIdConverter : Converter<Long, StringId> {
         override fun convert(source: Long): StringId = StringId("raw:$source")
@@ -119,5 +123,25 @@ class ValueClassColumnConverterTest {
         // when & then
         val result = converter.convert("") { "" }
         assertThat(result).isNull()
+    }
+
+    @Test
+    fun `a nested value class maps to null when the inner conversion yields null`() {
+        // The recursive converter for the nested level may resolve to null (here through a
+        // converter legitimately returning null); the outer level must map to null as well
+        // instead of boxing null.
+        // given
+        val converter = ValueClassColumnConverter(MoneyBox::class, conversionService(BlankToNullBigDecimalConverter()))
+
+        // when & then
+        val result = converter.convert("") { null }
+        assertThat(result).isNull()
+    }
+
+    @Test
+    fun `hasValueClassConstructorParameters is false for a class without a primary constructor`() {
+        // A Java class has no Kotlin primary constructor; it must stay on Spring's own mappers
+        // instead of being routed to the value class mapper.
+        assertThat(hasValueClassConstructorParameters(StringBuilder::class)).isFalse()
     }
 }

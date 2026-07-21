@@ -160,6 +160,17 @@ class KueryClientGradlePluginTest {
     }
 
     @Test
+    fun `the compiler plugin coordinates point at the published kuery-client-compiler artifact`() {
+        // Kotlin resolves the compiler plugin through these values at build time, so a drift
+        // (e.g. a module or group rename) would break every consumer build.
+        assertThat(plugin.getCompilerPluginId()).isEqualTo("dev.hsbrysk.kuery-client")
+        val artifact = plugin.getPluginArtifact()
+        assertThat(artifact.groupId).isEqualTo("dev.hsbrysk.kuery-client")
+        assertThat(artifact.artifactId).isEqualTo("kuery-client-compiler")
+        assertThat(artifact.version).isEqualTo(BuildConfig.VERSION)
+    }
+
+    @Test
     fun `strict is passed through when enabled`() {
         // given
         val project = ProjectBuilder.builder().build()

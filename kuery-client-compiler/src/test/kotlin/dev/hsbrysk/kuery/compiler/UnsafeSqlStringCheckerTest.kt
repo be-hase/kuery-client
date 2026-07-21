@@ -225,6 +225,66 @@ class UnsafeSqlStringCheckerTest {
     }
 
     @Test
+    fun `a non-literal trimMargin prefix triggers an unsafe SQL string warning`() {
+        // The margin prefix changes the resulting SQL text, so a non-literal prefix means the
+        // text is not fully determined at compile time even though the receiver is a literal.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(prefix: String) {
+                Sql { add("|SELECT 1".trimMargin(prefix)) }
+            }
+            """.trimIndent(),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `trimIndent chained on a non-literal receiver triggers an unsafe SQL string warning`() {
+        // The chain whitelist only makes the trim call transparent; it must not make an unsafe
+        // receiver safe.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(sql: String) {
+                Sql { add(sql.trimIndent()) }
+            }
+            """.trimIndent(),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `a non-null asserted string passed to add triggers an unsafe SQL string warning`() {
+        // An expression shape the checker does not model (here FirCheckNotNullCall) must default
+        // to unsafe, not silently pass.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query(sql: String?) {
+                Sql { add(sql!!) }
+            }
+            """.trimIndent(),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
     fun `no warning for safe argument forms`() {
         // allWarningsAsErrors = true, so any unexpected warning fails the compilation as well
         // when
