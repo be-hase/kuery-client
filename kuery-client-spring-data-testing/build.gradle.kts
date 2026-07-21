@@ -15,10 +15,9 @@ dependencies {
     api(libs.micrometer.observation)
 
     // Contract tests live in the main source set, so test libraries must be declared explicitly
-    // (conventions.kotlin only adds them to testImplementation). implementation is enough even
-    // though some of these types appear in contract signatures (e.g. runTest's TestResult):
-    // concrete subclasses compile without them, and implementation dependencies still reach the
-    // consumers' runtime classpath for JUnit to invoke the inherited tests.
+    // (conventions.kotlin only adds them to testImplementation). They are only used inside the
+    // contract implementations, so implementation scope suffices; it still reaches the consumers'
+    // runtime classpath.
     implementation(platform(libs.junit.bom))
     implementation("org.junit.jupiter:junit-jupiter-api")
     implementation(libs.assertk)

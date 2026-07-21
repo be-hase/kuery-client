@@ -59,7 +59,7 @@ class BlockingKueryClientAdapterTest {
     }
 
     @Test
-    fun `fetchSize and terminal operations are delegated to the blocking fetch spec`() = runTest {
+    fun `fetchSize returns an adapter that delegates single to the resized fetch spec`() = runTest {
         // given
         val resizedFetchSpec = mockk<KueryBlockingClient.FetchSpec>()
         every { blockingClient.sql(any()) } returns fetchSpec
