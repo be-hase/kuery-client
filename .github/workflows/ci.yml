@@ -29,8 +29,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
       - name: Check
         run: |
-          ./gradlew check detektMain detektTest
+          ./gradlew check detektMain detektTest :koverXmlReport
           ./gradlew -p examples check detektMain detektTest
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: build/reports/kover/report.xml
+          disable_search: true
+          fail_ci_if_error: false
 
   build-docs:
     runs-on: ubuntu-latest

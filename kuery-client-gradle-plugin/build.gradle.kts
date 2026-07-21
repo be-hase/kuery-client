@@ -4,6 +4,7 @@ plugins {
     // build scripts, but Gradle plugin code doesn't follow library explicit-API conventions.
     id("conventions.abi-validation")
     id("conventions.functional-test-publish")
+    id("conventions.kover")
     `java-gradle-plugin`
     signing
     alias(libs.plugins.plugin.publish)

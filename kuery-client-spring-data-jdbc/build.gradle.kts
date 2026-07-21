@@ -3,6 +3,7 @@ plugins {
     id("conventions.public-api")
     id("conventions.maven-publish")
     id("conventions.jmh")
+    id("conventions.kover")
 }
 
 description = "Kuery client implementation using spring-data-jdbc."

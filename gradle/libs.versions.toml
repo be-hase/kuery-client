@@ -2,6 +2,7 @@
 detekt = "1.23.8"
 kotlin-core = "2.4.10"
 kotlin-coroutines = "1.11.0"
+kover = "0.9.9"
 ktlint = "1.8.0"
 micrometer = "1.17.0"
 spring-boot = "4.1.0"
@@ -33,6 +34,7 @@ gradle-plugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plu
 gradle-plugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version = "2.2.0" }
 gradle-plugin-jmh = { module = "me.champeau.jmh:jmh-gradle-plugin", version = "0.7.3" }
 gradle-plugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-core" }
+gradle-plugin-kover = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }
 gradle-plugin-ktlint = { module = "org.jlleitschuh.gradle:ktlint-gradle", version = "14.2.0" }
 gradle-plugin-maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.37.0" }
 
