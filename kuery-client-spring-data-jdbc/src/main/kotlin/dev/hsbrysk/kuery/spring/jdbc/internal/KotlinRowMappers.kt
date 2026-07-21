@@ -191,7 +191,7 @@ internal class ValueClassPropertyRowMapper(
  * can still be served by a registered reading converter, which wins before boxing is attempted.
  */
 internal class ValueClassColumnConverter(
-    target: KClass<*>,
+    private val target: KClass<*>,
     private val conversionService: ConversionService,
 ) {
     private val targetJavaType = target.javaObjectType
@@ -207,10 +207,14 @@ internal class ValueClassColumnConverter(
     private val canConvertCache = ConcurrentHashMap<Class<*>, Boolean>()
 
     // Whether SQL NULL should be taken into the value class as an inner null (X(null)). True only
-    // when the underlying type is nullable; false when it is non-null or cannot be determined
-    // (a generic value class, whose boxer resolution fail-fasts — never let that fire here).
+    // when the single underlying constructor parameter is a concrete, nullable type. A generic value
+    // class (its underlying is a type parameter, not a KClass) is excluded — its underlying type,
+    // and hence nullability, is unknowable. Determined directly from the primary constructor so a
+    // genuine reflection/ABI fault surfaces instead of being silently treated as non-nullable, and
+    // without resolving `boxer` (which fail-fasts for generic value classes).
     private val nullableUnderlying: Boolean by lazy {
-        runCatching { boxer.underlyingNullable }.getOrDefault(false)
+        val underlyingType = target.primaryConstructor?.parameters?.singleOrNull()?.type
+        underlyingType != null && underlyingType.classifier is KClass<*> && underlyingType.isMarkedNullable
     }
 
     /**
@@ -303,10 +307,6 @@ private class ValueClassBoxer(target: KClass<*>) {
             "Register a reading converter targeting $target instead."
     }
 
-    // Whether the underlying type is declared nullable (e.g. `value class X(val v: String?)`), so
-    // SQL NULL can be taken into the value class as X(null) instead of a null value class.
-    val underlyingNullable: Boolean = constructor.parameters.single().type.isMarkedNullable
-
     // Fast path: the compiler-generated static `constructor-impl` (which contains the `init`
     // validation) + `box-impl` pair, invoked through plain Java reflection — measurably faster
     // than KFunction.call. They are part of a value class's stable JVM ABI (compiled callers in
@@ -327,9 +327,10 @@ private class ValueClassBoxer(target: KClass<*>) {
     }
 
     /**
-     * Boxes a null underlying value into X(null), running `init` validation. Only valid when
-     * [underlyingNullable]. Goes through the Kotlin constructor (not the fast path, whose `accepts`
-     * is non-null); this runs only on SQL NULL rows, so it is off the hot path.
+     * Boxes a null underlying value into X(null), running `init` validation. Only called when the
+     * underlying type is nullable (see [ValueClassColumnConverter]). Goes through the Kotlin
+     * constructor (not the fast path, whose `accepts` is non-null); this runs only on SQL NULL rows,
+     * so it is off the hot path.
      */
     fun boxNull(): Any = callConstructor { constructor.call(null) }
 }
