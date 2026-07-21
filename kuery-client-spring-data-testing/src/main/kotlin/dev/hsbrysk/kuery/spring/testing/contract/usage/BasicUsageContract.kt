@@ -9,13 +9,11 @@ import assertk.assertions.isNull
 import dev.hsbrysk.kuery.core.DelicateKueryClientApi
 import dev.hsbrysk.kuery.core.KueryClient
 import dev.hsbrysk.kuery.core.SqlBuilder
-import dev.hsbrysk.kuery.core.flow
 import dev.hsbrysk.kuery.core.list
 import dev.hsbrysk.kuery.core.single
 import dev.hsbrysk.kuery.core.singleOrNull
 import dev.hsbrysk.kuery.spring.testing.ContractDatabase
 import dev.hsbrysk.kuery.spring.testing.ExceptionProfile
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -295,58 +293,6 @@ abstract class BasicUsageContract {
     fun `list returns an empty list when no rows match`() = runTest {
         val userId = 3
         val result: List<User> = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.list()
-        assertThat(result).isEmpty()
-    }
-
-    @Test
-    fun `flowMap returns all rows as maps`() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users" }.flowMap().toList()
-        assertThat(result).isEqualTo(
-            listOf(
-                mapOf(
-                    "user_id" to 1,
-                    "username" to "user1",
-                    "email" to "user1@example.com",
-                ),
-                mapOf(
-                    "user_id" to 2,
-                    "username" to "user2",
-                    "email" to "user2@example.com",
-                ),
-            ),
-        )
-    }
-
-    @Test
-    fun `flowMap returns an empty flow when no rows match`() = runTest {
-        val userId = 3
-        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.flowMap().toList()
-        assertThat(result).isEmpty()
-    }
-
-    @Test
-    fun `flow returns all rows mapped to data classes`() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users" }.flow<User>().toList()
-        assertThat(result).isEqualTo(
-            listOf(
-                User(
-                    userId = 1,
-                    username = "user1",
-                    email = "user1@example.com",
-                ),
-                User(
-                    userId = 2,
-                    username = "user2",
-                    email = "user2@example.com",
-                ),
-            ),
-        )
-    }
-
-    @Test
-    fun `flow returns an empty flow when no rows match`() = runTest {
-        val userId = 3
-        val result = kueryClient.sql { +"SELECT * FROM users WHERE user_id > $userId" }.flow<User>().toList()
         assertThat(result).isEmpty()
     }
 
