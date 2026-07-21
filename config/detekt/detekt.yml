@@ -11,7 +11,8 @@ coroutines:
 
 naming:
   FunctionNaming:
-    excludes: [ '**/src/test/**', '**/src/functionalTest/**' ]
+    # kuery-client-spring-data-testing holds shared contract tests in its main source set.
+    excludes: [ '**/src/test/**', '**/src/functionalTest/**', '**/kuery-client-spring-data-testing/**' ]
 
 performance:
   SpreadOperator:
