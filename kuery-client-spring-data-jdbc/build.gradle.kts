@@ -12,7 +12,9 @@ dependencies {
 
     api(libs.spring.data.jdbc)
 
-    // Value class mapping (boxing through the primary constructor) needs full Kotlin reflection.
+    implementation(projects.kueryClientSpringDataCommon)
+
+    // The JDBC mapper adapter still invokes Kotlin primary constructors directly.
     implementation(kotlin("reflect"))
 
     testImplementation(platform(libs.spring.boot.bom))

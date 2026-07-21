@@ -10,6 +10,9 @@ import dev.hsbrysk.kuery.core.internal.SqlIds.id
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchContext
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.core.observation.KueryClientObservationDocumentation
+import dev.hsbrysk.kuery.spring.data.internal.SpringDataWriteConverter
+import dev.hsbrysk.kuery.spring.data.internal.ValueClasses
+import dev.hsbrysk.kuery.spring.data.internal.hasValueClassConstructorParameters
 import dev.hsbrysk.kuery.spring.jdbc.SqlIdInjector
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
@@ -28,7 +31,6 @@ import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec
 import org.springframework.jdbc.support.GeneratedKeyHolder
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
-import java.lang.reflect.Array as ReflectArray
 
 @OptIn(KueryClientInternalApi::class)
 internal class DefaultSpringJdbcKueryClient(
@@ -41,6 +43,7 @@ internal class DefaultSpringJdbcKueryClient(
 ) : KueryBlockingClient {
     private val defaultObservationConvention = KueryClientFetchObservationConvention.default()
     private val rowMapperCache = ConcurrentHashMap<KClass<*>, RowMapper<*>>()
+    private val writeConverter = SpringDataWriteConverter(conversionService, customConversions)
 
     override fun sql(
         sqlId: String,
@@ -84,65 +87,10 @@ internal class DefaultSpringJdbcKueryClient(
         }
 
         return when (value) {
-            is Collection<*> -> param(name, convertCollection(value))
-            is Array<*> -> param(name, convertArray(value))
+            is Collection<*> -> param(name, writeConverter.convertCollection(value))
+            is Array<*> -> param(name, writeConverter.convertArray(value))
             is Enum<*> -> param(name, value.name)
             else -> param(name, value)
-        }
-    }
-
-    // NOTE: The conversion helpers below (convertCollection / convertArray / componentWriteTarget /
-    // convertElement) are intentionally duplicated in DefaultSpringR2dbcKueryClient; there is no
-    // shared Spring-dependent module to host them. Keep both copies in sync.
-    private fun convertCollection(collection: Collection<*>): Collection<*> = collection.map { convertElement(it) }
-
-    // The runtime component type must be preserved (e.g. String[] stays String[]); drivers
-    // resolve the SQL array type from it, and pgjdbc rejects Object[] outright.
-    private fun convertArray(array: Array<*>): Array<*> {
-        val converted = array.map { convertElement(it) }
-        val targetType = componentWriteTarget(array.javaClass.componentType)
-        if (targetType == null && array.indices.all { converted[it] === array[it] }) {
-            return array
-        }
-        val inferredType = converted.mapNotNull { it?.javaClass }.distinct().singleOrNull() ?: Any::class.java
-        val componentType = targetType ?: inferredType
-        val result = ReflectArray.newInstance(componentType, array.size)
-        converted.forEachIndexed { index, value -> ReflectArray.set(result, index, value) }
-        return result as Array<*>
-    }
-
-    // The component type itself carries the conversion intent even when the elements don't
-    // (all-null or empty arrays), e.g. SampleEnum[] must become String[] regardless of contents.
-    private fun componentWriteTarget(componentType: Class<*>): Class<*>? {
-        val targetType = customConversions.getCustomWriteTarget(componentType)
-        return when {
-            targetType.isPresent -> targetType.get()
-            KotlinDetector.isInlineClass(componentType) -> {
-                val underlying = ValueClasses.underlyingType(componentType)
-                // A generic value class erases its underlying to Object, which is no useful array
-                // component type (pgjdbc rejects Object[]); return null so the caller infers the
-                // concrete type from the unwrapped elements. An empty or all-null such array cannot
-                // be inferred — no driver-compatible component type can be produced and most drivers
-                // reject it (documented as unsupported).
-                if (underlying == Any::class.java) null else componentWriteTarget(underlying) ?: underlying
-            }
-            Enum::class.java.isAssignableFrom(componentType) -> String::class.java
-            else -> null
-        }
-    }
-
-    private fun convertElement(element: Any?): Any? {
-        if (element == null) {
-            return null
-        }
-        val targetType = customConversions.getCustomWriteTarget(element::class.java)
-        return when {
-            targetType.isPresent -> conversionService.convert(element, targetType.get())
-            KotlinDetector.isInlineClass(element.javaClass) -> convertElement(ValueClasses.unbox(element))
-            // composite IN `(a, b) IN ($pairs)` passes each row as an Object[] entry in a Collection
-            element is Array<*> -> convertArray(element)
-            element is Enum<*> -> element.name
-            else -> element
         }
     }
 

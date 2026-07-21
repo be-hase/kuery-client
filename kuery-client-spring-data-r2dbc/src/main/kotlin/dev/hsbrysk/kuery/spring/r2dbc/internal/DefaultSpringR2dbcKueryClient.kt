@@ -9,6 +9,9 @@ import dev.hsbrysk.kuery.core.internal.SqlIds.id
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchContext
 import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.core.observation.KueryClientObservationDocumentation
+import dev.hsbrysk.kuery.spring.data.internal.SpringDataWriteConverter
+import dev.hsbrysk.kuery.spring.data.internal.ValueClasses
+import dev.hsbrysk.kuery.spring.data.internal.hasValueClassConstructorParameters
 import dev.hsbrysk.kuery.spring.r2dbc.SpringR2dbcKueryClient
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
@@ -33,7 +36,6 @@ import reactor.core.publisher.Mono
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Function
 import kotlin.reflect.KClass
-import java.lang.reflect.Array as ReflectArray
 
 @OptIn(KueryClientInternalApi::class)
 internal class DefaultSpringR2dbcKueryClient(
@@ -46,6 +48,7 @@ internal class DefaultSpringR2dbcKueryClient(
 ) : KueryClient {
     private val defaultObservationConvention = KueryClientFetchObservationConvention.default()
     private val mapperCache = ConcurrentHashMap<KClass<*>, Function<Readable, *>>()
+    private val writeConverter = SpringDataWriteConverter(conversionService, customConversions)
 
     override fun sql(
         sqlId: String,
@@ -98,7 +101,7 @@ internal class DefaultSpringR2dbcKueryClient(
                     // non-null value (enum -> String, custom write target, nested value class,
                     // boxed primitive array), not the raw underlying type, which may have no codec.
                     val underlying = ValueClasses.underlyingType(value.javaClass)
-                    val bindNullType = componentWriteTarget(underlying)
+                    val bindNullType = writeConverter.componentWriteTarget(underlying)
                         ?: PRIMITIVE_ARRAY_TO_OBJECT_ARRAY[underlying]
                         ?: underlying
                     return bindNull(name, bindNullType)
@@ -107,8 +110,8 @@ internal class DefaultSpringR2dbcKueryClient(
         }
 
         return when (value) {
-            is Collection<*> -> bind(name, convertCollection(value))
-            is Array<*> -> bind(name, convertArray(value))
+            is Collection<*> -> bind(name, writeConverter.convertCollection(value))
+            is Array<*> -> bind(name, writeConverter.convertArray(value))
             is Enum<*> -> bind(name, value.name)
             else -> bind(name, boxPrimitiveArray(value) ?: value)
         }
@@ -125,61 +128,6 @@ internal class DefaultSpringR2dbcKueryClient(
         is BooleanArray -> value.toTypedArray()
         is CharArray -> value.toTypedArray()
         else -> null
-    }
-
-    // NOTE: The conversion helpers below (convertCollection / convertArray / componentWriteTarget /
-    // convertElement) are intentionally duplicated in DefaultSpringJdbcKueryClient; there is no
-    // shared Spring-dependent module to host them. Keep both copies in sync.
-    private fun convertCollection(collection: Collection<*>): Collection<*> = collection.map { convertElement(it) }
-
-    // The runtime component type must be preserved (e.g. String[] stays String[]); drivers
-    // resolve the SQL array type from it, and pgjdbc rejects Object[] outright.
-    private fun convertArray(array: Array<*>): Array<*> {
-        val converted = array.map { convertElement(it) }
-        val targetType = componentWriteTarget(array.javaClass.componentType)
-        if (targetType == null && array.indices.all { converted[it] === array[it] }) {
-            return array
-        }
-        val inferredType = converted.mapNotNull { it?.javaClass }.distinct().singleOrNull() ?: Any::class.java
-        val componentType = targetType ?: inferredType
-        val result = ReflectArray.newInstance(componentType, array.size)
-        converted.forEachIndexed { index, value -> ReflectArray.set(result, index, value) }
-        return result as Array<*>
-    }
-
-    // The component type itself carries the conversion intent even when the elements don't
-    // (all-null or empty arrays), e.g. SampleEnum[] must become String[] regardless of contents.
-    private fun componentWriteTarget(componentType: Class<*>): Class<*>? {
-        val targetType = customConversions.getCustomWriteTarget(componentType)
-        return when {
-            targetType.isPresent -> targetType.get()
-            KotlinDetector.isInlineClass(componentType) -> {
-                val underlying = ValueClasses.underlyingType(componentType)
-                // A generic value class erases its underlying to Object, which is no useful array
-                // component type (drivers reject Object[]); return null so the caller infers the
-                // concrete type from the unwrapped elements. An empty or all-null such array cannot
-                // be inferred — no driver-compatible component type can be produced and most drivers
-                // reject it (documented as unsupported).
-                if (underlying == Any::class.java) null else componentWriteTarget(underlying) ?: underlying
-            }
-            Enum::class.java.isAssignableFrom(componentType) -> String::class.java
-            else -> null
-        }
-    }
-
-    private fun convertElement(element: Any?): Any? {
-        if (element == null) {
-            return null
-        }
-        val targetType = customConversions.getCustomWriteTarget(element::class.java)
-        return when {
-            targetType.isPresent -> conversionService.convert(element, targetType.get())
-            KotlinDetector.isInlineClass(element.javaClass) -> convertElement(ValueClasses.unbox(element))
-            // composite IN `(a, b) IN ($pairs)` passes each row as an Object[] entry in a Collection
-            element is Array<*> -> convertArray(element)
-            element is Enum<*> -> element.name
-            else -> element
-        }
     }
 
     @Suppress("TooManyFunctions")

@@ -14,7 +14,9 @@ dependencies {
     api(libs.kotlin.coroutines.core)
     api(libs.kotlin.coroutines.reactor)
 
-    // Value class mapping (boxing through the primary constructor) needs full Kotlin reflection.
+    implementation(projects.kueryClientSpringDataCommon)
+
+    // The R2DBC mapper adapter still invokes Kotlin primary constructors directly.
     implementation(kotlin("reflect"))
 
     // Required only to compile against ObservationThreadLocalAccessor.KEY (a compile-time
