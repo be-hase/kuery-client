@@ -10,6 +10,9 @@ import dev.hsbrysk.kuery.spring.testing.ContractDatabase
 import dev.hsbrysk.kuery.spring.testing.ExceptionProfile
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.core.convert.converter.Converter
 import org.springframework.data.convert.ReadingConverter
 import java.net.URI
@@ -42,29 +45,20 @@ abstract class MySqlSingleBasicTypeContract {
     }
 
     @OptIn(DelicateKueryClientApi::class)
-    @Test
-    fun `single maps a single-column result to each basic type`() = runTest {
-        // junit-params is not on this module's classpath, so the cases run as a loop in one test.
-        val cases: List<Triple<String, Any, KClass<*>>> = listOf(
-            Triple("SELECT 1", 1.toShort(), Short::class),
-            Triple("SELECT 1", 1, Int::class),
-            Triple("SELECT 1", 1L, Long::class),
-            Triple("SELECT '1'", 1.toShort(), Short::class),
-            Triple("SELECT '1'", 1, Int::class),
-            Triple("SELECT '1'", 1L, Long::class),
-            Triple("SELECT 'hoge'", "hoge", String::class),
-            Triple("SELECT 1", "1", String::class),
-            Triple("SELECT 'https://example.com'", URI("https://example.com"), URI::class),
-        )
-        cases.forEach { (query, expected, type) ->
-            // when
-            val result = kueryClient.sql {
-                addUnsafe(query)
-            }.single(type)
+    @ParameterizedTest
+    @MethodSource("basicTypeValues")
+    fun `single maps a single-column result to each basic type`(
+        query: String,
+        expected: Any,
+        type: KClass<*>,
+    ) = runTest {
+        // when
+        val result = kueryClient.sql {
+            addUnsafe(query)
+        }.single(type)
 
-            // then
-            assertThat(result, name = "$query AS ${type.simpleName}").isEqualTo(expected)
-        }
+        // then
+        assertThat(result).isEqualTo(expected)
     }
 
     @Test
@@ -87,5 +81,20 @@ abstract class MySqlSingleBasicTypeContract {
 
         // then
         assertThat(result).isEqualTo(listOf(1, 0))
+    }
+
+    companion object {
+        @JvmStatic
+        fun basicTypeValues(): List<Arguments> = listOf(
+            Arguments.of("SELECT 1", 1.toShort(), Short::class),
+            Arguments.of("SELECT 1", 1, Int::class),
+            Arguments.of("SELECT 1", 1L, Long::class),
+            Arguments.of("SELECT '1'", 1.toShort(), Short::class),
+            Arguments.of("SELECT '1'", 1, Int::class),
+            Arguments.of("SELECT '1'", 1L, Long::class),
+            Arguments.of("SELECT 'hoge'", "hoge", String::class),
+            Arguments.of("SELECT 1", "1", String::class),
+            Arguments.of("SELECT 'https://example.com'", URI("https://example.com"), URI::class),
+        )
     }
 }
