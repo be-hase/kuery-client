@@ -21,7 +21,7 @@ class BasicUsageTest : BasicUsageContract() {
 
     @Test
     fun `sequenceMap returns all rows as maps`() {
-        val result = blockingClient.sql { +"SELECT * FROM users" }.sequenceMap().toList()
+        val result = blockingClient.sql { +"SELECT * FROM users ORDER BY user_id" }.sequenceMap().toList()
         assertThat(result).isEqualTo(
             listOf(
                 mapOf(
@@ -47,7 +47,9 @@ class BasicUsageTest : BasicUsageContract() {
 
     @Test
     fun `sequence returns all rows mapped to data classes`() {
-        val result: List<User> = blockingClient.sql { +"SELECT * FROM users" }.sequence<User>().toList()
+        val result: List<User> = blockingClient.sql { +"SELECT * FROM users ORDER BY user_id" }
+            .sequence<User>()
+            .toList()
         assertThat(result).isEqualTo(
             listOf(
                 User(

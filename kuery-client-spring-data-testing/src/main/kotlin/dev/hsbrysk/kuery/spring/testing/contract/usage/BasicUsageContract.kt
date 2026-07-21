@@ -246,7 +246,7 @@ abstract class BasicUsageContract {
 
     @Test
     fun `listMap returns all rows as maps`() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users" }.listMap()
+        val result = kueryClient.sql { +"SELECT * FROM users ORDER BY user_id" }.listMap()
         assertThat(result).isEqualTo(
             listOf(
                 mapOf(
@@ -272,7 +272,7 @@ abstract class BasicUsageContract {
 
     @Test
     fun `list returns all rows mapped to data classes`() = runTest {
-        val result: List<User> = kueryClient.sql { +"SELECT * FROM users" }.list()
+        val result: List<User> = kueryClient.sql { +"SELECT * FROM users ORDER BY user_id" }.list()
         assertThat(result).isEqualTo(
             listOf(
                 User(
@@ -389,7 +389,7 @@ abstract class BasicUsageContract {
                 FROM orders
                 JOIN order_items ON orders.order_id = order_items.order_id
                 JOIN products ON order_items.product_id = products.product_id
-                ORDER BY orders.order_id
+                ORDER BY orders.order_id, order_items.order_item_id
                 """.trimIndent()
             }
             .list()

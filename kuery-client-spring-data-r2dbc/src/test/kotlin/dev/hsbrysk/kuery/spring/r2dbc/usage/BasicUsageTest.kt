@@ -20,7 +20,7 @@ class BasicUsageTest : BasicUsageContract() {
     // instead), so these stay r2dbc-only rather than being shared through the contract.
     @Test
     fun `flowMap returns all rows as maps`() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users" }.flowMap().toList()
+        val result = kueryClient.sql { +"SELECT * FROM users ORDER BY user_id" }.flowMap().toList()
         assertThat(result).isEqualTo(
             listOf(
                 mapOf(
@@ -46,7 +46,7 @@ class BasicUsageTest : BasicUsageContract() {
 
     @Test
     fun `flow returns all rows mapped to data classes`() = runTest {
-        val result = kueryClient.sql { +"SELECT * FROM users" }.flow<User>().toList()
+        val result = kueryClient.sql { +"SELECT * FROM users ORDER BY user_id" }.flow<User>().toList()
         assertThat(result).isEqualTo(
             listOf(
                 User(

@@ -64,7 +64,7 @@ abstract class ValuesHelperContract {
         assertThat(rowsUpdated).isEqualTo(3)
 
         val users: List<User> = kueryClient.sql {
-            +"SELECT * FROM users"
+            +"SELECT * FROM users ORDER BY user_id"
         }.list()
         assertThat(users).isEqualTo(
             listOf(
@@ -98,7 +98,7 @@ abstract class ValuesHelperContract {
         assertThat(rowsUpdated).isEqualTo(3)
 
         val users: List<User> = kueryClient.sql {
-            +"SELECT * FROM users"
+            +"SELECT * FROM users ORDER BY user_id"
         }.list()
         assertThat(users).isEqualTo(
             listOf(
