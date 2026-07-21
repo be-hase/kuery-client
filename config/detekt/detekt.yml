@@ -9,12 +9,6 @@ coroutines:
   RedundantSuspendModifier:
     active: false
 
-complexity:
-  TooManyFunctions:
-    # ValueClassConversionContract holds a large, deliberately flat set of value-class scenarios
-    # as a shared contract test.
-    excludes: [ '**/src/test/**', '**/src/functionalTest/**', '**/kuery-client-spring-data-testing/**/ValueClassConversionContract.kt' ]
-
 naming:
   FunctionNaming:
     # kuery-client-spring-data-testing holds shared contract tests in its main source set.

@@ -17,6 +17,7 @@ import org.springframework.data.convert.WritingConverter
  * Contract shared by the jdbc and r2dbc modules. Each module runs it via a concrete subclass
  * that supplies its `ContractDatabase`.
  */
+@Suppress("TooManyFunctions")
 abstract class ValueClassConversionContract : ConverterContractBase() {
     @JvmInline
     value class UserName(val value: String)
