@@ -1,5 +1,6 @@
 plugins {
     id("conventions.preset.base")
+    id("conventions.kover")
     // Deliberately no conventions.public-api / conventions.maven-publish: this module is not
     // published, and its contract classes are excluded from explicit API mode and ABI checks.
 }

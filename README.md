@@ -9,6 +9,7 @@ A Kotlin SQL client built on Spring Data — interpolated runtime values become 
 
 <a href="https://central.sonatype.com/search?q=kuery-client"><img alt="Maven Central Version" src="https://img.shields.io/maven-central/v/dev.hsbrysk.kuery-client/kuery-client-core"></a>
 <a href="https://github.com/be-hase/kuery-client/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/be-hase/kuery-client/actions/workflows/ci.yml/badge.svg"></a>
+<a href="https://codecov.io/gh/be-hase/kuery-client"><img alt="Codecov" src="https://codecov.io/gh/be-hase/kuery-client/branch/main/graph/badge.svg"></a>
 <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/be-hase/kuery-client"></a>
 
 <a href="https://kuery-client.hsbrysk.dev/"><b>Document Site</b></a> ·

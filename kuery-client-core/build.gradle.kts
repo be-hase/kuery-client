@@ -4,6 +4,7 @@ plugins {
     id("conventions.maven-publish")
     id("conventions.functional-test-publish")
     id("conventions.jmh")
+    id("conventions.kover")
 }
 
 description = "Kuery client's core module."
