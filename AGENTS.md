@@ -100,7 +100,7 @@ Dependency rule: `kuery-client-spring-data-testing` depends only on `kuery-clien
 
 Contract scope for streaming: contracts may use `flow`/`flowMap` (jdbc runs them through the sequence-to-flow adapter) but must only assert on the **results** — values, mapping, order. Streaming **semantics** — lazy execution, cancellation, resource release, coroutine/Reactor context propagation, actual suspension — must not be asserted through the adapter; test them per module against the real API. Likewise, genuinely one-sided behavior (Reactor context on r2dbc, `Sequence` / `maxRows` / `queryTimeoutSeconds` on jdbc, transactions) stays as plain tests in the owning module.
 
-Migration is in progress: test pairs not yet migrated to contracts still follow the legacy mirror convention — corresponding tests use **identical class and method names** across both modules. When touching a mirrored pair, keep both sides in sync or migrate the pair to a contract.
+The migration is complete — no legacy mirror pairs remain. Test classes that still share a name across both modules are either concrete contract subclasses (the shared spec lives in the contract; only module-specific extras are defined locally) or deliberately per-module tests of one-sided mechanisms whose spec happens to coincide (e.g. `TransactionTest`); for the latter, keep the spec sentences aligned when touching one side. New behavior specified identically for both modules goes into a contract from the start — do not create new mirror pairs.
 
 ### Database Test Matrix
 

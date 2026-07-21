@@ -27,6 +27,7 @@ dependencies {
     implementation("org.junit.jupiter:junit-jupiter-params")
     implementation(libs.assertk)
     implementation(libs.kotlin.coroutines.test)
+    implementation(libs.micrometer.observation.test)
 
     // The mapping/usage contracts assert Spring's shared data-access exceptions
     // (EmptyResultDataAccessException, ...), which live in spring-tx's org.springframework.dao
