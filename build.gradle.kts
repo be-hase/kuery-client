@@ -7,8 +7,8 @@ plugins {
 dependencies {
     kover(projects.kueryClientCore)
     kover(projects.kueryClientCompiler)
+    kover(projects.kueryClientGradlePlugin)
     kover(projects.kueryClientSpringDataCommon)
     kover(projects.kueryClientSpringDataJdbc)
     kover(projects.kueryClientSpringDataR2dbc)
-    kover(projects.kueryClientSpringDataTesting)
 }
