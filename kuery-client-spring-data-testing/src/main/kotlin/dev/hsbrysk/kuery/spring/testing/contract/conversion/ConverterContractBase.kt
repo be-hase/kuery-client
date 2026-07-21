@@ -12,8 +12,14 @@ import org.junit.jupiter.api.BeforeEach
 abstract class ConverterContractBase {
     protected abstract val database: ContractDatabase
 
+    /**
+     * Converters registered on [kueryClient]. Called once, when [kueryClient] is lazily
+     * initialized. Contracts with a fixed converter set override this.
+     */
+    protected open fun createConverters(): List<Any> = emptyList()
+
     // lazy: `database` is not resolvable yet while this base class initializes.
-    protected val kueryClient: KueryClient by lazy { database.kueryClient() }
+    protected val kueryClient: KueryClient by lazy { database.kueryClient(createConverters()) }
 
     @BeforeEach
     fun setUpConverterTable() {
@@ -30,6 +36,6 @@ abstract class ConverterContractBase {
 
     @AfterEach
     fun dropConverterTable() {
-        database.execute("DROP TABLE converter")
+        database.execute("DROP TABLE IF EXISTS converter")
     }
 }

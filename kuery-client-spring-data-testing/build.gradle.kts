@@ -13,6 +13,10 @@ dependencies {
     api(projects.kueryClientCore)
     api(libs.kotlin.coroutines.core)
     api(libs.micrometer.observation)
+    // The conversion contracts register Spring Data converters (@WritingConverter/@ReadingConverter,
+    // Converter/ConverterFactory/GenericConverter), which live in spring-data-commons rather than
+    // either implementation module.
+    api(libs.spring.data.commons)
 
     // Contract tests live in the main source set, so test libraries must be declared explicitly
     // (conventions.kotlin only adds them to testImplementation). They are only used inside the
