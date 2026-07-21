@@ -1,58 +1,11 @@
 package dev.hsbrysk.kuery.spring.jdbc.mysql
 
-import assertk.assertThat
-import assertk.assertions.isEqualTo
-import dev.hsbrysk.kuery.core.values
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import java.time.LocalDateTime
+import dev.hsbrysk.kuery.spring.testing.contract.mysql.MySqlValuesHelperContract
 
-/**
- * Contrast to PostgresValuesHelperTest: MySQL does not infer VALUES parameter types per row, so
- * mixing null and non-null rows on a typed column just works.
- */
-class MySqlValuesHelperTest {
-    private val kueryClient = mysql.kueryClient()
-
-    @BeforeEach
-    fun setUp() {
-        mysql.jdbcClient.sql(
-            """
-            CREATE TABLE documents (
-                id INT PRIMARY KEY,
-                parent_id BINARY(16),
-                created_at DATETIME
-            )
-            """.trimIndent(),
-        ).update()
-    }
-
-    @AfterEach
-    fun tearDown() {
-        mysql.jdbcClient.sql("DROP TABLE documents").update()
-    }
-
-    @Test
-    fun `values mixing null and non-null rows on typed columns`() {
-        // given
-        val createdAt = LocalDateTime.of(2026, 1, 1, 0, 0, 0)
-        val input = listOf(
-            listOf(1, ByteArray(16) { it.toByte() }, createdAt),
-            listOf(2, null, null),
-        )
-
-        // when
-        val rowsUpdated = kueryClient.sql {
-            +"INSERT INTO documents (id, parent_id, created_at)"
-            values(input)
-        }.rowsUpdated()
-
-        // then
-        assertThat(rowsUpdated).isEqualTo(2L)
-    }
+class MySqlValuesHelperTest : MySqlValuesHelperContract() {
+    override val database get() = mysql
 
     companion object {
-        private val mysql = MySqlTestContainer
+        private val mysql = JdbcMySqlContractDatabase()
     }
 }

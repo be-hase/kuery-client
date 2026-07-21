@@ -13,4 +13,5 @@ import org.springframework.jdbc.BadSqlGrammarException
  */
 val jdbcExceptionProfile = ExceptionProfile(
     columnMismatchException = BadSqlGrammarException::class,
+    badSqlGrammarException = BadSqlGrammarException::class,
 )
