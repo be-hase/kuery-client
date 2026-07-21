@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.core.convert.converter.Converter
 import org.springframework.dao.DataRetrievalFailureException
+import org.springframework.dao.TypeMismatchDataAccessException
 import org.springframework.data.convert.ReadingConverter
 import org.springframework.r2dbc.core.awaitRowsUpdated
 import java.math.BigDecimal
@@ -83,6 +84,17 @@ class ValueClassFetchTest {
 
     @JvmInline
     value class OptionalUserName(val value: String?)
+
+    @JvmInline
+    value class Token(val value: String) {
+        init {
+            require(value.isNotEmpty()) { "must not be empty" }
+        }
+
+        // A secondary constructor means the class exposes more than one constructor-impl, so the
+        // fast box path is unavailable and boxing falls back to the kotlin-reflect constructor.
+        constructor(number: Int) : this(number.toString())
+    }
 
     private val kueryClient = h2.kueryClient()
 
@@ -202,6 +214,157 @@ class ValueClassFetchTest {
             +"SELECT text FROM converter"
         }.singleOrNull()
         assertThat(result).isEqualTo(UserName("user1"))
+    }
+
+    @Test
+    fun `singleOrNull returns null for a nullable-underlying value class scalar when no row matches`() = runTest {
+        // No row at all maps to the outer null, distinct from a SQL NULL row of a nullable-underlying
+        // value class, which maps to OptionalUserName(null).
+        // when & then
+        val result: OptionalUserName? = kueryClient.sql {
+            +"SELECT text FROM converter WHERE text = 'absent'"
+        }.singleOrNull()
+        assertThat(result).isNull()
+    }
+
+    @Test
+    fun `single rejects a SQL NULL value class scalar with a non-null underlying`() = runTest {
+        // The underlying type is non-null, so a SQL NULL cannot be held in the value class; single()
+        // must fail rather than hand back a null under a non-null return type. (singleOrNull()
+        // tolerates it and returns null; see the test above.)
+        // given
+        insert("INSERT INTO converter (text) VALUES (NULL)")
+
+        // when & then
+        assertFailure {
+            kueryClient.sql {
+                +"SELECT text FROM converter"
+            }.single<UserName>()
+        }.isInstanceOf(TypeMismatchDataAccessException::class)
+    }
+
+    @Test
+    fun `non-nullable value class property rejects SQL NULL`() = runTest {
+        // The property and its underlying type are both non-null, so a SQL NULL cannot be taken into
+        // the value class; construction fails rather than yielding a null value class.
+        // given
+        insert("INSERT INTO converter (text) VALUES (NULL)")
+
+        // when & then
+        // Kotlin's non-null parameter intrinsic in the data class constructor rejects the null,
+        // the same failure the plain data class path produces for a non-null property.
+        assertFailure {
+            kueryClient.sql {
+                +"SELECT text FROM converter"
+            }.single(NameRecord::class)
+        }.isInstanceOf(NullPointerException::class)
+    }
+
+    @Test
+    fun `value class with a secondary constructor is boxed through its primary constructor`() = runTest {
+        // A secondary constructor leaves no single constructor-impl/box-impl pair, so boxing falls
+        // back to the kotlin-reflect primary constructor rather than the fast path.
+        // given
+        insert("INSERT INTO converter (text) VALUES ('user1')")
+
+        // when & then
+        val result: Token = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(result).isEqualTo(Token("user1"))
+    }
+
+    @Test
+    fun `init validation surfaces as the original exception for a value class with a secondary constructor`() =
+        runTest {
+            // The kotlin-reflect constructor path wraps init failures in InvocationTargetException; it
+            // must be unwrapped so the require() IllegalArgumentException surfaces directly.
+            // given
+            insert("INSERT INTO converter (text) VALUES ('')")
+
+            // when & then
+            assertFailure {
+                kueryClient.sql {
+                    +"SELECT text FROM converter"
+                }.list<Token>()
+            }.isInstanceOf(IllegalArgumentException::class)
+                .hasMessage("must not be empty")
+        }
+
+    @Test
+    fun `generic value class is rejected as a scalar with a clear error`() = runTest {
+        // Same fail-fast as the data class property position, but with the generic value class as the
+        // fetch type itself: its underlying is a type parameter, so it cannot be boxed automatically.
+        // given
+        insert("INSERT INTO converter (text) VALUES ('user1')")
+
+        // when & then
+        assertFailure {
+            kueryClient.sql {
+                +"SELECT text FROM converter"
+            }.list<Wrapped<String>>()
+        }.isInstanceOf(IllegalArgumentException::class)
+            .messageContains("generic value class")
+    }
+
+    @Test
+    fun `generic value class scalar is mapped through a registered reading converter`() = runTest {
+        // A generic value class cannot be boxed automatically, but a registered converter serves it
+        // as the fetch type itself (it wins before the boxing fail-fast).
+        // given
+        val kueryClient = h2.kueryClient(listOf(StringToWrappedConverter()))
+        insert("INSERT INTO converter (text) VALUES ('user1')")
+
+        // when & then
+        val result: Wrapped<String> = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(result).isEqualTo(Wrapped("user1"))
+    }
+
+    @Test
+    fun `generic value class scalar keeps SQL NULL as a null element`() = runTest {
+        // A generic value class has no known underlying type, so it cannot take a SQL NULL as an
+        // inner null; the SQL NULL row is kept as a null element, like a non-null-underlying scalar.
+        // given
+        val kueryClient = h2.kueryClient(listOf(StringToWrappedConverter()))
+        insert("INSERT INTO converter (text) VALUES ('user1'), (NULL)")
+
+        // when & then
+        val result: List<Wrapped<String>?> = kueryClient.sql {
+            +"SELECT text FROM converter ORDER BY id"
+        }.list<Wrapped<String>>()
+        assertThat(result).isEqualTo(listOf(Wrapped("user1"), null))
+    }
+
+    @Test
+    fun `value class mutable body property is populated when no constructor parameter is a value class`() = runTest {
+        // The constructor takes no value class parameter, so mapping stays on Spring's
+        // DataClassRowMapper; a value class mutable body property is still populated through the
+        // inherited setter + ConversionService path.
+        // given
+        insert("INSERT INTO converter (text) VALUES ('user1')")
+
+        // when & then
+        val record: BodyValueClassRecord = kueryClient.sql {
+            +"SELECT id, text AS name FROM converter"
+        }.single()
+        assertThat(record.name).isEqualTo(UserName("user1"))
+    }
+
+    @Test
+    fun `value class mutable body property is populated alongside a value class constructor parameter`() = runTest {
+        // A value class constructor parameter routes to ValueClassPropertyRowMapper; a value class
+        // mutable body property is still populated through the inherited setter path.
+        // given
+        insert("INSERT INTO converter (text) VALUES ('user1')")
+
+        // when & then
+        val record: ConstructorAndBodyValueClassRecord = kueryClient.sql {
+            +"SELECT text, text AS name FROM converter"
+        }.single()
+        assertThat(record.text).isEqualTo(UserName("user1"))
+        assertThat(record.name).isEqualTo(UserName("user1"))
     }
 
     @Test
@@ -500,6 +663,16 @@ class ValueClassFetchTest {
         val id: Long,
         val text: UserName?,
     )
+
+    data class BodyValueClassRecord(val id: Long) {
+        var name: UserName? = null
+    }
+
+    data class ConstructorAndBodyValueClassRecord(val text: UserName) {
+        var name: UserName? = null
+    }
+
+    data class NameRecord(val text: UserName)
 
     data class EnumRecord(val text: Status)
 

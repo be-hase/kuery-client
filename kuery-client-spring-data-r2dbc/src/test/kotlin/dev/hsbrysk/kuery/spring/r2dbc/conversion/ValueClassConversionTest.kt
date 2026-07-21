@@ -46,6 +46,11 @@ class ValueClassConversionTest {
     @JvmInline
     value class OptionalAge(val value: Int?)
 
+    data class CustomType(val raw: String)
+
+    @JvmInline
+    value class WrappedCustomType(val value: CustomType)
+
     private val kueryClient = h2.kueryClient()
 
     @BeforeEach
@@ -239,9 +244,34 @@ class ValueClassConversionTest {
         assertThat(map["text"]).isEqualTo("custom:hoge")
     }
 
+    @Test
+    fun `unwrapped underlying value goes through its own writing converter`() = runTest {
+        // No converter targets WrappedCustomType itself, so it is unwrapped to its CustomType
+        // underlying, which is then re-dispatched through the conversion pipeline and picked up by
+        // the CustomType -> String writing converter.
+        // given
+        val kueryClient = h2.kueryClient(listOf(CustomTypeToStringConverter()))
+
+        // when
+        kueryClient.sql {
+            +"INSERT INTO converter (text) VALUES (${WrappedCustomType(CustomType("hoge"))})"
+        }.rowsUpdated()
+
+        // then
+        val map = kueryClient.sql {
+            +"SELECT * FROM converter"
+        }.singleMap()
+        assertThat(map["text"]).isEqualTo("custom:hoge")
+    }
+
     @WritingConverter
     class UserNameToStringConverter : Converter<UserName, String> {
         override fun convert(source: UserName): String = "custom:${source.value}"
+    }
+
+    @WritingConverter
+    class CustomTypeToStringConverter : Converter<CustomType, String> {
+        override fun convert(source: CustomType): String = "custom:${source.raw}"
     }
 
     companion object {
