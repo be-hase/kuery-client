@@ -41,7 +41,10 @@ public class SpringDataWriteConverter(
             KotlinDetector.isInlineClass(componentType) -> {
                 val underlying = ValueClasses.underlyingType(componentType)
                 // A generic value class erases its underlying to Object, which is not a useful SQL
-                // array component type. Infer it from the converted elements when possible.
+                // array component type; return null so the caller infers the concrete type from the
+                // converted elements. An empty or all-null such array cannot be inferred — no
+                // driver-compatible component type can be produced and most drivers reject it
+                // (documented as unsupported).
                 if (underlying == Any::class.java) null else componentWriteTarget(underlying) ?: underlying
             }
             Enum::class.java.isAssignableFrom(componentType) -> String::class.java
