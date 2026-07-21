@@ -44,6 +44,7 @@ Integration tests (`kuery-client-spring-data-r2dbc`, `kuery-client-spring-data-j
 | `kuery-client-core` | Core interfaces and SQL builder. No Spring dependency. |
 | `kuery-client-compiler` | Kotlin compiler plugin (IR transformation). |
 | `kuery-client-gradle-plugin` | Gradle plugin that wires the compiler plugin into user projects. |
+| `kuery-client-spring-data-common` | Internal support shared by the two Spring Data implementations (value class reflection, read/write conversion). Published as their runtime dependency but exposes no public API. |
 | `kuery-client-spring-data-r2dbc` | `KueryClient` implementation using Spring Data R2DBC (coroutines). |
 | `kuery-client-spring-data-jdbc` | `KueryBlockingClient` implementation using Spring Data JDBC (blocking). |
 | `build-logic` | Convention Gradle plugins shared across modules. |
@@ -77,7 +78,7 @@ Row mapping uses `DataClassRowMapper` (Spring's data class mapper) for complex t
 
 All modules apply `conventions.preset.base` (= `conventions.kotlin` + `conventions.ktlint` + `conventions.detekt`). The Kotlin toolchain is Java 17 (Adoptium). `allWarningsAsErrors = true` is enforced. Versions are centralized in `gradle/libs.versions.toml`.
 
-`kuery-client-core`, `kuery-client-spring-data-jdbc`, and `kuery-client-spring-data-r2dbc` additionally apply `conventions.public-api`, which enables Kotlin explicit API mode and KGP built-in ABI validation. `checkKotlinAbi` runs as part of `check`; when the public API changes intentionally, run `./gradlew updateKotlinAbi` and commit the updated `api/*.api` files. Declarations annotated with `@KueryClientInternalApi` are excluded from the ABI dumps and carry no compatibility guarantee.
+`kuery-client-core`, `kuery-client-spring-data-common`, `kuery-client-spring-data-jdbc`, and `kuery-client-spring-data-r2dbc` additionally apply `conventions.public-api`, which enables Kotlin explicit API mode and KGP built-in ABI validation. `checkKotlinAbi` runs as part of `check`; when the public API changes intentionally, run `./gradlew updateKotlinAbi` and commit the updated `api/*.api` files. Declarations annotated with `@KueryClientInternalApi` are excluded from the ABI dumps and carry no compatibility guarantee. The `kuery-client-spring-data-common` dump is intentionally empty — every declaration there is `@KueryClientInternalApi`, public only so the jdbc/r2dbc modules can reach it.
 
 ### `@DelicateKueryClientApi`
 
