@@ -432,6 +432,50 @@ class ValueClassFetchTest {
     }
 
     @Test
+    fun `value class wrapping an enum is mapped as a scalar`() = runTest {
+        // The scalar path (value class as the fetch type itself) recurses value class -> enum: the
+        // column String is coerced to the enum underlying through the ConversionService, then boxed.
+        // given
+        insert("INSERT INTO converter (text) VALUES ('HOGE')")
+
+        // when & then
+        val result: List<Status> = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.list()
+        assertThat(result).isEqualTo(listOf(Status(SampleEnum.HOGE)))
+    }
+
+    @Test
+    fun `each value class constructor parameter is mapped from its own column`() = runTest {
+        // A data class with more than one value class parameter: each parameter must be resolved
+        // from its own matched column independently, with no cross-talk between converters.
+        // given
+        insert("INSERT INTO converter (text) VALUES ('user1')")
+
+        // when & then
+        val record: MultiValueClassRecord = kueryClient.sql {
+            +"SELECT text AS name, id AS amount FROM converter"
+        }.single()
+        assertThat(record.name).isEqualTo(UserName("user1"))
+        assertThat(record.amount).isEqualTo(Amount(1))
+    }
+
+    @Test
+    fun `default value applies when the column for a defaulted value class parameter is SQL NULL`() = runTest {
+        // A value class parameter with a Kotlin default: a SQL NULL yields a null converted value,
+        // which is omitted for the optional parameter so the default value class applies (mirrors
+        // the non-value-class defaulted parameter path).
+        // given
+        insert("INSERT INTO converter (text) VALUES (NULL)")
+
+        // when & then
+        val record: DefaultedValueClassRecord = kueryClient.sql {
+            +"SELECT text FROM converter"
+        }.single()
+        assertThat(record.text).isEqualTo(UserName("default"))
+    }
+
+    @Test
     fun `init validation runs when mapping a value class`() = runTest {
         // given
         insert("INSERT INTO converter (text) VALUES ('')")
@@ -673,6 +717,13 @@ class ValueClassFetchTest {
     }
 
     data class NameRecord(val text: UserName)
+
+    data class MultiValueClassRecord(
+        val name: UserName,
+        val amount: Amount,
+    )
+
+    data class DefaultedValueClassRecord(val text: UserName = UserName("default"))
 
     data class EnumRecord(val text: Status)
 
