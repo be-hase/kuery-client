@@ -658,6 +658,52 @@ class SqlSyntaxCheckerTest {
     }
 
     @Test
+    fun `warn for sql calls through an intersection-typed receiver`() {
+        // A smart cast on an unbounded type parameter produces an intersection type
+        // (T & KueryBlockingClient); the call must still be recognized as a client sql call.
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.KueryBlockingClient
+
+            fun <T> query(client: T) {
+                if (client is KueryBlockingClient) {
+                    client.sql { +"SELCT * FROM users" }
+                }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).contains(DIAGNOSTIC_NAME)
+    }
+
+    @Test
+    fun `no warning when an add argument is a non-trim method chain`() {
+        // Only trimIndent/trimMargin chains are reconstructable; any other chain makes the text
+        // statically unknown, so the block is skipped instead of guessing (the chains already
+        // draw KUERY_UNSAFE_SQL_STRING).
+        // when
+        val result = compile(
+            """
+            import dev.hsbrysk.kuery.core.Sql
+
+            fun query() {
+                Sql { add("SELCT * FROM users".lowercase()) }
+                Sql { add("SELCT *".plus(" FROM users")) }
+            }
+            """.trimIndent(),
+            pluginOptions = listOf(sqlSyntaxCheckOption()),
+        )
+
+        // then
+        assertThat(result.exitCode).isEqualTo(KotlinCompilation.ExitCode.OK)
+        assertThat(result.messages).doesNotContain(DIAGNOSTIC_NAME)
+    }
+
+    @Test
     fun `the warning message contains the parser reason without exception class names`() {
         // when
         val result = compile(

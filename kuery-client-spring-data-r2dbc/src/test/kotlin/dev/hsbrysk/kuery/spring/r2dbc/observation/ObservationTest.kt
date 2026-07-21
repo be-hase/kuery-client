@@ -1,9 +1,11 @@
 package dev.hsbrysk.kuery.spring.r2dbc.observation
 
 import com.example.spring.r2dbc.UserRepository
+import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.spring.r2dbc.R2dbcH2ContractDatabase
 import dev.hsbrysk.kuery.spring.r2dbc.SpringR2dbcKueryClient
 import dev.hsbrysk.kuery.spring.testing.contract.observation.ObservationContract
+import io.micrometer.observation.tck.TestObservationRegistry
 import io.micrometer.observation.tck.TestObservationRegistryAssert
 import io.r2dbc.spi.Connection
 import io.r2dbc.spi.ConnectionFactory
@@ -34,6 +36,30 @@ class ObservationTest : ObservationContract() {
     fun `flow does not record an observation`() = runTest {
         UserRepository(kueryClient).flow().collect()
         TestObservationRegistryAssert.assertThat(registry).doesNotHaveAnyObservation()
+    }
+
+    @Test
+    fun `a custom observationConvention replaces the default convention`() = runTest {
+        // given
+        val customRegistry = TestObservationRegistry.create()
+        val convention = object : KueryClientFetchObservationConvention {
+            override fun getName(): String = "custom.fetches"
+        }
+        val client = SpringR2dbcKueryClient.builder()
+            .connectionFactory(h2.connectionFactory)
+            .observationRegistry(customRegistry)
+            .observationConvention(convention)
+            .build()
+
+        // when
+        client.sql { +"SELECT * FROM users" }.listMap()
+
+        // then
+        TestObservationRegistryAssert.assertThat(customRegistry)
+            .hasObservationWithNameEqualTo("custom.fetches")
+            .that()
+            .hasBeenStarted()
+            .hasBeenStopped()
     }
 
     @Test

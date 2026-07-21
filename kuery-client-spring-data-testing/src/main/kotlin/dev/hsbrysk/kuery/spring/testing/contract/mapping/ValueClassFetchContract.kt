@@ -393,6 +393,21 @@ abstract class ValueClassFetchContract : ConverterContractBase() {
     }
 
     @Test
+    fun `a type-parameter property receives the column value unconverted`() = runTest {
+        // The declared type of the property is a type parameter of the data class, so there is no
+        // conversion target; the raw column value is passed to the constructor as-is.
+        // given
+        database.execute("INSERT INTO converter (text) VALUES ('user1')")
+
+        // when & then
+        val record: TypeParamRecord<String> = kueryClient.sql {
+            +"SELECT text, text AS payload FROM converter"
+        }.single()
+        assertThat(record.text).isEqualTo(UserName("user1"))
+        assertThat(record.payload).isEqualTo("user1")
+    }
+
+    @Test
     fun `default value applies when the column for a defaulted value class parameter is SQL NULL`() = runTest {
         // A value class parameter with a Kotlin default: a SQL NULL yields a null converted value,
         // which is omitted for the optional parameter so the default value class applies (mirrors
@@ -679,6 +694,11 @@ abstract class ValueClassFetchContract : ConverterContractBase() {
     data class MultiValueClassRecord(
         val name: UserName,
         val amount: Amount,
+    )
+
+    data class TypeParamRecord<T>(
+        val text: UserName,
+        val payload: T,
     )
 
     data class DefaultedValueClassRecord(val text: UserName = UserName("default"))

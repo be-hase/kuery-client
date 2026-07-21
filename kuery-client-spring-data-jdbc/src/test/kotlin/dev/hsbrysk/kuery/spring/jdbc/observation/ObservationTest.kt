@@ -3,6 +3,7 @@ package dev.hsbrysk.kuery.spring.jdbc.observation
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.example.spring.jdbc.UserRepository
+import dev.hsbrysk.kuery.core.observation.KueryClientFetchObservationConvention
 import dev.hsbrysk.kuery.spring.jdbc.JdbcH2ContractDatabase
 import dev.hsbrysk.kuery.spring.testing.contract.observation.ObservationContract
 import io.micrometer.observation.Observation
@@ -29,6 +30,26 @@ class ObservationTest : ObservationContract() {
         val blockingClient = h2.blockingClient(observationRegistry = registry)
         UserRepository(blockingClient).sequence().toList()
         TestObservationRegistryAssert.assertThat(registry).doesNotHaveAnyObservation()
+    }
+
+    @Test
+    fun `a custom observationConvention replaces the default convention`() {
+        // given
+        val customRegistry = TestObservationRegistry.create()
+        val convention = object : KueryClientFetchObservationConvention {
+            override fun getName(): String = "custom.fetches"
+        }
+        val client = h2.blockingClient(observationRegistry = customRegistry, observationConvention = convention)
+
+        // when
+        client.sql { +"SELECT * FROM users" }.listMap()
+
+        // then
+        TestObservationRegistryAssert.assertThat(customRegistry)
+            .hasObservationWithNameEqualTo("custom.fetches")
+            .that()
+            .hasBeenStarted()
+            .hasBeenStopped()
     }
 
     @Test
