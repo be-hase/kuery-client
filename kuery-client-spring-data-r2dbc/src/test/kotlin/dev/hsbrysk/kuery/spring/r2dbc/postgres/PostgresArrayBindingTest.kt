@@ -29,6 +29,12 @@ class PostgresArrayBindingTest {
     @JvmInline
     value class Wrapped<T>(val value: T)
 
+    @JvmInline
+    value class Status(val value: SampleEnum)
+
+    @JvmInline
+    value class OptionalStatus(val value: SampleEnum?)
+
     @WritingConverter
     class StringWrapperToStringConverter : Converter<StringWrapper, String> {
         override fun convert(source: StringWrapper): String = source.value
@@ -95,6 +101,66 @@ class PostgresArrayBindingTest {
 
         // then
         assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind value class wrapping enum array to ANY predicate`() = runTest {
+        // The value class recurses value class -> enum -> String, so the array binds as String[]
+        // with the enum names.
+        // given
+        val statuses = arrayOf(Status(SampleEnum.HOGE), Status(SampleEnum.FUGA))
+
+        // when
+        val list = kueryClient
+            .sql { +"SELECT username FROM users WHERE username = ANY($statuses) ORDER BY user_id" }
+            .listMap()
+
+        // then
+        assertThat(list.map { it["username"] }).isEqualTo(listOf("HOGE", "FUGA"))
+    }
+
+    @Test
+    fun `bind empty value class wrapping enum array to a native array column`() = runTest {
+        // The component type carries the value class -> enum -> String intent even with no elements,
+        // so an empty array still binds as String[].
+        // given
+        val tags = arrayOf<Status>()
+
+        // when
+        val count = kueryClient
+            .sql { +"INSERT INTO users (username, tags) VALUES ('tagged', $tags)" }
+            .rowsUpdated()
+
+        // then
+        assertThat(count).isEqualTo(1L)
+
+        val record = kueryClient
+            .sql { +"SELECT tags FROM users WHERE username = 'tagged'" }
+            .singleMap()
+        val stored = record["tags"] as Array<*>
+        assertThat(stored.toList()).isEqualTo(emptyList<String>())
+    }
+
+    @Test
+    fun `bind all-inner-null value class wrapping enum array to a native array column`() = runTest {
+        // Every element is an inner null (nullable underlying enum); the component type is still
+        // resolved to String[] from the value class, so the array binds with null elements.
+        // given
+        val tags = arrayOf(OptionalStatus(null), OptionalStatus(null))
+
+        // when
+        val count = kueryClient
+            .sql { +"INSERT INTO users (username, tags) VALUES ('tagged', $tags)" }
+            .rowsUpdated()
+
+        // then
+        assertThat(count).isEqualTo(1L)
+
+        val record = kueryClient
+            .sql { +"SELECT tags FROM users WHERE username = 'tagged'" }
+            .singleMap()
+        val stored = record["tags"] as Array<*>
+        assertThat(stored.toList()).isEqualTo(listOf(null, null))
     }
 
     @Test

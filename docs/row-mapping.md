@@ -114,11 +114,14 @@ val names: List<UserName> = kueryClient
 Boxing goes through the primary constructor, so `init` validation runs — an invalid database value fails with
 the same exception the constructor would throw. Value classes wrapping enums (or other value classes) convert
 recursively. A registered `@ReadingConverter` targeting the value class takes precedence over automatic
-boxing; see [Type Conversion](/type-conversion).
+boxing; see [Type Conversion](/type-conversion). Value classes also work as mutable (`var`) body properties,
+not just constructor parameters.
 
 Generic value classes (e.g. `value class Wrapped<T>(val value: T)`) cannot be boxed automatically — the
-underlying type is a type parameter — and are rejected with an error. Register a `@ReadingConverter` for them
-instead.
+underlying type is a type parameter — and are rejected with an error, whether used as the return type itself or
+as a data class property. Register a `@ReadingConverter` for them instead. As a scalar with such a converter, a
+SQL `NULL` is kept as a `null` element (the underlying type is unknown, so the `NULL` cannot be taken inside the
+value class).
 
 ### Nullable columns
 
