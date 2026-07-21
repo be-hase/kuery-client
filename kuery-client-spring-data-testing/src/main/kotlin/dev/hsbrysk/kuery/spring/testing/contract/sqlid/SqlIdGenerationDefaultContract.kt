@@ -80,4 +80,13 @@ abstract class SqlIdGenerationDefaultContract {
 
         assertThat(capturedSqlIds).containsExactly("NONE")
     }
+
+    @Test
+    fun `explicit true enables auto sqlId generation without an observationRegistry`() = runTest {
+        val kueryClient = capturingKueryClient(enableAutoSqlIdGeneration = true)
+
+        UserRepository(kueryClient).singleMap(1)
+
+        assertThat(capturedSqlIds).containsExactly("com.example.spring.testing.UserRepository.singleMap")
+    }
 }
