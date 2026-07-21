@@ -76,7 +76,15 @@ abstract class MySqlSingleBasicTypeContract {
     fun `list maps each row of a single-column result`() = runTest {
         // when
         val result = kueryClient.sql {
-            +"SELECT 1 UNION SELECT 0"
+            +"""
+            SELECT value
+            FROM (
+                SELECT 1 AS value
+                UNION ALL
+                SELECT 0 AS value
+            ) AS numbers
+            ORDER BY value DESC
+            """.trimIndent()
         }.list(Int::class)
 
         // then
