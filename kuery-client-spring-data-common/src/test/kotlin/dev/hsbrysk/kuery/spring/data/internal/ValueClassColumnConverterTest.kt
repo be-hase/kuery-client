@@ -1,8 +1,11 @@
-package dev.hsbrysk.kuery.spring.jdbc.internal
+@file:OptIn(KueryClientInternalApi::class)
+
+package dev.hsbrysk.kuery.spring.data.internal
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNull
+import dev.hsbrysk.kuery.core.KueryClientInternalApi
 import org.junit.jupiter.api.Test
 import org.springframework.core.convert.converter.Converter
 import org.springframework.core.convert.support.DefaultConversionService
@@ -15,11 +18,6 @@ import java.math.BigDecimal
  * produces for the underlying retrieval — including the driver-typed-converter case that r2dbc-h2
  * cannot reproduce through an integration test (its `readable.get` does not coerce a numeric column
  * to another type).
- *
- * Mirrored verbatim in the r2dbc module
- * (dev.hsbrysk.kuery.spring.r2dbc.internal.ValueClassColumnConverterTest): the two
- * ValueClassColumnConverter implementations are intentionally duplicated and must share the same
- * conversion contract, so the tests use identical class and method names.
  */
 class ValueClassColumnConverterTest {
     @JvmInline

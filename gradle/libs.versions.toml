@@ -23,6 +23,7 @@ micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "mic
 micrometer-observation-test = { module = "io.micrometer:micrometer-observation-test", version.ref = "micrometer" }
 mockk-core = { module = "io.mockk:mockk", version = "1.14.11" }
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+spring-data-commons = { module = "org.springframework.data:spring-data-commons", version.ref = "spring-data" }
 spring-data-jdbc = { module = "org.springframework.data:spring-data-jdbc", version.ref = "spring-data" }
 spring-data-r2dbc = { module = "org.springframework.data:spring-data-r2dbc", version.ref = "spring-data" }
 
