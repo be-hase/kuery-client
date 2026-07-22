@@ -9,13 +9,20 @@ plugins {
 description = "PoC: core DSL as Kotlin Multiplatform + compiler plugin on Kotlin/Native."
 
 kotlin {
-    jvmToolchain(17)
+    // 21, not the repo-wide 17: sqlx4k's JVM artifacts are built with a newer class-file
+    // version than Java 17 (UnsupportedClassVersionError on 17 — a real finding of this PoC).
+    jvmToolchain(21)
     jvm()
     macosArm64()
 
     sourceSets {
+        commonMain.dependencies {
+            // Second PoC stage: a minimal KueryClient subset backed by sqlx4k (SQLite).
+            implementation("io.github.smyrgeorge:sqlx4k-sqlite:1.12.0")
+        }
         commonTest.dependencies {
             implementation(kotlin("test"))
+            implementation(libs.kotlin.coroutines.test)
         }
     }
 }
