@@ -1,7 +1,6 @@
 package dev.hsbrysk.kuery.sqlx4k
 
 import dev.hsbrysk.kuery.core.values
-import dev.hsbrysk.kuery.sqlx4k.generated.UserAutoRowMapper
 import io.github.smyrgeorge.sqlx4k.ConnectionPool
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asInt
 import io.github.smyrgeorge.sqlx4k.sqlite.ISQLite
@@ -103,8 +102,8 @@ class Sqlx4kKueryClientPocTest {
 
     @Test
     // Kotlin/Native rejects '@' in backticked test names ("Name contains illegal characters"),
-    // hence "Table-annotated" instead of "@Table".
-    fun `ksp-generated RowMapper maps rows into the Table-annotated data class`() = runTest {
+    // hence "Record-annotated" instead of "@Record".
+    fun `ksp-generated RowMapper maps rows into the Record-annotated data class`() = runTest {
         val (db, client) = setUp("generated-mapper")
         val users = listOf(
             User(id = 1, name = "user1", email = "user1@example.com"),
@@ -116,11 +115,11 @@ class Sqlx4kKueryClientPocTest {
             values(users) { listOf(it.id, it.name, it.email) }
         }.rowsUpdated()
 
-        val loaded = client.sql { +"SELECT * FROM users ORDER BY id" }.list(UserAutoRowMapper)
+        val loaded = client.sql { +"SELECT * FROM users ORDER BY id" }.list(UserRowMapper)
         assertEquals(users, loaded)
 
         val id = 2
-        val single = client.sql { +"SELECT * FROM users WHERE id = $id" }.single(UserAutoRowMapper)
+        val single = client.sql { +"SELECT * FROM users WHERE id = $id" }.single(UserRowMapper)
         assertEquals(User(id = 2, name = "user2", email = null), single)
 
         db.close().getOrThrow()

@@ -1,15 +1,14 @@
 package dev.hsbrysk.kuery.sqlx4k
 
-import io.github.smyrgeorge.sqlx4k.annotation.Id
-import io.github.smyrgeorge.sqlx4k.annotation.Table
+import dev.hsbrysk.kuery.annotation.Record
 
 /**
- * PoC entity: sqlx4k-codegen (KSP) generates `generated.UserAutoRowMapper` from this class,
- * which is the reflection-free replacement for the Spring backends' data-class mapping.
+ * PoC entity: the kuery KSP processor (:kmp-poc:codegen) generates `UserRowMapper` from this
+ * class — the reflection-free replacement for the Spring backends' data-class mapping.
+ * No table name, no id: @Record only drives row mapping.
  */
-@Table("users")
+@Record
 data class User(
-    @Id(insert = true)
     val id: Int,
     val name: String,
     val email: String?,

@@ -25,6 +25,7 @@ plugins {
 
 // PoC only (not published): KMP build of the core DSL to verify the compiler plugin on Kotlin/Native.
 include("kmp-poc")
+include("kmp-poc:codegen")
 include("kuery-client-compiler")
 include("kuery-client-compiler:benchmark")
 include("kuery-client-compiler:benchmark-auto-trim")

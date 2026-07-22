@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 plugins {
     // No version: the Kotlin Gradle plugin is already on the build classpath (root build).
     kotlin("multiplatform")
-    // Third PoC stage: sqlx4k-codegen generates RowMapper implementations from @Table entities.
+    // RowMapper generation from @Record entities (see :kmp-poc:codegen).
     // 2.3.10 is the KSP version sqlx4k itself pairs with Kotlin 2.4.10.
     id("com.google.devtools.ksp") version "2.3.10"
 }
@@ -39,17 +39,12 @@ kotlin {
     }
 }
 
-// NOTE: the KSP2 worker runs in the Gradle daemon's JVM, so the daemon itself must be on
-// Java 21+ (sqlx4k-codegen class files are 65.0). Run with e.g.
-//   JAVA_HOME=~/.gradle/jdks/eclipse_adoptium-21-.../Contents/Home ./gradlew :kmp-poc:jvmTest
-ksp {
-    arg("dialect", "sqlite")
-    arg("output-package", "dev.hsbrysk.kuery.sqlx4k.generated")
-    arg("validate-sql-schema", "false")
-}
-
+// Fourth PoC stage: our own @Record processor replaces sqlx4k-codegen — no table name, no @Id,
+// mapper-only generation. It also removes the "Gradle daemon must run on Java 21+" constraint
+// that sqlx4k-codegen (class files 65.0) imposed on the KSP2 worker: :kmp-poc:codegen is built
+// with the repo-wide Java 17 toolchain. (The jvmTest *runtime* still needs 21 — see above.)
 dependencies {
-    add("kspCommonMainMetadata", "io.github.smyrgeorge:sqlx4k-codegen:1.12.0")
+    add("kspCommonMainMetadata", project(":kmp-poc:codegen"))
 }
 
 // Every target compilation consumes the common KSP output, so order them after it.
