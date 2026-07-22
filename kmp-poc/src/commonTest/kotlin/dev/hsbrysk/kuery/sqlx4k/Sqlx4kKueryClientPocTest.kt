@@ -126,6 +126,35 @@ class Sqlx4kKueryClientPocTest {
     }
 
     @Test
+    fun `reified type argument alone drives compiler-plugin-synthesized mapping`() = runTest {
+        val (db, client) = setUp("plugin-mapper")
+        val users = listOf(
+            User(id = 1, name = "user1", email = "user1@example.com"),
+            User(id = 2, name = "user2", email = null),
+        )
+
+        client.sql {
+            +"INSERT INTO users (id, name, email)"
+            values(users) { listOf(it.id, it.name, it.email) }
+        }.rowsUpdated()
+
+        // No annotation, no KSP, no reflection: the compiler plugin synthesizes the mapper
+        // from the reified type argument at this call site.
+        val loaded = client.sql { +"SELECT * FROM users ORDER BY id" }.list<User>()
+        assertEquals(users, loaded)
+
+        val id = 2
+        val single = client.sql { +"SELECT * FROM users WHERE id = $id" }.single<User>()
+        assertEquals(User(id = 2, name = "user2", email = null), single)
+
+        val missingId = 999
+        val missing = client.sql { +"SELECT * FROM users WHERE id = $missingId" }.singleOrNull<User>()
+        assertEquals(null, missing)
+
+        db.close().getOrThrow()
+    }
+
+    @Test
     fun `single throws when no rows match`() = runTest {
         val (db, client) = setUp("single-empty")
 

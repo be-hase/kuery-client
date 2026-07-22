@@ -17,5 +17,8 @@ class KueryClientIrGenerationExtension(
         // touches the add/unaryPlus calls inside the block, so the passes do not interfere.
         moduleFragment.transformChildren(SqlIdInjectionTransformer(pluginContext, messageCollector), null)
         moduleFragment.transformChildren(StringInterpolationTransformer(pluginContext, autoTrimIndent), null)
+        // PoC (sqlx4k backend exploration): independent of the passes above — it only rewrites
+        // Sqlx4kFetchSpec.single/singleOrNull/list marker calls, which exist only in the PoC module.
+        moduleFragment.transformChildren(RowMapperSynthesisTransformer(pluginContext, messageCollector), null)
     }
 }

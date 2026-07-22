@@ -6,6 +6,7 @@ import io.github.smyrgeorge.sqlx4k.QueryExecutor
 import io.github.smyrgeorge.sqlx4k.ResultSet
 import io.github.smyrgeorge.sqlx4k.RowMapper
 import io.github.smyrgeorge.sqlx4k.Statement
+import kotlin.reflect.KClass
 
 /**
  * PoC: minimal KueryClient-like facade backed by a sqlx4k [QueryExecutor].
@@ -61,6 +62,29 @@ public class Sqlx4kFetchSpec internal constructor(
 
     public suspend fun <T> list(mapper: RowMapper<T>): List<T> =
         executor.fetchAll(statement(), mapper).getOrThrow()
+
+    // Compiler-plugin mapping (the fourth PoC stage): `.list<User>()` — no annotation, no KSP,
+    // no reflection. The plugin synthesizes the (Row) -> T mapper from the reified type argument
+    // and rewrites the call to the lambda overloads above. Without the plugin these markers
+    // throw at runtime, mirroring the add/unaryPlus design. The KClass variants exist because
+    // the inline wrappers may already be inlined when the IR pass runs (backend-dependent);
+    // the plugin recognizes both shapes.
+    public suspend inline fun <reified T : Any> single(): T = single(T::class)
+
+    public suspend inline fun <reified T : Any> singleOrNull(): T? = singleOrNull(T::class)
+
+    public suspend inline fun <reified T : Any> list(): List<T> = list(T::class)
+
+    public suspend fun <T : Any> single(type: KClass<T>): T = injectedByPlugin(type)
+
+    public suspend fun <T : Any> singleOrNull(type: KClass<T>): T? = injectedByPlugin(type)
+
+    public suspend fun <T : Any> list(type: KClass<T>): List<T> = injectedByPlugin(type)
+
+    private fun injectedByPlugin(type: KClass<*>): Nothing = error(
+        "`Sqlx4kFetchSpec.single/singleOrNull/list<${type.simpleName}>()` must be rewritten by the " +
+            "kuery-client compiler plugin (PoC), but this call was not. Make sure the plugin is applied.",
+    )
 
     private suspend fun rows(): List<ResultSet.Row> = executor.fetchAll(statement()).getOrThrow().toList()
 
