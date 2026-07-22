@@ -494,6 +494,28 @@ class StringInterpolationTest {
     }
 
     @Test
+    fun `a multi-dollar template keeps single dollars as raw text and binds double-dollar values`() {
+        // Multi-dollar interpolation is resolved by the parser, so by the time the IR rewrite
+        // runs, the template is indistinguishable from a regular one: `$` is a plain character
+        // and only `$$`-prefixed entries are interpolation values.
+        // given
+        val id = 5
+
+        // when
+        val sql = Sql {
+            +$$"SELECT data->>'$name' FROM t WHERE id = $$id AND tag = $${"x".uppercase()}"
+        }
+
+        // then
+        assertThat(sql).isEqualTo(
+            Sql(
+                "SELECT data->>'\$name' FROM t WHERE id = :p0 AND tag = :p1",
+                listOf(NamedSqlParameter("p0", 5), NamedSqlParameter("p1", "X")),
+            ),
+        )
+    }
+
+    @Test
     fun `interpolated percent chars are inlined as raw text around a bound value`() {
         // given
         val keyword = "foo"
