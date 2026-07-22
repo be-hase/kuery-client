@@ -61,6 +61,9 @@ export default defineConfig({
         nav: [
             {text: "Home", link: "/"},
             {text: "Docs", link: "/getting-started"},
+            // Dokka HTML copied into docs/public/api at build time (see `docs:api` script);
+            // target keeps VitePress' SPA router from intercepting the navigation.
+            {text: "API", link: "/api/", target: "_blank"},
         ],
 
         sidebar: [

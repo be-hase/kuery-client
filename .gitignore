@@ -21,3 +21,5 @@ out/
 /node_modules
 docs/.vitepress/cache
 docs/.vitepress/dist
+# Dokka HTML copied in by `npm run docs:api`; generated, never committed
+docs/public/api

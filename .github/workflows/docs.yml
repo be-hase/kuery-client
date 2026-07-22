@@ -31,10 +31,19 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Set up gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Setup Pages
         uses: actions/configure-pages@v6
       - name: Install dependencies
         run: npm ci
+      - name: Build API docs with Dokka
+        run: npm run docs:api
       - name: Build with VitePress
         run: npm run docs:build
       - name: Upload artifact
