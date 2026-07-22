@@ -6,7 +6,7 @@ import com.vanniktech.maven.publish.SourcesJar
 
 plugins {
     id("com.vanniktech.maven.publish")
-    id("org.jetbrains.dokka")
+    id("conventions.dokka")
 }
 
 mavenPublishing {

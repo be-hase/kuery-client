@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "docs:api": "./gradlew :dokkaGeneratePublicationHtml && rm -rf docs/public/api && cp -R build/dokka/html docs/public/api",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"

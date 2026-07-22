@@ -29,7 +29,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
       - name: Check
         run: |
-          ./gradlew check detektMain detektTest :koverXmlReport
+          ./gradlew check detektMain detektTest :koverXmlReport :dokkaGeneratePublicationHtml
           ./gradlew -p examples check detektMain detektTest
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7

@@ -45,6 +45,29 @@ export default defineConfig({
     vite: {
         plugins: [
             {
+                // The Vite dev server only serves public/ files on exact paths; directory URLs
+                // like /api/ fall through to the SPA fallback and render VitePress' 404 page.
+                // The built site (GitHub Pages, `docs:preview`) resolves directory indexes itself,
+                // so mimic that in dev for the Dokka site copied in by `docs:api`.
+                name: 'serve-dokka-api-in-dev',
+                configureServer(server) {
+                    server.middlewares.use((req, res, next) => {
+                        const [path, query = ''] = (req.url ?? '').split('?')
+                        const suffix = query ? `?${query}` : ''
+                        if (path === '/api') {
+                            res.statusCode = 302
+                            res.setHeader('Location', `/api/${suffix}`)
+                            res.end()
+                            return
+                        }
+                        if (path.startsWith('/api/') && path.endsWith('/')) {
+                            req.url = `${path}index.html${suffix}`
+                        }
+                        next()
+                    })
+                },
+            },
+            {
                 name: 'replace-kuery-client-version',
                 enforce: 'pre',
                 transform(code, id) {
@@ -61,6 +84,9 @@ export default defineConfig({
         nav: [
             {text: "Home", link: "/"},
             {text: "Docs", link: "/getting-started"},
+            // Dokka HTML copied into docs/public/api at build time (see `docs:api` script);
+            // target keeps VitePress' SPA router from intercepting the navigation.
+            {text: "API", link: "/api/", target: "_blank"},
         ],
 
         sidebar: [
