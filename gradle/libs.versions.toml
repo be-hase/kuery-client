@@ -39,7 +39,7 @@ gradle-plugin-ktlint = { module = "org.jlleitschuh.gradle:ktlint-gradle", versio
 gradle-plugin-maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.37.0" }
 
 [plugins]
-buildconfig = { id = "com.github.gmazzo.buildconfig", version = "6.1.0" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version = "6.1.1" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin-core" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin-core" }
 plugin-publish = { id = "com.gradle.plugin-publish", version = "2.2.1" }
